@@ -199,6 +199,7 @@ const MobilesPosting = ({selectedCat,selectedSubCatOption,selectedAccessory}) =>
   );
 
   const showConditionField = useMemo(() => 
+    isMobilePhones ||
     isTablets || 
     isSmartWatches || 
     (isAccessories && [
@@ -233,7 +234,7 @@ const MobilesPosting = ({selectedCat,selectedSubCatOption,selectedAccessory}) =>
   };
 
   const handleVideoUpload = (e) => {
-    const file = e.target.files[0];
+    const file = input.files[0];
     if (file && file.type.includes('video')) {
       setVideoFile(file);
     }
@@ -243,81 +244,132 @@ const MobilesPosting = ({selectedCat,selectedSubCatOption,selectedAccessory}) =>
     setVideoFile(null);
   };
 
-  const handleImageUpload = (e) => {
-    const files = Array.from(e.target.files);
-    setPostDetails(prev => ({
-      ...prev,
-      images: [...prev.images, ...files.slice(0, 14 - prev.images.length)]
-    }));
+  const handleImageUpload = async (file) => {
+    if (!file) return console.error("No file provided");
+  
+    const contentType = file.type;
+    const fileSize = file.size;
+  
+    try {
+      // Get the pre-signed URL from the server
+      const res = await axios.post('http://127.0.0.1:8000/api/generate-image-url', {
+        contentType,
+        fileSize,
+      });
+  
+      if (!res.data.uploadUrl || !res.data.publicUrl) {
+        throw new Error('Upload URL not received from server');
+      }
+  
+      const { uploadUrl, publicUrl, filename } = res.data;
+  
+      // Create a preview URL for the image
+      const previewUrl = URL.createObjectURL(file);
+  
+      // Add to state immediately with preview
+      setPostDetails((prev) => ({
+        ...prev,
+        images: [...prev.images, { preview: previewUrl, publicUrl, filename }],
+      }));
+  
+      // Upload the file using the pre-signed URL
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': contentType,
+          'x-amz-acl': 'public-read',
+        },
+        body: file,
+      });
+  
+      if (!uploadRes.ok) {
+        throw new Error(`Upload failed with status ${uploadRes.status}`);
+      }
+  
+      console.log('✅ Image uploaded successfully:', publicUrl);
+    } catch (err) {
+      console.error('❌ Image upload error:', err.message);
+      // Remove the failed upload from state
+      setPostDetails(prev => ({
+        ...prev,
+        images: prev.images.filter(img => img.publicUrl !== publicUrl)
+      }));
+      alert(`Failed to upload image. Error: ${err.message}`);
+    }
   };
+  
+  
+const removeImage = (index) => {
+  setPostDetails(prev => {
+      const newImages = [...prev.images];
+      const removed = newImages.splice(index, 1);
+      // Clean up object URL if it exists
+      if (removed[0]?.preview) {
+          URL.revokeObjectURL(removed[0].preview);
+      }
+      return { ...prev, images: newImages };
+  });
+};
 
-  const removeImage = (index) => {
-    setPostDetails(prev => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index)
-    }));
-  };
-
-  const handleSubmit = async (e) => {
+ const handleSubmit = async (e) => {
     e.preventDefault();
     
     try {
-      // Create FormData for file uploads
-      const formData = new FormData();
-      
-      // Append all text/number fields
-      formData.append('title', postDetails.title);
-      formData.append('description', postDetails.description);
-      formData.append('category', selectedCategory);
-      formData.append('subCategory', subCategory);
-      formData.append('brand', brand);
-      formData.append('model', model);
-      formData.append('condition', condition);
-      formData.append('ptaStatus', ptaStatus);
-      formData.append('storage', storage ? `${storage} ${storageUnit}` : '');
-      formData.append('memory', memory ? `${memory} ${memoryUnit}` : '');
-      formData.append('batteryStatus', batteryStatus);
-      formData.append('price', price);
-      formData.append('isShowPhone', showPhoneNumber);
-      formData.append('location', location);
-      formData.append('contactName', postDetails.contactName);
-      
-      // Append accessory-specific fields if applicable
-      if (isAccessories) {
-        formData.append('accessoryType', accessoryType);
-        if (accessoryType === 'Charging Cables') formData.append('chargingCableType', chargingCableType);
-        if (['Chargers', 'Screens', 'Screen Protector', 'Covers & Cases'].includes(accessoryType)) 
-          formData.append('deviceType', deviceType);
-        if (accessoryType === 'Chargers') formData.append('chargerType', chargerType);
-        if (['Headphones', 'EarPhones'].includes(accessoryType)) formData.append('headphoneType', headphoneType);
-        if (accessoryType === 'Ring Lights') formData.append('size', storage);
-        if (accessoryType === 'Power Banks') formData.append('capacity', storage);
-      }
-      
-      // Append images
-      postDetails.images.forEach((image, index) => {
-        formData.append(`images[${index}]`, image);
-      });
-      
-      // Append video if exists
-      if (videoFile) {
-        formData.append('video', videoFile);
-      }
-      
-      // Send the request
-      const response = await axios.post('http://127.0.0.1:8000/api/posts', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
+        const formData = new FormData();
+        
+        // Append all text/number fields
+        formData.append('title', postDetails.title);
+        formData.append('description', postDetails.description);
+        formData.append('category', selectedCategory);
+        formData.append('subCategory', subCategory);
+        formData.append('brand', brand);
+        formData.append('model', model);
+        formData.append('condition', condition);
+        formData.append('ptaStatus', ptaStatus);
+        formData.append('storage', storage ? `${storage} ${storageUnit}` : '');
+        formData.append('memory', memory ? `${memory} ${memoryUnit}` : '');
+        formData.append('batteryStatus', batteryStatus);
+        formData.append('price', price);
+        formData.append('isShowPhone', showPhoneNumber);
+        formData.append('location', location);
+        formData.append('contactName', postDetails.contactName);
+        
+        // Append accessory-specific fields if applicable
+        if (isAccessories) {
+            formData.append('accessoryType', accessoryType);
+            if (accessoryType === 'Charging Cables') formData.append('chargingCableType', chargingCableType);
+            if (['Chargers', 'Screens', 'Screen Protector', 'Covers & Cases'].includes(accessoryType)) 
+                formData.append('deviceType', deviceType);
+            if (accessoryType === 'Chargers') formData.append('chargerType', chargerType);
+            if (['Headphones', 'EarPhones'].includes(accessoryType)) formData.append('headphoneType', headphoneType);
+            if (accessoryType === 'Ring Lights') formData.append('size', storage);
+            if (accessoryType === 'Power Banks') formData.append('capacity', storage);
         }
-      });
-      
-     
-      // Optionally redirect or show success message
+        
+        // Append image URLs as JSON array
+        const imageUrls = postDetails.images.map(img => img.publicUrl);
+        formData.append('imageUrls', JSON.stringify(imageUrls));
+        
+        // Append video if exists
+        if (videoFile) {
+            formData.append('videoFile', videoFile);
+        }
+        
+        // Send the request
+        const response = await axios.post('http://127.0.0.1:8000/api/posts', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+        
+        // Handle success response
+        console.log('Post created successfully:', response.data);
+        
     } catch (error) {
-      console.error('Error submitting form:', error.response?.data || error.message);
-      // Handle error (show error message to user)
+        console.error('Error submitting form:', error.response?.data || error.message);
+        alert('Failed to create post. Please try again.');
     }
-  };
+};
 
   const resetDetails = () => {
     setBrand('');
@@ -763,61 +815,65 @@ const MobilesPosting = ({selectedCat,selectedSubCatOption,selectedAccessory}) =>
                 <hr />
                 <br />
 
-                {/* Image Upload */}
                 <div className="mb-4">
-                  <div className="row w-100">
-                    <div className="col-4"><label className="form-label fw-bold">Upload Images</label></div>
-                    <div className="col-8 p-0">
-                      <div className="d-flex flex-wrap gap-2">
-                        {Array.from({ length: 14 }).map((_, index) => (
-                          <div 
-                            key={index} 
-                            className="border rounded position-relative"
-                            style={{
-                              width: '60px',
-                              height: '60px',
-                              backgroundColor: '#f7f7f7'
-                            }}
-                          >
-                            {postDetails.images[index] ? (
-                              <>
-                                <img
-                                  src={URL.createObjectURL(postDetails.images[index])}
-                                  alt={`Preview ${index}`}
-                                  className="w-100 h-100 object-fit-cover rounded"
-                                />
-                                <button
-                                  type="button"
-                                  className="position-absolute top-0 end-0 bg-danger rounded-circle p-0 border-0 d-flex align-items-center justify-content-center"
-                                  style={{ width: '20px', height: '20px', transform: 'translate(30%, -30%)' }}
-                                  onClick={() => removeImage(index)}
-                                >
-                                  <FiX className="text-white" style={{ fontSize: '10px' }} />
-                                </button>
-                              </>
-                            ) : (
-                              <label 
-                                htmlFor="image-upload"
-                                className="w-100 h-100 d-flex flex-column align-items-center justify-content-center cursor-pointer"
-                              >
-                                <FiPlus className="text-muted mb-1" />
-                              </label>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                      <input
-                        type="file"
-                        id="image-upload"
-                        className="d-none"
-                        accept="image/*"
-                        multiple
-                        onChange={handleImageUpload}
-                        disabled={postDetails.images.length >= 14}
-                      />
-                    </div>
-                  </div>
-                </div>
+  <div className="row w-100">
+    <div className="col-4">
+      <label className="form-label fw-bold">Upload Images</label>
+    </div>
+    <div className="col-8 p-0">
+      <div className="d-flex flex-wrap gap-2">
+        {/* Display uploaded images */}
+        {postDetails.images.map((image, index) => (
+          <div key={index} className="border rounded position-relative"
+            style={{ width: '60px', height: '60px', backgroundColor: '#f7f7f7' }}>
+            <img
+              src={image.preview || image.publicUrl}
+              alt={`Preview ${index}`}
+              className="w-100 h-100 object-fit-cover rounded"
+              onLoad={() => {
+                if (image.preview) {
+                  URL.revokeObjectURL(image.preview);
+                }
+              }}
+            />
+            <button
+              type="button"
+              className="position-absolute top-0 end-0 bg-danger rounded-circle p-0 border-0"
+              style={{ width: '20px', height: '20px', transform: 'translate(30%, -30%)' }}
+              onClick={() => removeImage(index)}
+            >
+              <FiX className="text-white" style={{ fontSize: '10px' }} />
+            </button>
+          </div>
+        ))}
+
+        {/* Empty slots */}
+        {Array.from({ length: Math.max(0, 14 - postDetails.images.length) }).map((_, index) => (
+          <div key={`empty-${index}`} className="border rounded position-relative"
+            style={{ width: '60px', height: '60px', backgroundColor: '#f7f7f7' }}>
+            <label htmlFor="image-upload" className="w-100 h-100 d-flex flex-column align-items-center justify-content-center cursor-pointer">
+              <FiPlus className="text-muted mb-1" />
+            </label>
+          </div>
+        ))}
+      </div>
+
+      {/* File input (hidden) */}
+      <input
+        id="image-upload"
+        type="file"
+        accept="image/*"
+        multiple
+        className="d-none"
+        onChange={(e) => {
+          const files = Array.from(e.target.files);
+          files.forEach(file => handleImageUpload(file));
+          e.target.value = ''; // reset to allow re-uploading the same file
+        }}
+      />
+    </div>
+  </div>
+</div>
 
                 {/* Video Upload Field */}
                 <div className="mb-4">

@@ -2,10 +2,17 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { authService } from '../services/auth';
 
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  [key: string]: unknown; // For any additional properties
+}
+
 interface AuthContextType {
-  user: any;
+  user: User | null;
   token: string | null;
-  login: (token: string, user: any) => void;
+  login: (token: string, user: User) => void;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
 }
@@ -13,7 +20,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>(null!);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const router = useRouter();
 
@@ -21,15 +28,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const loadUser = async () => {
       try {
         const response = await authService.getUser();
-        setUser(response.data.user);
-      } catch (err) {
+        setUser(response.data.user as User); // Explicit type casting
+      } catch {
         // Not logged in
       }
     };
     loadUser();
   }, []);
 
-  const login = (newToken: string, newUser: any) => {
+  const login = (newToken: string, newUser: User) => {
     setToken(newToken);
     setUser(newUser);
     localStorage.setItem('authToken', newToken);
@@ -46,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const value = {
+  const value: AuthContextType = {
     user,
     token,
     login,

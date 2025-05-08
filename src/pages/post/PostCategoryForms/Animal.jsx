@@ -1,65 +1,58 @@
 "use client";
 import React, { useState } from 'react';
-import { FiEdit, FiX, FiChevronDown, FiCheck, FiPlus, FiSearch } from 'react-icons/fi';
+import {  FiX, FiCheck, FiPlus } from 'react-icons/fi';
 import Switch from '@/components/common/Tooglebtn';
-const CreateAnimalPost = ({selectedSubCat,selectedType}) => {
+import Image from 'next/image';
+const CreateAnimalPost = ({selectedSubCat, selectedType}) => {
   // State Management
-  console.log(selectedType);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('Select Category');
-  const [selectedAnimalType, setSelectedAnimalType] = useState(selectedSubCat);
-  const [selectedSubAnimalType, setSelectedSubAnimalType] = useState(selectedType);
+  const [selectedCategory, setSelectedCategory] = useState('Animals');
+  const [selectedAnimalType] = useState(selectedSubCat || 'Select Type');
+  const [selectedSubAnimalType] = useState(selectedType || 'Select Sub-Type');
   const [breed, setBreed] = useState('');
   const [gender, setGender] = useState('');
-  const [condition, setCondition] = useState('');
   const [age, setAge] = useState('');
   const [isVaccinated, setIsVaccinated] = useState(false);
   const [location, setLocation] = useState('');
-  const [name, setName] = useState('');
   const [postDetails, setPostDetails] = useState({
     title: '',
     description: '',
     price: '',
+    contactName: '',
     images: [],
   });
   const [videoFile, setVideoFile] = useState(null);
 
-  // Add video upload handler
-  const handleVideoUpload = (e) => {
-    const file = e.target.files[0];
-    if (file && file.type.includes('video')) {
-      setVideoFile(file);
-    }
-  };
-  
-  // Add video remove handler
-  const removeVideo = () => {
-    setVideoFile(null);
-  };
-  
   // Data Constants
-  const animalSubTypes = {
-    Pets: ['Dogs', 'Cats', 'Rabbits', 'Hamsters'],
-    Livestock: ['Cows', 'Goats', 'Sheep', 'Horses'],
-    Aquarium: ['Tropical Fish', 'Goldfish', 'Shrimp', 'Snails'],
-    Birds: ['Parrots', 'Canaries', 'Pigeons'],
-  };
-  
   const categories = [
-    { id: 1, name: 'Vehicles', icon: '🚗' },
-    { id: 2, name: 'Property', icon: '🏠' },
-    { id: 3, name: 'Electronics', icon: '📱' },
-    { id: 4, name: 'Furniture', icon: '🛋️' },
-    { id: 5, name: 'Jobs', icon: '💼' },
-    { id: 6, name: 'Services', icon: '🔧' },
+    { id: 1, name: 'Animals', icon: '🐕' },
+    { id: 2, name: 'Vehicles', icon: '🚗' },
+    { id: 3, name: 'Property', icon: '🏠' },
+    { id: 4, name: 'Electronics', icon: '📱' },
   ];
 
+  const animalSubTypes = {
+    'Pets': ['Dogs', 'Cats', 'Rabbits', 'Hamsters'],
+    'Livestock': ['Cows', 'Goats', 'Sheep', 'Horses'],
+    'Birds': ['Parrots', 'Canaries', 'Pigeons'],
+    'Others': ['Food & Accessories', 'Pet Services']
+  };
 
+  const breedOptions = {
+    'Dogs': ['Labrador', 'German Shepherd', 'Golden Retriever', 'Bulldog', 'Beagle', 'Other'],
+    'Cats': ['Persian', 'Siamese', 'Maine Coon', 'Bengal', 'Ragdoll', 'Other'],
+    'Rabbits': ['Dutch', 'Mini Lop', 'Flemish Giant', 'Lionhead', 'Angora', 'Other'],
+    'Hamsters': ['Syrian', 'Dwarf Campbell', 'Roborovski', 'Chinese', 'Winter White', 'Other'],
+    'Cows': ['Holstein', 'Jersey', 'Angus', 'Hereford', 'Brahman', 'Other'],
+    'Goats': ['Boer', 'Nubian', 'Alpine', 'Saanen', 'LaMancha', 'Other'],
+    'Sheep': ['Merino', 'Dorset', 'Suffolk', 'Hampshire', 'Rambouillet', 'Other'],
+    'Horses': ['Arabian', 'Quarter Horse', 'Thoroughbred', 'Appaloosa', 'Paint', 'Other'],
+    'Parrots': ['African Grey', 'Macaw', 'Cockatoo', 'Amazon', 'Budgerigar', 'Other'],
+    'Canaries': ['Gloster', 'Norwich', 'Border', 'Yorkshire', 'Roller', 'Other'],
+    'Pigeons': ['Racing Homer', 'Fantail', 'Tumbler', 'King', 'Modena', 'Other']
+  };
 
   const genderOptions = ['Male', 'Female'];
-
-  const conditionOptions = ['New', 'Used'];
-
   const showAnimalDetailsFields = selectedAnimalType !== 'Others' && 
                                 selectedAnimalType !== 'Select Type' && 
                                 animalSubTypes[selectedAnimalType];
@@ -74,7 +67,7 @@ const CreateAnimalPost = ({selectedSubCat,selectedType}) => {
     const files = Array.from(e.target.files);
     setPostDetails(prev => ({
       ...prev,
-      images: [...prev.images, ...files.slice(0, 5 - prev.images.length)]
+      images: [...prev.images, ...files.slice(0, 14 - prev.images.length)]
     }));
   };
 
@@ -85,22 +78,73 @@ const CreateAnimalPost = ({selectedSubCat,selectedType}) => {
     }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const submissionData = {
-      ...postDetails,
-      category: selectedCategory,
-      animalType: selectedAnimalType,
-      subAnimalType: selectedSubAnimalType,
-      breed,
-      gender,
-      age,
-      isVaccinated
-    };
-    console.log('Post submitted:', submissionData);
+  const handleVideoUpload = (e) => {
+    const file = e.target.files[0];
+    if (file && file.type.includes('video')) {
+      setVideoFile(file);
+    }
   };
 
-  // Render Functions
+  const removeVideo = () => {
+    setVideoFile(null);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData();
+    
+    // Add all the form fields to formData
+    formData.append('title', postDetails.title);
+    formData.append('description', postDetails.description);
+    formData.append('category', 'Animals');
+    formData.append('subCategory', selectedAnimalType);
+    formData.append('price', postDetails.price);
+    formData.append('location', location);
+    formData.append('contactName', postDetails.contactName);
+    
+    // Animal-specific fields
+    formData.append('animalType', selectedAnimalType);
+    formData.append('subAnimalType', selectedSubAnimalType);
+    formData.append('breed', breed);
+    formData.append('gender', gender);
+    formData.append('age', age);
+    formData.append('isVaccinated', isVaccinated ? '1' : '0');
+    
+    // Add images
+    postDetails.images.forEach((image, index) => {
+      formData.append(`images[${index}]`, image);
+    });
+    
+    // Add video if exists
+    if (videoFile) {
+      formData.append('videoFile', videoFile);
+    }
+    
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/posts', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+        },
+        body: formData,
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        console.log('Animal post created successfully:', data);
+        // Redirect or show success message
+      } else {
+        console.error('Error creating animal post:', data);
+        // Show error message
+      }
+    } catch (error) {
+      console.error('Network error:', error);
+      // Show network error message
+    }
+  };
+
   const renderCategoryModal = () => (
     <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
       <div className="modal-dialog modal-dialog-centered">
@@ -141,19 +185,18 @@ const CreateAnimalPost = ({selectedSubCat,selectedType}) => {
     </div>
   );
 
- 
   return (
     <div className="container mt-4 mb-5">
       <div className="row justify-content-center">
         <div className="col-md-12 col-lg-8 mx-3">
-          <div className="border rounded   bg-white">
+          <div className="border rounded bg-white">
             {/* Header Row */}
-            <div className="row align-items-center mb-3 p-3 ">
-              <div className="col-2  ">
+            <div className="row align-items-center mb-3 p-3">
+              <div className="col-2">
                 <label className="fs-6 bold"><b>Category</b></label>
               </div>
               
-              <div className="col-8 text-center ">
+              <div className="col-8 text-center">
                 <div className="d-flex align-items-center justify-content-center gap-2 cursor-pointer">
                   <div className="rounded-circle bg-light d-flex align-items-center justify-content-center" 
                     style={{ width: '30px', height: '30px' }}>
@@ -163,7 +206,7 @@ const CreateAnimalPost = ({selectedSubCat,selectedType}) => {
                 </div>
               </div>
               
-              <div className="col-2 ">
+              <div className="col-2">
                 <button 
                   type="button" 
                   className="btn btn-link text-decoration-none p-0"
@@ -174,71 +217,68 @@ const CreateAnimalPost = ({selectedSubCat,selectedType}) => {
               </div>
             </div>
 
-            <div className="row align-items-around mb-3  p-3 ">
+            <div className="row align-items-around mb-3 p-3">
               <form onSubmit={handleSubmit}>
+                {/* Animal Type Selection */}
                 
 
                 {/* Animal Details Fields */}
-                {showAnimalDetailsFields && (
+                {showAnimalDetailsFields && selectedSubAnimalType !== 'Select Sub-Type' && (
                   <>
-                    
-<div className="">
-  {/* Breed Field */}
-{selectedSubAnimalType !== 'Select Sub-Type' && (
-                      <div className="mb-3 d-flex align-items-center p-0">
-                        <div className="row w-100 p-0">
-                          <div className="col-4 ">
-                            <label className="form-label"><b>Breed</b></label>
-                          </div>
-                          <div className="col-8  p-0">
-                            <input
-                              type="text"
-                              className="form-control "
-                              placeholder={`Enter ${selectedSubAnimalType} breed`}
-                              value={breed}
-                              onChange={(e) => setBreed(e.target.value)}
-                            />
+                    {/* Breed Field */}
+                    <div className="mb-3 d-flex align-items-center p-0">
+                      <div className="row w-100 p-0">
+                        <div className="col-4">
+                          <label className="form-label"><b>Breed</b></label>
+                        </div>
+                        <div className="col-8 p-0">
+                          <select
+                            className="form-select"
+                            value={breed}
+                            onChange={(e) => setBreed(e.target.value)}
+                            required
+                          >
+                            <option value="">Select Breed</option>
+                            {breedOptions[selectedSubAnimalType]?.map((breedOption, index) => (
+                              <option key={index} value={breedOption}>{breedOption}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Gender Field */}
+                    <div className="mb-3 d-flex align-items-center">
+                      <div className="row w-100">
+                        <div className="col-4">
+                          <label className="form-label"><b>Gender</b></label>
+                        </div>
+                        <div className="col-8 p-0 m-0">
+                          <div className="d-flex gap-3">
+                            {genderOptions.map(option => (
+                              <div key={option} className="flex-grow-1">
+                                <button
+                                  type="button"
+                                  className={`btn w-100 ${gender === option 
+                                    ? 'btn-warning text-white' 
+                                    : 'btn-outline-secondary'}`}
+                                  onClick={() => setGender(option)}
+                                  style={{
+                                    padding: '0.375rem 0.75rem',
+                                    fontSize: '0.875rem'
+                                  }}
+                                >
+                                  {option}
+                                </button>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       </div>
-                    )}
-                    {/* Gender Field - Updated to Tab Buttons */}
-                    {selectedSubAnimalType !== 'Select Sub-Type' && (
-  <div className="mb-3 d-flex align-items-center">
-    <div className="row w-100">
-      <div className="col-4">
-        <label className="form-label"><b>Gender</b></label>
-      </div>
-      <div className="col-8 p-0 m-0">
-        <div className="d-flex gap-3"> {/* Increased gap between buttons */}
-          {genderOptions.map(option => (
-            <div key={option} className="flex-grow-1"> {/* Each button in its own container */}
-              <button
-                type="button"
-                className={`btn w-100 ${gender === option 
-                  ? 'btn-warning text-white' 
-                  : 'btn-outline-secondary'}`}
-                onClick={() => setGender(option)}
-                style={{
-                  padding: '0.375rem 0.75rem',
-                  fontSize: '0.875rem'
-                }}
-              >
-                {option}
-              </button>
-            </div>
-          ))}
-        </div>
-        <small className="text-muted d-block text-end mt-1">Select the animal's gender</small>
-      </div>
-    </div>
-  </div>
-)}
-
+                    </div>
 
                     {/* Age Field */}
-                    {selectedSubAnimalType !== 'Select Sub-Type' && (
-                    <div className="mb-3 d-flex align-items-center z-index-0">
+                    <div className="mb-3 d-flex align-items-center">
                       <div className="row w-100">
                         <div className="col-4">
                           <label className="form-label"><b>Age</b></label>
@@ -246,28 +286,28 @@ const CreateAnimalPost = ({selectedSubCat,selectedType}) => {
                         <div className="col-8 p-0">
                           <input
                             type="text"
-                            className="form-control "
+                            className="form-control"
                             placeholder="Enter age (e.g., 2 years)"
                             value={age}
                             onChange={(e) => setAge(e.target.value)}
+                            required
                           />
                         </div>
                       </div>
                     </div>
-)}
-                    {/* Vaccinated Field - Updated to Styled Toggle */}
-                    {selectedSubAnimalType !== 'Select Sub-Type' && (
+
+                    {/* Vaccinated Field */}
                     <div className="mb-3 d-flex align-items-center">
                       <div className="row w-100">
                         <div className="col-4">
                           <label className="form-label"><b>Vaccinated</b></label>
                         </div>
                         <div className="col-8 p-0">
-                          <div className="d-flex align-items-center ">
+                          <div className="d-flex align-items-center">
                             <div className="btn-group" role="group">
                               <button
                                 type="button"
-                                className={`btn ${isVaccinated ? 'btn-outline-secondary' : 'btn-warning'}`}
+                                className={`btn ${!isVaccinated ? 'btn-warning' : 'btn-outline-secondary'}`}
                                 onClick={() => setIsVaccinated(false)}
                                 style={{
                                   padding: '0.25rem 0.75rem',
@@ -278,7 +318,7 @@ const CreateAnimalPost = ({selectedSubCat,selectedType}) => {
                               </button>
                               <button
                                 type="button"
-                                className={`btn ${!isVaccinated ? 'btn-outline-secondary' : 'btn-warning'}`}
+                                className={`btn ${isVaccinated ? 'btn-warning' : 'btn-outline-secondary'}`}
                                 onClick={() => setIsVaccinated(true)}
                                 style={{
                                   padding: '0.25rem 0.75rem',
@@ -292,65 +332,33 @@ const CreateAnimalPost = ({selectedSubCat,selectedType}) => {
                         </div>
                       </div>
                     </div>
-)}
-</div>
                   </>
                 )}
-                
-               {/* Gender Field - Updated to Tab Buttons */}
-               {selectedSubAnimalType === 'Food&Accessories' &&(
-  <div className="mb-3 d-flex align-items-center">
-    <div className="row w-100">
-      <div className="col-4">
-        <label className="form-label"><b>Gender</b></label>
-      </div>
-      <div className="col-8 p-0 m-0">
-        <div className="d-flex gap-3"> {/* Increased gap between buttons */}
-          {genderOptions.map(option => (
-            <div key={option} className="flex-grow-1"> {/* Each button in its own container */}
-              <button
-                type="button"
-                className={`btn w-100 ${gender === option 
-                  ? 'btn-warning text-white' 
-                  : 'btn-outline-secondary'}`}
-                onClick={() => setGender(option)}
-                style={{
-                  padding: '0.375rem 0.75rem',
-                  fontSize: '0.875rem'
-                }}
-              >
-                {option}
-              </button>
-            </div>
-          ))}
-        </div>
-        <small className="text-muted d-block text-end mt-1">Select the animal's gender</small>
-      </div>
+                <hr />
+
+                {/* Title Field */}
+<div className="mb-3 d-flex align-items-center">
+  <div className="row w-100">
+    <div className="col-4">
+      <label className="form-label fw-bold"><b>Ad Title</b></label>
+    </div>
+    <div className="col-8 p-0">
+      <input
+        type="text"
+        className="form-control"
+        placeholder="Enter a descriptive title"
+        name="title"
+        value={postDetails.title}
+        onChange={handleInputChange}
+        required
+      />
+      <small className="text-muted d-block text-end">
+        Make sure it&apos;s clear and descriptive
+      </small>
     </div>
   </div>
-)}
-                <hr />
-<div className="">
-  {/* Title Field */}
-<div className="mb-3 d-flex align-items-center">
-                  <div className="row w-100">
-                    <div className="col-4">
-                      <label className="form-label fw-bold"><b> Ad Title</b></label>
-                    </div>
-                    <div className="col-8 p-0">
-                      <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Enter a descriptive title"
-                        name="title"
-                        value={postDetails.title}
-                        onChange={handleInputChange}
-                        required
-                      />
-                      <small className="text-muted d-block text-end">Make sure it's clear and descriptive</small>
-                    </div>
-                  </div>
-                </div>
+</div>
+
 
                 {/* Description Field */}
                 <div className="mb-3 d-flex align-items-center">
@@ -373,9 +381,8 @@ const CreateAnimalPost = ({selectedSubCat,selectedType}) => {
                   </div>
                 </div>
 
-
-               {/* Location Field */}
-               <div className="mb-3 d-flex align-items-center">
+                {/* Location Field */}
+                <div className="mb-3 d-flex align-items-center">
                   <div className="row w-100">
                     <div className="col-4">
                       <label className="form-label fw-bold">Location</label>
@@ -393,8 +400,8 @@ const CreateAnimalPost = ({selectedSubCat,selectedType}) => {
                     </div>
                   </div>
                 </div>
-</div>
-<hr />
+                <hr />
+
                 {/* Price Field */}
                 <div className="mb-3 d-flex align-items-center">
                   <div className="row w-100">
@@ -418,170 +425,174 @@ const CreateAnimalPost = ({selectedSubCat,selectedType}) => {
                     </div>
                   </div>
                 </div>
-<hr />
-<div className="mb-4">
-      
-      
-      <div className="row w-100">
-        <div className="col-4"><label className="form-label fw-bold">Upload Images</label></div> {/* Empty column for alignment */}
-        <div className="col-8 p-0">
-          <div className="d-flex flex-wrap gap-2">
-            {/* Image preview boxes */}
-            {Array.from({ length: 14 }).map((_, index) => (
-              <div 
-                key={index} 
-                className="border rounded position-relative"
-                style={{
-                  width: '60px',
-                  height: '60px',
-                  backgroundColor: '#f7f7f7'
-                }}
-              >
-                {postDetails.images[index] ? (
-                  <>
-                    <img
-                      src={URL.createObjectURL(postDetails.images[index])}
-                      alt={`Preview ${index}`}
-                      className="w-100 h-100 object-fit-cover rounded"
-                    />
-                    <button
-                      type="button"
-                      className="position-absolute top-0 end-0 bg-danger rounded-circle p-0 border-0 d-flex align-items-center justify-content-center"
-                      style={{ width: '20px', height: '20px', transform: 'translate(30%, -30%)' }}
-                      onClick={() => removeImage(index)}
-                    >
-                      <FiX className="text-white" style={{ fontSize: '10px' }} />
-                    </button>
-                  </>
-                ) : (
-                  <label 
-                    htmlFor="image-upload"
-                    className="w-100 h-100 d-flex flex-column align-items-center justify-content-center cursor-pointer"
-                  >
-                    <FiPlus className="text-muted mb-1" />
-                    
-                  </label>
-                )}
-              </div>
-            ))}
-          </div>
-          
-          {/* Hidden file input */}
-          <input
-            type="file"
-            id="image-upload"
-            className="d-none"
-            accept="image/*"
-            multiple
-            onChange={handleImageUpload}
-            disabled={postDetails.images.length >= 5}
+                <hr />
+
+                {/* Image Upload Section */}
+                <div className="mb-4">
+                  <div className="row w-100">
+                    <div className="col-4">
+                      <label className="form-label fw-bold">Upload Images</label>
+                    </div>
+                    <div className="col-8 p-0">
+                      <div className="d-flex flex-wrap gap-2">
+                        {Array.from({ length: 14 }).map((_, index) => (
+                          <div 
+                            key={index} 
+                            className="border rounded position-relative"
+                            style={{
+                              width: '60px',
+                              height: '60px',
+                              backgroundColor: '#f7f7f7'
+                            }}
+                          >
+                            {postDetails.images[index] ? (
+                              <>
+                                <Image
+            src={URL.createObjectURL(postDetails.images[index])}
+            alt={`Preview ${index}`}
+            width={60}
+            height={60}
+            className="w-100 h-100 object-fit-cover rounded"
           />
-        </div>
-      </div>
-    </div>
-    {/* video upload */}
-      {/* Video Upload Field */}
-      <div className="mb-4">
-      
-      
-      <div className="row w-100">
-        <div className="col-4"> <label className="form-label fw-bold">Upload Video</label></div> {/* Empty column for alignment */}
-        <div className="col-8 p-0">
-          <div className="d-flex">
-            {/* Video preview box */}
-            <div 
-              className="border rounded position-relative"
-              style={{
-                width: '100%',
-                height: '120px',
-                backgroundColor: '#f7f7f7'
-              }}
-            >
-              {videoFile ? (
-                <>
-                  <video
-                    src={URL.createObjectURL(videoFile)}
-                    className="w-100 h-100 object-fit-cover rounded"
-                    controls
-                  />
-                  <button
-                    type="button"
-                    className="position-absolute top-0 end-0 bg-danger rounded-circle p-0 border-0 d-flex align-items-center justify-content-center"
-                    style={{ width: '20px', height: '20px', transform: 'translate(30%, -30%)' }}
-                    onClick={removeVideo}
-                  >
-                    <FiX className="text-white" style={{ fontSize: '10px' }} />
-                  </button>
-                </>
-              ) : (
-                <label 
-                  htmlFor="video-upload"
-                  className="w-100 h-100 d-flex flex-column align-items-center justify-content-center cursor-pointer"
-                >
-                  <FiPlus className="text-muted mb-1" />
-                  <small className="text-muted text-center" style={{ fontSize: '0.7rem' }}>
-                    Add Video
-                  </small>
-                </label>
-              )}
-            </div>
-          </div>
-          
-          {/* Hidden video input */}
-          <input
-            type="file"
-            id="video-upload"
-            className="d-none"
-            accept="video/*"
-            onChange={handleVideoUpload}
-          />
-        </div>
-      </div>
-    </div>
-    <hr />
-    {/* Name Field - Add this after the category section */}
-    <div className="mb-3 d-flex align-items-center">
-      <div className="row w-100">
-        <div className="col-4">
-          <label className="form-label"><b>Your Name</b></label>
-        </div>
-        <div className="col-8 p-0">
-          <input
-            type="text"
-            className="form-control"
-            placeholder="Enter your name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-         
-        </div>
-      </div>
-    </div>
-     {/* Name Field - Add this after the category section */}
-     <div className="mb-3 d-flex align-items-center">
-      <div className="row w-100">
-        <div className="col-4">
-          <label className="form-label">Your Phone Number</label>
-        </div>
-        <div className="col-8 p-0 text-end">
-          
-         848764568998
-        </div>
-      </div>
-    </div>
-{/* show number in ads */}
-    <div className="mb-3 d-flex align-items-center">
-      <div className="row w-100">
-        <div className="col-5">
-          <label className="form-label"><b>Show My Phone Number In Ads</b></label>
-        </div>
-        <div className="col-7 p-0 text-end border">
-          
-         <Switch />
-        </div>
-      </div>
-    </div>
+                                <button
+                                  type="button"
+                                  className="position-absolute top-0 end-0 bg-danger rounded-circle p-0 border-0 d-flex align-items-center justify-content-center"
+                                  style={{ width: '20px', height: '20px', transform: 'translate(30%, -30%)' }}
+                                  onClick={() => removeImage(index)}
+                                >
+                                  <FiX className="text-white" style={{ fontSize: '10px' }} />
+                                </button>
+                              </>
+                            ) : (
+                              <label 
+                                htmlFor="image-upload"
+                                className="w-100 h-100 d-flex flex-column align-items-center justify-content-center cursor-pointer"
+                              >
+                                <FiPlus className="text-muted mb-1" />
+                              </label>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <input
+                        type="file"
+                        id="image-upload"
+                        className="d-none"
+                        accept="image/*"
+                        multiple
+                        onChange={handleImageUpload}
+                        disabled={postDetails.images.length >= 14}
+                      />
+                      <small className="text-muted d-block mt-2">
+                        Upload up to 14 images (JPEG, PNG, GIF)
+                      </small>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Video Upload Section */}
+                <div className="mb-4">
+                  <div className="row w-100">
+                    <div className="col-4">
+                      <label className="form-label fw-bold">Upload Video</label>
+                    </div>
+                    <div className="col-8 p-0">
+                      <div className="d-flex">
+                        <div 
+                          className="border rounded position-relative"
+                          style={{
+                            width: '100%',
+                            height: '120px',
+                            backgroundColor: '#f7f7f7'
+                          }}
+                        >
+                          {videoFile ? (
+                            <>
+                              <video
+                                src={URL.createObjectURL(videoFile)}
+                                className="w-100 h-100 object-fit-cover rounded"
+                                controls
+                              />
+                              <button
+                                type="button"
+                                className="position-absolute top-0 end-0 bg-danger rounded-circle p-0 border-0 d-flex align-items-center justify-content-center"
+                                style={{ width: '20px', height: '20px', transform: 'translate(30%, -30%)' }}
+                                onClick={removeVideo}
+                              >
+                                <FiX className="text-white" style={{ fontSize: '10px' }} />
+                              </button>
+                            </>
+                          ) : (
+                            <label 
+                              htmlFor="video-upload"
+                              className="w-100 h-100 d-flex flex-column align-items-center justify-content-center cursor-pointer"
+                            >
+                              <FiPlus className="text-muted mb-1" />
+                              <small className="text-muted text-center" style={{ fontSize: '0.7rem' }}>
+                                Add Video
+                              </small>
+                            </label>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <input
+                        type="file"
+                        id="video-upload"
+                        className="d-none"
+                        accept="video/*"
+                        onChange={handleVideoUpload}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <hr />
+
+                {/* Contact Name */}
+                <div className="mb-3 d-flex align-items-center">
+                  <div className="row w-100">
+                    <div className="col-4">
+                      <label className="form-label"><b>Contact Person</b></label>
+                    </div>
+                    <div className="col-8 p-0">
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="Enter contact person's name"
+                        name="contactName"
+                        value={postDetails.contactName}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Phone Number Field */}
+                <div className="mb-3 d-flex align-items-center">
+                  <div className="row w-100">
+                    <div className="col-4">
+                      <label className="form-label">Your Phone Number</label>
+                    </div>
+                    <div className="col-8 p-0 text-end">
+                      848764568998
+                    </div>
+                  </div>
+                </div>
+
+                {/* Show Phone Number Toggle */}
+                <div className="mb-3 d-flex align-items-center">
+                  <div className="row w-100">
+                    <div className="col-5">
+                      <label className="form-label"><b>Show My Phone Number</b></label>
+                    </div>
+                    <div className="col-7 p-0 text-end d-flex align-items-end justify-content-end">
+                      <Switch />
+                    </div>
+                  </div>
+                </div>
+
                 <button type="submit" className="btn btn-warning w-100 fw-bold">
                   Post Now
                 </button>
@@ -592,6 +603,16 @@ const CreateAnimalPost = ({selectedSubCat,selectedType}) => {
 
         <div className="col-3 border">
           {/* Sidebar content */}
+          <div className="p-3">
+        <h5 className="fw-bold mb-3">Posting Tips</h5>
+        <ul className="list-unstyled">
+          <li className="mb-2"><FiCheck className="text-warning me-2" /> Use clear, high-quality photos</li>
+          <li className="mb-2"><FiCheck className="text-warning me-2" /> Be honest about the animal&apos;s condition</li>
+          <li className="mb-2"><FiCheck className="text-warning me-2" /> Include vaccination and health details</li>
+          <li className="mb-2"><FiCheck className="text-warning me-2" /> Mention any special needs or behaviors</li>
+          <li><FiCheck className="text-warning me-2" /> Provide accurate contact information</li>
+        </ul>
+      </div>
         </div>
       </div>
 

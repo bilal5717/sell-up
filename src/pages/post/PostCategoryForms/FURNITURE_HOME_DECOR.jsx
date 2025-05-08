@@ -310,7 +310,7 @@ const FurniturePosting = ({ selectedSubCat, selectedType }) => {
   // Combined state to reduce re-renders
   const [state, setState] = useState({
     showCategoryModal: false,
-    selectedCategory: 'Furniture',
+    selectedCategory: 'Furniture & Home Decor',
     subCategory: selectedSubCat,
     type: selectedType,
     furnitureType: '',
@@ -321,6 +321,9 @@ const FurniturePosting = ({ selectedSubCat, selectedType }) => {
     warranty: '',
     folding: '',
     age: '',
+    handmade: 'No', 
+    length:'',
+    width:'',
     features: '',
     location: '',
     price: '',
@@ -337,7 +340,6 @@ const FurniturePosting = ({ selectedSubCat, selectedType }) => {
   });
 
   // Derived values
-  const isTablesDining = state.subCategory === 'Tables & Dining';
   const isRugs = selectedType === 'Rugs';
   const isCarpets = selectedType === 'Carpets';
   const isDoorMats = selectedType === 'DoorMats';
@@ -387,30 +389,64 @@ const FurniturePosting = ({ selectedSubCat, selectedType }) => {
       } 
     });
   }, [state.postDetails, updateState]);
-
-  const handleSubmit = useCallback((e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
-    const submissionData = {
-      ...state.postDetails,
-      category: state.selectedCategory,
-      subCategory: state.subCategory,
-      type: state.type,
-      furnitureType: state.furnitureType,
-      material: state.material,
-      dimensions: state.dimensions,
-      color: state.color,
-      condition: state.condition,
-      warranty: state.warranty,
-      age: state.age,
-      features: state.features,
-      location: state.location,
-      price: state.price,
-      images: media.images,
-      video: media.videoFile
-    };
-    console.log('Furniture post created:', submissionData);
-  }, [state, media]);
+    
+    try {
+        const formData = new FormData();
+        
+        // Add all form data
+        formData.append('title', state.postDetails.title);
+        formData.append('description', state.postDetails.description);
+        formData.append('category', state.selectedCategory);
+        formData.append('subCategory', state.subCategory);
+        formData.append('price', state.price);
+        formData.append('location', state.location);
+        formData.append('contactName', state.postDetails.contactName);
+        
+        // Furniture specific fields
+        formData.append('furnitureType', state.furnitureType);
+        formData.append('material', state.material);
+        formData.append('dimensions', state.dimensions);
+        formData.append('color', state.color);
+        formData.append('condition', state.condition);
+        formData.append('warranty', state.warranty);
+        formData.append('folding', state.folding);
+        formData.append('age', state.age);
+        formData.append('length', state.length);
+        formData.append('width', state.width);
+        formData.append('handmade', state.handmade); // Use state.handmade
+        formData.append('origin', state.origin);
+        
+        // Add images
+        media.images.forEach((image, index) => {
+            formData.append(`images[${index}]`, image);
+        });
+        
+        // Add video if exists
+        if (media.videoFile) {
+            formData.append('videoFile', media.videoFile);
+        }
 
+        const response = await fetch('http://127.0.0.1:8000/api/posts', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+            },
+            body: formData
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+            alert('Post created successfully!');
+        } else {
+            throw new Error(data.message || 'Failed to create post');
+        }
+    } catch (error) {
+        console.error('Error submitting form:', error);
+        alert(error.message);
+    }
+}, [state, media]);
   const closeCategoryModal = useCallback(() => {
     updateState({ showCategoryModal: false });
   }, [updateState]);
@@ -460,29 +496,14 @@ const FurniturePosting = ({ selectedSubCat, selectedType }) => {
 
             <div className="row align-items-around mb-3 p-3">
               <form onSubmit={handleSubmit}>
-                {/* Furniture Type Field */}
+                {/* Furniture Type Fields - Now properly organized by selectedType */}
                 {selectedType === 'Sofas' && (
                   <FormField
                     type="select"
                     label="Furniture Type"
                     value={state.furnitureType}
-                    onChange={(e) => updateState({ 
-                      furnitureType: e.target.value,
-                      sofaType: ''
-                    })}
-                    options={OPTIONS_DATA.furnitureTypes[state.subCategory] || []}
-                    colWidth="col-4"
-                  />
-                )}
-
-                {/* Sofa Type Field - Only shown for Sofa & Chairs */}
-                {state.subCategory === 'Sofa & Chairs' && state.furnitureType && (
-                  <FormField
-                    type="select"
-                    label="Type"
-                    value={state.sofaType}
-                    onChange={(e) => updateState({ sofaType: e.target.value })}
-                    options={OPTIONS_DATA.sofaTypes[state.furnitureType] || []}
+                    onChange={(e) => updateState({ furnitureType: e.target.value })}
+                    options={OPTIONS_DATA.furnitureTypes['Sofa & Chairs']}
                     colWidth="col-4"
                   />
                 )}
@@ -513,33 +534,77 @@ const FurniturePosting = ({ selectedSubCat, selectedType }) => {
                     />
                   </>
                 )}
-                {(isOfficeTable || isOfficeChairs || isOfficeSofas || isOtherHouseHoldItems) && (
-                  <>
-                    <FormField
-                      type="select"
-                      label="Type"
-                      name="furnitureType"
-                      value={state.furnitureType}
-                      onChange={(e) => updateState({ furnitureType: e.target.value })}
-                      options={['Executive Table', 'Computer Table', 'Workstation', 'Other']}
-                      colWidth="col-4"
-                    />
-                  </>
+
+                {selectedType === 'Tables' && (
+                  <FormField
+                    type="select"
+                    label="Type"
+                    value={state.furnitureType}
+                    onChange={(e) => updateState({ furnitureType: e.target.value })}
+                    options={OPTIONS_DATA.furnitureTypes['Tables']}
+                    colWidth="col-4"
+                  />
                 )}
+
+                {selectedType === 'Wardrobes' && (
+                  <FormField
+                    type="select"
+                    label="Type"
+                    value={state.furnitureType}
+                    onChange={(e) => updateState({ furnitureType: e.target.value })}
+                    options={OPTIONS_DATA.furnitureTypes['Wardrobes']}
+                    colWidth="col-4"
+                  />
+                )}
+
+                {selectedType === 'Home Decor' && (
+                  <FormField
+                    type="select"
+                    label="Type"
+                    value={state.furnitureType}
+                    onChange={(e) => updateState({ furnitureType: e.target.value })}
+                    options={OPTIONS_DATA.furnitureTypes['Home Decor']}
+                    colWidth="col-4"
+                  />
+                )}
+
+                {selectedType === 'Other Furniture' && (
+                  <FormField
+                    type="select"
+                    label="Type"
+                    value={state.furnitureType}
+                    onChange={(e) => updateState({ furnitureType: e.target.value })}
+                    options={OPTIONS_DATA.furnitureTypes['Other Furniture']}
+                    colWidth="col-4"
+                  />
+                )}
+
+                {(isOfficeTable || isOfficeChairs || isOfficeSofas || isOtherHouseHoldItems) && (
+                  <FormField
+                    type="select"
+                    label="Type"
+                    name="furnitureType"
+                    value={state.furnitureType}
+                    onChange={(e) => updateState({ furnitureType: e.target.value })}
+                    options={['Executive Table', 'Computer Table', 'Workstation', 'Other']}
+                    colWidth="col-4"
+                  />
+                )}
+
                 {(isRugs || isCarpets || isDoorMats || isPrayersMats) && (
                   <>
                     <FormField
-                      type="radio"
-                      label="Handmade"
-                      name="handmade"
-                      value={state.handmade}
-                      onChange={(e) => updateState({ handmade: e.target.value })}
-                      radioOptions={[
-                        { value: 'Yes', label: 'Yes' },
-                        { value: 'No', label: 'No' }
-                      ]}
-                      colWidth="col-4"
-                    />
+    type="radio"
+    label="Handmade"
+    name="handmade"
+    value={state.handmade}
+    onChange={(e) => updateState({ handmade: e.target.value })}
+    radioOptions={[
+        { value: 'Yes', label: 'Yes' },
+        { value: 'No', label: 'No' }
+    ]}
+    colWidth="col-4"
+/>
 
                     <FormField
                       type="number"
@@ -572,6 +637,7 @@ const FurniturePosting = ({ selectedSubCat, selectedType }) => {
                     />
                   </>
                 )}
+
                 {selectedType === 'Mattresses' && (
                   <>
                     <FormField
@@ -601,19 +667,6 @@ const FurniturePosting = ({ selectedSubCat, selectedType }) => {
                         { value: 'Yes', label: 'Yes' },
                         { value: 'No', label: 'No' },
                       ]}
-                    />
-                  </>
-                )}
-                {isTablesDining && (
-                  <>
-                    <FormField
-                      type="select"
-                      label="Type"
-                      name="furnitureType"
-                      value={state.furnitureType}
-                      onChange={(e) => updateState({ furnitureType: e.target.value })}
-                      options={OPTIONS_DATA.furnitureTypes['Tables & Dining']}
-                      colWidth="col-4"
                     />
                   </>
                 )}

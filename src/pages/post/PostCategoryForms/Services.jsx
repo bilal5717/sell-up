@@ -6,19 +6,18 @@ import Switch from '@/components/common/Tooglebtn';
 const ServicePostingForm = ({selectedSubCat,selectedType}) => {
   // State Management
   const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('Home Services');
+  const [selectedCategory, setSelectedCategory] = useState('Services');
   const [serviceType, setServiceType] = useState(selectedSubCat);
-  const [businessType, setBusinessType] = useState('individual');
+  const [businessType, setBusinessType] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [price, setPrice] = useState('');
-  const [priceType, setPriceType] = useState('fixed');
   const [availability, setAvailability] = useState('');
   const [experienceLevel, setExperienceLevel] = useState('');
   const [showServiceTypeDropdown, setShowServiceTypeDropdown] = useState(false);
   const [serviceTypeSearchTerm, setServiceTypeSearchTerm] = useState('');
   const [location, setLocation] = useState('');
   const [typeforCatering, settypeforCatering] = useState('');
-  const [typeforCarPool,settypeforCarPool]=useState('Male');
+  const [typeforCarPool,settypeforCarPool]=useState('');
   const [postDetails, setPostDetails] = useState({
     title: '',
     description: '',
@@ -101,26 +100,65 @@ const ServicePostingForm = ({selectedSubCat,selectedType}) => {
     setPostDetails(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const submissionData = {
-      ...postDetails,
-      category: selectedCategory,
-      serviceType,
-      businessType,
-      businessName,
-      price,
-      priceType,
-      availability,
-      experienceLevel,
-      location,
-      name,
-      images,
-      video: videoFile,
-      ...(hasSpecialField && { specialField })
-    };
-    console.log('Service posted:', submissionData);
-    // Here you would typically send this data to your backend
+    
+    const formData = new FormData();
+    
+    // Add all the form fields to formData
+    formData.append('title', postDetails.title);
+    formData.append('description', postDetails.description);
+    formData.append('category', selectedCategory);
+    formData.append('subCategory', serviceType);
+    formData.append('price', price);
+    formData.append('location', location);
+    formData.append('contactName', postDetails.contactName);
+    formData.append('name', name);
+    
+    // Service-specific fields
+    formData.append('serviceType', serviceType);
+    formData.append('businessType', businessType);
+    formData.append('businessName', businessName);
+    formData.append('availability', availability);
+    formData.append('experienceLevel', experienceLevel);
+    formData.append('specialField', specialField);
+    formData.append('specialTypeField', specialTypeField);
+    formData.append('typeforCatering', typeforCatering);
+    formData.append('typeforCarPool', typeforCarPool);
+    
+    // Add images
+    images.forEach((image, index) => {
+      formData.append(`images[${index}]`, image);
+    });
+    
+    // Add video if exists
+    if (videoFile) {
+      formData.append('videoFile', videoFile);
+    }
+    
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/posts', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          // Don't set Content-Type when using FormData, let the browser set it
+        },
+        body: formData,
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        console.log('Post created successfully:', data);
+        // Redirect or show success message
+      } else {
+        console.error('Error creating post:', data);
+        // Show error message
+      }
+    } catch (error) {
+      console.error('Network error:', error);
+      // Show network error message
+    }
   };
 
   // Image and Video Handlers
@@ -307,7 +345,7 @@ const ServicePostingForm = ({selectedSubCat,selectedType}) => {
                                 <button
                                   type="button"
                                   className={`btn ${typeforCatering === 'Catering' ? 'btn-warning' : 'btn-outline-secondary'}`}
-                                  onClick={() => settypeforCatering('Male')}
+                                  onClick={() => settypeforCatering('Catering')}
                                   style={{
                                     flex: 1,
                                     padding: '0.375rem 0.75rem',
@@ -604,21 +642,25 @@ const ServicePostingForm = ({selectedSubCat,selectedType}) => {
                 </div>
                 <hr />
 
-                {/* Name Field */}
+                {/* Price */}
                 <div className="mb-3 d-flex align-items-center">
                   <div className="row w-100">
                     <div className="col-4">
-                      <label className="form-label"><b>Your Name</b></label>
+                      <label className="form-label"><b>Price</b></label>
                     </div>
                     <div className="col-8 p-0">
-                      <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Enter your name"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        required
-                      />
+                      <div className="input-group">
+                        <span className="input-group-text">Rs</span>
+                        <input
+                          type="number"
+                          className="form-control"
+                          placeholder="Enter price"
+                          value={price}
+                          min={0}
+                          onChange={(e) => setPrice(e.target.value)}
+                          required
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>

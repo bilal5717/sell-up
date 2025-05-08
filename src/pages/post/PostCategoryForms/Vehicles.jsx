@@ -112,9 +112,8 @@ const REGISTRATION_CITIES = [
   'Quetta', 'Multan', 'Faisalabad', 'Hyderabad', 'Other'
 ];
 
-const VehiclesPosting = ({selectedSubCat,selectedType}) => {
- console.log(selectedSubCat,selectedType);
-  // State Management
+
+const VehiclesPosting = ({ selectedSubCat, selectedType }) => {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('Vehicles');
   const [subCategory, setSubCategory] = useState(selectedSubCat);
@@ -158,39 +157,50 @@ const VehiclesPosting = ({selectedSubCat,selectedType}) => {
   const removeVideo = () => {
     setVideoFile(null);
   };
-  // Memoized derived values
-  const isCarCare = useMemo(() => subCategory === 'Car Care', [subCategory]);
-  const isOilLubricants = useMemo(() => subCategory === 'Oil & Lubricant', [subCategory]);
-  const isSpareParts = useMemo(() => subCategory === 'Spare Parts', [subCategory]);
-  const isCarAccessories = useMemo(() => subCategory === 'Car Accessories', [subCategory]);
-  const showKMSDriven = useMemo(() => [ 'Buses,Vans&Trucks'].includes(subCategory), [subCategory]);
-  const showPrice = useMemo(() => subCategory !== 'Cars On Installments', [subCategory]);
-  const showDownPayment = useMemo(() => subCategory === 'Cars On Installments', [subCategory]);
-  const showRegistrationCity = useMemo(() => (
-    subCategory !== 'Cars On Installments' && subCategory !== 'Boats' && subCategory !== 'Cars'
-  ), [subCategory]);
-  const isCarsFlow = useMemo(() => ['Cars'].includes(subCategory), [subCategory]);
-const showModelForCars = useMemo(() => isCarsFlow && make, [isCarsFlow, make]);
-const showFieldsAfterModelForCars = useMemo(() => isCarsFlow && make && model, [isCarsFlow, make, model]);
-
-const isCarsOnInstallmentsFlow = useMemo(() => ['Cars On Installments'].includes(subCategory), [subCategory]);
-const showModelForInstallments = useMemo(() => isCarsOnInstallmentsFlow && make, [isCarsOnInstallmentsFlow, make]);
-const showFieldsAfterModelForInstallments = useMemo(() => isCarsOnInstallmentsFlow && make && model, [isCarsOnInstallmentsFlow, make, model]);
-
-  const showVehicleTypeDropdown = useMemo(() => subCategory && VEHICLE_TYPE_OPTIONS[subCategory]?.length > 0, [subCategory]);
-  const showMakeDropdown = useMemo(() => subCategory && subCategory !== 'Select Sub Category' && MAKES[subCategory]?.length > 0, [subCategory]);
-  const showModelDropdown = useMemo(() => ['Cars On Installments'].includes(subCategory), [subCategory]);
-  const showCondition = useMemo(() => ['Buses,Vans&Trucks'].includes(subCategory), [subCategory]);
-  const showCarCareTypeOptions = useMemo(() => isCarCare && vehicleType && CAR_CARE_TYPES[vehicleType], [isCarCare, vehicleType]);
-  const showCarAccessoriesTypeOptions = useMemo(() => isCarAccessories && vehicleType && CAR_ACCESSORIES_TYPES[vehicleType], [isCarAccessories, vehicleType]);
-  const showSparePartsTypeOptions = useMemo(() => isSpareParts && vehicleType && SPARE_PARTS_TYPES[vehicleType], [isSpareParts, vehicleType]);
- 
-  // Event Handlers
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setPostDetails(prev => ({ ...prev, [name]: value }));
+  const handleImageUpload = (e) => {
+    const files = Array.from(e.target.files);
+    setPostDetails(prev => ({
+      ...prev,
+      images: [...prev.images, ...files.slice(0, 14 - prev.images.length)]
+    }));
   };
 
+  const removeImage = (index) => {
+    setPostDetails(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
+    }));
+  };
+  // Derived values
+  const isCars = useMemo(() => subCategory === 'Cars', [subCategory]);
+  const isCarsOnInstallments = useMemo(() => subCategory === 'Cars On Installments', [subCategory]);
+  const isBusesVansTrucks = useMemo(() => subCategory === 'Buses,Vans&Trucks', [subCategory]);
+  const isRikshawChingchi = useMemo(() => subCategory === 'Rikshaw&Chingchi', [subCategory]);
+  const isTractorsTrailers = useMemo(() => subCategory === 'Tractors&Trailers', [subCategory]);
+  const isCarCare = useMemo(() => subCategory === 'Car Care', [subCategory]);
+  const isCarAccessories = useMemo(() => subCategory === 'Car Accessories', [subCategory]);
+  const isSpareParts = useMemo(() => subCategory === 'Spare Parts', [subCategory]);
+
+  // Show model dropdown only after make is selected
+  const showModel = useMemo(() => (isCars || isCarsOnInstallments) && make, [isCars, isCarsOnInstallments, make]);
+  
+  // Show fields after model is selected
+  const showFieldsAfterModel = useMemo(() => (isCars || isCarsOnInstallments) && make && model, 
+    [isCars, isCarsOnInstallments, make, model]);
+
+  // Determine how to display type options (tabs or dropdown)
+  const showTypeAsTabs = useMemo(() => {
+    if (!isCarCare && !isCarAccessories && !isSpareParts) return false;
+    return [
+      'Air Fresher', 'Compound Polishes', 'Covers', 'Microfiber Clothes', 
+      'Shampoos', 'Safety&Security', 'Bumpers', 'Brakes', 'Batteries'
+    ].includes(vehicleType);
+  }, [isCarCare, isCarAccessories, isSpareParts, vehicleType]);
+// Event Handlers
+const handleInputChange = (e) => {
+  const { name, value } = e.target;
+  setPostDetails(prev => ({ ...prev, [name]: value }));
+};
   const handleSubmit = (e) => {
     e.preventDefault();
     const submissionData = {
@@ -216,258 +226,555 @@ const showFieldsAfterModelForInstallments = useMemo(() => isCarsOnInstallmentsFl
     console.log('Vehicle post created:', submissionData);
     // Here you would typically send this data to your backend
   };
-
-
-  const handleCategorySelect = (categoryName) => {
-    setSelectedCategory(categoryName);
-    setShowCategoryModal(false);
-  };
-
- 
-
-  // Reusable component functions
-  const renderSelectInput = ({ 
-    value, 
-    onChange, 
-    options = [], 
-    placeholder, 
-    required = true 
-  }) => (
-    <select
-      className="form-select"
+ // Reusable component functions
+ const renderSelectInput = ({ 
+  value, 
+  onChange, 
+  options = [], 
+  placeholder, 
+  required = true 
+}) => (
+  <select
+    className="form-select"
+    value={value}
+    onChange={onChange}
+    required={required}
+    disabled={options.length === 0}
+  >
+    <option value="" disabled>
+      {options.length === 0 ? 'No options available' : placeholder}
+    </option>
+    {options.map((option, index) => (
+      <option key={index} value={option}>{option}</option>
+    ))}
+  </select>
+);
+const renderRadioGroup = ({ name, value, options, onChange, required = true }) => (
+  <div className="btn-group w-100 gap-2" role="group">
+    {options.map((option) => (
+      <React.Fragment key={option}>
+        <input
+          type="radio"
+          className="btn-check"
+          name={name}
+          id={`${name}${option}`}
+          value={option}
+          checked={value === option}
+          onChange={() => onChange(option)}
+          required={required}
+        />
+        <label className="btn btn-outline-secondary" htmlFor={`${name}${option}`}>
+          {option}
+        </label>
+      </React.Fragment>
+    ))}
+  </div>
+);
+const renderTextInput = ({ 
+  value, 
+  onChange, 
+  placeholder, 
+  type = 'text', 
+  min, 
+  max, 
+  prefix, 
+  icon,
+  required = true 
+}) => (
+  <div className="input-group">
+    {prefix && <span className="input-group-text">{prefix}</span>}
+    <input
+      type={type}
+      className="form-control"
+      placeholder={placeholder}
       value={value}
+      min={min}
+      max={max}
       onChange={onChange}
       required={required}
-      disabled={options.length === 0}
-    >
-      <option value="" disabled>
-        {options.length === 0 ? 'No options available' : placeholder}
-      </option>
-      {options.map((option, index) => (
-        <option key={index} value={option}>{option}</option>
-      ))}
-    </select>
-  );
-  const handleImageUpload = (e) => {
-    const files = Array.from(e.target.files);
-    setPostDetails(prev => ({
-      ...prev,
-      images: [...prev.images, ...files.slice(0, 14 - prev.images.length)]
-    }));
-  };
-
-  const removeImage = (index) => {
-    setPostDetails(prev => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index)
-    }));
-  };
-  const renderRadioGroup = ({ name, value, options, onChange, required = true }) => (
-    <div className="btn-group w-100 gap-2" role="group">
-      {options.map((option) => (
-        <React.Fragment key={option}>
-          <input
-            type="radio"
-            className="btn-check"
-            name={name}
-            id={`${name}${option}`}
-            value={option}
-            checked={value === option}
-            onChange={() => onChange(option)}
-            required={required}
-          />
-          <label className="btn btn-outline-secondary" htmlFor={`${name}${option}`}>
-            {option}
-          </label>
-        </React.Fragment>
-      ))}
-    </div>
-  );
-
-  const renderTextInput = ({ 
-    value, 
-    onChange, 
-    placeholder, 
-    type = 'text', 
-    min, 
-    max, 
-    prefix, 
-    icon,
-    required = true 
-  }) => (
-    <div className="input-group">
-      {prefix && <span className="input-group-text">{prefix}</span>}
-      <input
-        type={type}
-        className="form-control"
-        placeholder={placeholder}
-        value={value}
-        min={min}
-        max={max}
-        onChange={onChange}
-        required={required}
-      />
-      {icon && (
-        <span className="input-group-text">
-          {icon === 'calendar' ? <FiCalendar /> : null}
-        </span>
-      )}
-    </div>
-  );
-
-  const renderCategoryModal = () => (
-    <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-      <div className="modal-dialog modal-dialog-centered">
-        <div className="modal-content">
-          <div className="modal-header">
-            <h5 className="modal-title">Select Category</h5>
-            <button 
-              type="button" 
-              className="btn-close" 
-              onClick={() => setShowCategoryModal(false)}
-              aria-label="Close"
-            />
-          </div>
-          <div className="modal-body">
-            <div className="row g-3">
-              {CATEGORIES.map(category => (
-                <div key={category.id} className="col-6">
-                  <div 
-                    className={`p-3 border rounded text-center cursor-pointer ${
-                      selectedCategory === category.name ? 'border-warning bg-light' : ''
-                    }`}
-                    onClick={() => handleCategorySelect(category.name)}
-                  >
-                    <div className="fs-3 mb-2">{category.icon}</div>
-                    <div className="fw-medium">{category.name}</div>
-                    {selectedCategory === category.name && (
-                      <FiCheck className="text-warning mt-1" />
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
+    />
+    {icon && (
+      <span className="input-group-text">
+        {icon === 'calendar' ? <FiCalendar /> : null}
+      </span>
+    )}
+  </div>
+);
   return (
     <div className="container mt-4 mb-5">
-      <div className="row justify-content-center">
-        <div className="col-md-12 col-lg-8 mx-3">
-          <div className="border rounded bg-white">
-            {/* Header Row */}
-            <div className="row align-items-center mb-3 p-3">
-              <div className="col-2">
-                <label className="fs-6 bold"><b>Category</b></label>
+      {/* ... (keep your existing JSX structure until the form) */}
+
+      <form onSubmit={handleSubmit}>
+        
+
+        {/* Make - shown for Cars and Cars On Installments */}
+        {(isCars || isCarsOnInstallments) && (
+          <div className="mb-3 d-flex align-items-center">
+            <div className="row w-100">
+              <div className="col-4">
+                <label className="form-label"><b>Make</b></label>
               </div>
-              
-              <div className="col-8 text-center">
-                <div className="d-flex align-items-center justify-content-center gap-2 cursor-pointer">
-                  <div className="rounded-circle bg-light d-flex align-items-center justify-content-center" 
-                    style={{ width: '30px', height: '30px' }}>
-                    {CATEGORIES.find(c => c.name === selectedCategory)?.icon || '🚗'}
-                  </div>
-                  <span className="fw-medium">{selectedCategory}</span>
-                </div>
-              </div>
-              
-              <div className="col-2">
-                <button 
-                  type="button" 
-                  className="btn btn-link text-decoration-none p-0"
-                  onClick={() => setShowCategoryModal(true)}
-                  aria-label="Change category"
-                >
-                  <span>Change</span>
-                </button>
+              <div className="col-8 p-0">
+                {renderSelectInput({
+                  value: make,
+                  onChange: (e) => {
+                    setMake(e.target.value);
+                    setModel('');
+                  },
+                  options: MAKES[subCategory] || [],
+                  placeholder: 'Select Make'
+                })}
               </div>
             </div>
-            <hr />
+          </div>
+        )}
 
-            <div className="row align-items-around mb-3 p-3">
-              <form onSubmit={handleSubmit}>
-                
-              
+        {/* Model - shown after make is selected */}
+        {showModel && (
+          <div className="mb-3 d-flex align-items-center">
+            <div className="row w-100">
+              <div className="col-4">
+                <label className="form-label"><b>Model</b></label>
+              </div>
+              <div className="col-8 p-0">
+                {renderSelectInput({
+                  value: model,
+                  onChange: (e) => setModel(e.target.value),
+                  options: MODELS[make] || [],
+                  placeholder: 'Select Model'
+                })}
+              </div>
+            </div>
+          </div>
+        )}
 
-                {/* Car Care Type Options */}
-                {showCarCareTypeOptions && (
-                  <div className="mb-3 d-flex align-items-center">
-                    <div className="row w-100">
-                      <div className="col-4">
-                        <label className="form-label"><b>Type</b></label>
-                      </div>
-                      <div className="col-8 p-0">
-                        {['Air Fresher', 'Compound Polishes', 'Covers', 'Microfiber Clothes'].includes(vehicleType) ? (
-                          renderRadioGroup({
-                            name: 'carCareType',
-                            value: features.carCareType || '',
-                            options: CAR_CARE_TYPES[vehicleType],
-                            onChange: (val) => setFeatures(prev => ({ ...prev, carCareType: val }))
-                          })
-                        ) : (
-                          renderSelectInput({
-                            value: features.carCareType || '',
-                            onChange: (e) => setFeatures(prev => ({ ...prev, carCareType: e.target.value })),
-                            options: CAR_CARE_TYPES[vehicleType] || [],
-                            placeholder: 'Select Type'
-                          })
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
+        {/* Fields for Cars after model selection */}
+        {isCars && showFieldsAfterModel && (
+          <>
+            <div className="mb-3 d-flex align-items-center">
+              <div className="row w-100">
+                <div className="col-4">
+                  <label className="form-label"><b>Condition</b></label>
+                </div>
+                <div className="col-8 p-0">
+                  {renderRadioGroup({
+                    name: 'condition',
+                    value: condition,
+                    options: ['New', 'Used'],
+                    onChange: setCondition
+                  })}
+                </div>
+              </div>
+            </div>
 
-                {/* Car Accessories Type Options */}
-                {showCarAccessoriesTypeOptions && (
-                  <div className="mb-3 d-flex align-items-center">
-                    <div className="row w-100">
-                      <div className="col-4">
-                        <label className="form-label"><b>Type</b></label>
-                      </div>
-                      <div className="col-8 p-0">
-                        {vehicleType === 'Safety&Security' ? (
-                          renderRadioGroup({
-                            name: 'carAccessoriesType',
-                            value: features.carAccessoriesType || '',
-                            options: CAR_ACCESSORIES_TYPES[vehicleType],
-                            onChange: (val) => setFeatures(prev => ({ ...prev, carAccessoriesType: val }))
-                          })
-                        ) : (
-                          renderSelectInput({
-                            value: features.carAccessoriesType || '',
-                            onChange: (e) => setFeatures(prev => ({ ...prev, carAccessoriesType: e.target.value })),
-                            options: CAR_ACCESSORIES_TYPES[vehicleType] || [],
-                            placeholder: 'Select Type'
-                          })
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
+            <div className="mb-3 d-flex align-items-center">
+              <div className="row w-100">
+                <div className="col-4">
+                  <label className="form-label"><b>Kms Driven</b></label>
+                </div>
+                <div className="col-8 p-0">
+                  {renderTextInput({
+                    value: kmsDriven,
+                    onChange: (e) => setKmsDriven(e.target.value),
+                    placeholder: "Enter kilometers driven",
+                    type: 'number',
+                    min: 0
+                  })}
+                </div>
+              </div>
+            </div>
 
- {/* Spare Parts Type Options */}
- {showSparePartsTypeOptions && (
+            <div className="mb-3 d-flex align-items-center">
+              <div className="row w-100">
+                <div className="col-4">
+                  <label className="form-label"><b>Year</b></label>
+                </div>
+                <div className="col-8 p-0">
+                  {renderTextInput({
+                    value: year,
+                    onChange: (e) => setYear(e.target.value),
+                    placeholder: "Enter year",
+                    type: 'number',
+                    min: 1900,
+                    max: new Date().getFullYear()
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-3 d-flex align-items-center">
+              <div className="row w-100">
+                <div className="col-4">
+                  <label className="form-label"><b>Engine Type</b></label>
+                </div>
+                <div className="col-8 p-0">
+                  {renderSelectInput({
+                    value: fuelType,
+                    onChange: (e) => setFuelType(e.target.value),
+                    options: FUEL_TYPES,
+                    placeholder: 'Select Engine Type'
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-3 d-flex align-items-center">
+              <div className="row w-100">
+                <div className="col-4">
+                  <label className="form-label"><b>Transmission</b></label>
+                </div>
+                <div className="col-8 p-0">
+                  {renderSelectInput({
+                    value: transmission,
+                    onChange: (e) => setTransmission(e.target.value),
+                    options: TRANSMISSIONS,
+                    placeholder: 'Select Transmission'
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <CarFeaturesSelection features={features} setFeatures={setFeatures} />
+
+            <div className="mb-3 d-flex align-items-center">
+              <div className="row w-100">
+                <div className="col-4">
+                  <label className="form-label"><b>Number of Owners</b></label>
+                </div>
+                <div className="col-8 p-0">
+                  {renderTextInput({
+                    value: numberOfOwners,
+                    onChange: (e) => setNumberOfOwners(e.target.value),
+                    placeholder: "Enter number of owners",
+                    type: 'number',
+                    min: 0
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-3 d-flex align-items-center">
+              <div className="row w-100">
+                <div className="col-4">
+                  <label className="form-label"><b>Car Documents</b></label>
+                </div>
+                <div className="col-8 p-0">
+                  {renderRadioGroup({
+                    name: 'docType',
+                    value: docType,
+                    options: DOC_TYPES,
+                    onChange: setDocType
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-3 d-flex align-items-center">
+              <div className="row w-100">
+                <div className="col-4">
+                  <label className="form-label"><b>Assembly</b></label>
+                </div>
+                <div className="col-8 p-0">
+                  {renderRadioGroup({
+                    name: 'assembly',
+                    value: assembly,
+                    options: ASSEMBLY_OPTIONS,
+                    onChange: setAssembly
+                  })}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Fields for Cars On Installments after model selection */}
+        {isCarsOnInstallments && showFieldsAfterModel && (
+          <>
+            <div className="mb-3 d-flex align-items-center">
+              <div className="row w-100">
+                <div className="col-4">
+                  <label className="form-label"><b>Year</b></label>
+                </div>
+                <div className="col-8 p-0">
+                  {renderTextInput({
+                    value: year,
+                    onChange: (e) => setYear(e.target.value),
+                    placeholder: "Enter year",
+                    type: 'number',
+                    min: 1900,
+                    max: new Date().getFullYear()
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-3 d-flex align-items-center">
+              <div className="row w-100">
+                <div className="col-4">
+                  <label className="form-label"><b>Condition</b></label>
+                </div>
+                <div className="col-8 p-0">
+                  {renderRadioGroup({
+                    name: 'condition',
+                    value: condition,
+                    options: ['New', 'Used'],
+                    onChange: setCondition
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-3 d-flex align-items-center">
+              <div className="row w-100">
+                <div className="col-4">
+                  <label className="form-label"><b>Transmission</b></label>
+                </div>
+                <div className="col-8 p-0">
+                  {renderSelectInput({
+                    value: transmission,
+                    onChange: (e) => setTransmission(e.target.value),
+                    options: TRANSMISSIONS,
+                    placeholder: 'Select Transmission'
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-3 d-flex align-items-center">
+              <div className="row w-100">
+                <div className="col-4">
+                  <label className="form-label"><b>Registered</b></label>
+                </div>
+                <div className="col-8 p-0">
+                  {renderRadioGroup({
+                    name: 'registered',
+                    value: registered,
+                    options: REGISTERED_OPTIONS,
+                    onChange: setRegistered
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-3 d-flex align-items-center">
+              <div className="row w-100">
+                <div className="col-4">
+                  <label className="form-label"><b>Monthly Installment</b></label>
+                </div>
+                <div className="col-8 p-0">
+                  {renderTextInput({
+                    value: monthlyInstall,
+                    onChange: (e) => setMonthlyInstall(e.target.value),
+                    placeholder: "Enter monthly installment",
+                    type: 'number',
+                    min: 0,
+                    prefix: 'Rs'
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-3 d-flex align-items-center">
+              <div className="row w-100">
+                <div className="col-4">
+                  <label className="form-label"><b>Installment Plan</b></label>
+                </div>
+                <div className="col-8 p-0">
+                  {renderSelectInput({
+                    value: installPlan,
+                    onChange: (e) => setInstallPlan(e.target.value),
+                    options: INSTALL_PLANS,
+                    placeholder: 'Select Installment Plan'
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-3 d-flex align-items-center">
+              <div className="row w-100">
+                <div className="col-4">
+                  <label className="form-label"><b>Engine Type</b></label>
+                </div>
+                <div className="col-8 p-0">
+                  {renderSelectInput({
+                    value: fuelType,
+                    onChange: (e) => setFuelType(e.target.value),
+                    options: FUEL_TYPES,
+                    placeholder: 'Select Engine Type'
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-3 d-flex align-items-center">
+              <div className="row w-100">
+                <div className="col-4">
+                  <label className="form-label"><b>Body Type</b></label>
+                </div>
+                <div className="col-8 p-0">
+                  {renderSelectInput({
+                    value: features.bodyType || '',
+                    onChange: (e) => setFeatures(prev => ({ ...prev, bodyType: e.target.value })),
+                    options: ['Sedan', 'Hatchback', 'SUV', 'Crossover', 'Coupe', 'Convertible', 'Wagon', 'Van', 'Other'],
+                    placeholder: 'Select Body Type'
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-3 d-flex align-items-center">
+              <div className="row w-100">
+                <div className="col-4">
+                  <label className="form-label"><b>Color</b></label>
+                </div>
+                <div className="col-8 p-0">
+                  {renderSelectInput({
+                    value: features.color || '',
+                    onChange: (e) => setFeatures(prev => ({ ...prev, color: e.target.value })),
+                    options: ['Black', 'White', 'Silver', 'Gray', 'Red', 'Blue', 'Green', 'Yellow', 'Other'],
+                    placeholder: 'Select Color'
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-3 d-flex align-items-center">
+              <div className="row w-100">
+                <div className="col-4">
+                  <label className="form-label"><b>Car Documents</b></label>
+                </div>
+                <div className="col-8 p-0">
+                  {renderRadioGroup({
+                    name: 'docType',
+                    value: docType,
+                    options: DOC_TYPES,
+                    onChange: setDocType
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-3 d-flex align-items-center">
+              <div className="row w-100">
+                <div className="col-4">
+                  <label className="form-label"><b>Assembly</b></label>
+                </div>
+                <div className="col-8 p-0">
+                  {renderRadioGroup({
+                    name: 'assembly',
+                    value: assembly,
+                    options: ASSEMBLY_OPTIONS,
+                    onChange: setAssembly
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <CarFeaturesSelection features={features} setFeatures={setFeatures} />
+
+            {/* Down Payment instead of Price */}
+            <div className="mb-3 d-flex align-items-center">
+              <div className="row w-100">
+                <div className="col-4">
+                  <label className="form-label"><b>Down Payment</b></label>
+                </div>
+                <div className="col-8 p-0">
+                  {renderTextInput({
+                    value: downPayment,
+                    onChange: (e) => setDownPayment(e.target.value),
+                    placeholder: "Enter down payment",
+                    type: 'number',
+                    min: 0,
+                    prefix: 'Rs'
+                  })}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Fields for Buses/Vans&Trucks, Rikshaw&Chingchi, Tractors&Trailers */}
+        {(isBusesVansTrucks || isRikshawChingchi || isTractorsTrailers) && (
+          <>
+            <div className="mb-3 d-flex align-items-center">
+              <div className="row w-100">
+                <div className="col-4">
+                  <label className="form-label"><b>Year</b></label>
+                </div>
+                <div className="col-8 p-0">
+                  {renderTextInput({
+                    value: year,
+                    onChange: (e) => setYear(e.target.value),
+                    placeholder: "Enter year",
+                    type: 'number',
+                    min: 1900,
+                    max: new Date().getFullYear()
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-3 d-flex align-items-center">
+              <div className="row w-100">
+                <div className="col-4">
+                  <label className="form-label"><b>Kms Driven</b></label>
+                </div>
+                <div className="col-8 p-0">
+                  {renderTextInput({
+                    value: kmsDriven,
+                    onChange: (e) => setKmsDriven(e.target.value),
+                    placeholder: "Enter kilometers driven",
+                    type: 'number',
+                    min: 0
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-3 d-flex align-items-center">
+              <div className="row w-100">
+                <div className="col-4">
+                  <label className="form-label"><b>Condition</b></label>
+                </div>
+                <div className="col-8 p-0">
+                  {renderRadioGroup({
+                    name: 'condition',
+                    value: condition,
+                    options: ['New', 'Used'],
+                    onChange: setCondition
+                  })}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Type selection for Car Care, Car Accessories, Spare Parts */}
+        {(isCarCare || isCarAccessories || isSpareParts) && vehicleType && (
           <div className="mb-3 d-flex align-items-center">
             <div className="row w-100">
               <div className="col-4">
                 <label className="form-label"><b>Type</b></label>
               </div>
               <div className="col-8 p-0">
-                {['Bumpers', 'Brakes', 'Batteries', 'Wipers', 'Tyres', 'Mirrors', 'Filters'].includes(vehicleType) ? (
+                {showTypeAsTabs ? (
                   renderRadioGroup({
-                    name: 'sparePartsType',
-                    value: features.sparePartsType || '',
-                    options: SPARE_PARTS_TYPES[vehicleType],
-                    onChange: (val) => setFeatures(prev => ({ ...prev, sparePartsType: val }))
+                    name: 'typeSelection',
+                    value: features.type || '',
+                    options: 
+                      isCarCare ? CAR_CARE_TYPES[vehicleType] || [] :
+                      isCarAccessories ? CAR_ACCESSORIES_TYPES[vehicleType] || [] :
+                      SPARE_PARTS_TYPES[vehicleType] || [],
+                    onChange: (val) => setFeatures(prev => ({ ...prev, type: val }))
                   })
                 ) : (
                   renderSelectInput({
-                    value: features.sparePartsType || '',
-                    onChange: (e) => setFeatures(prev => ({ ...prev, sparePartsType: e.target.value })),
-                    options: SPARE_PARTS_TYPES[vehicleType] || [],
+                    value: features.type || '',
+                    onChange: (e) => setFeatures(prev => ({ ...prev, type: e.target.value })),
+                    options: 
+                      isCarCare ? CAR_CARE_TYPES[vehicleType] || [] :
+                      isCarAccessories ? CAR_ACCESSORIES_TYPES[vehicleType] || [] :
+                      SPARE_PARTS_TYPES[vehicleType] || [],
                     placeholder: 'Select Type'
                   })
                 )}
@@ -475,348 +782,76 @@ const showFieldsAfterModelForInstallments = useMemo(() => isCarsOnInstallmentsFl
             </div>
           </div>
         )}
- {/* Make Dropdown - Show first for Cars On Installments */}
- {isCarsOnInstallmentsFlow && (
+{/* Title - always visible */}
+<div className="mb-3 d-flex align-items-center">
+          <div className="row w-100">
+            <div className="col-4">
+              <label className="form-label fw-bold"><b>Title</b></label>
+            </div>
+            <div className="col-8 p-0">
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Enter title"
+                name="title"
+                value={postDetails.title}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Description - always visible */}
         <div className="mb-3 d-flex align-items-center">
           <div className="row w-100">
             <div className="col-4">
-              <label className="form-label"><b>Make</b></label>
+              <label className="form-label fw-bold"><b>Description</b></label>
             </div>
             <div className="col-8 p-0">
-              {renderSelectInput({
-                value: make,
-                onChange: (e) => {
-                  setMake(e.target.value);
-                  setModel('');
-                },
-                options: MAKES[subCategory] || [],
-                placeholder: 'Select Make'
-              })}
+              <textarea
+                className="form-control"
+                rows={5}
+                placeholder="Enter description"
+                name="description"
+                value={postDetails.description}
+                onChange={handleInputChange}
+                required
+              />
             </div>
           </div>
         </div>
-      )}
-
-      {/* Model Dropdown - Show after make is selected for Cars On Installments */}
-      {showModelForInstallments && (
+        {/* Location - always visible */}
         <div className="mb-3 d-flex align-items-center">
           <div className="row w-100">
             <div className="col-4">
-              <label className="form-label"><b>Model</b></label>
+              <label className="form-label fw-bold">Location</label>
             </div>
             <div className="col-8 p-0">
-              {renderSelectInput({
-                value: model,
-                onChange: (e) => setModel(e.target.value),
-                options: MODELS[make] || [],
-                placeholder: 'Select Model'
-              })}
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Enter location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                required
+              />
             </div>
           </div>
         </div>
-      )}
 
-                {/* Make Dropdown */}
-                {isCarsFlow && !isCarCare && !isCarAccessories && !isSpareParts && !isOilLubricants && showMakeDropdown &&(
-                  <div className="mb-3 d-flex align-items-center">
-                    <div className="row w-100 mb-1">
-                      <div className="col-4">
-                        <label className="form-label"><b>Make</b></label>
-                      </div>
-                      <div className="col-8 p-0">
-                        {renderSelectInput({
-                          value: make,
-                          onChange: (e) => {
-                            setMake(e.target.value);
-                            setModel('');
-                          },
-                          options: MAKES[subCategory] || [],
-                          placeholder: 'Select Make'
-                        })}
-                        
-                      <hr />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Model Dropdown */}
-                {showModelForCars && !isCarCare && !isCarAccessories && !isSpareParts && !isOilLubricants &&(
-                  <div className="mb-3 d-flex align-items-center">
-                    <div className="row w-100">
-                      <div className="col-4">
-                        <label className="form-label"><b>Model</b></label>
-                      </div>
-                      <div className="col-8 p-0">
-                        {renderSelectInput({
-                          value: model,
-                          onChange: (e) => setModel(e.target.value),
-                          options: MODELS[make] || [],
-                          placeholder: 'Select Model'
-                        })}
-                        
-                      <hr />
-                      </div>
-                    </div>
-                  </div>
-                )}
-{/* Rest of car-specific fields shown after model */}
-{showFieldsAfterModelForCars || subCategory === 'Spare Parts' && (
-  <>
-    {/* Example: Condition */}
-    <div className="mb-3 d-flex align-items-center">
-      <div className="row w-100">
-        <div className="col-4">
-          <label className="form-label"><b>Condition</b></label>
-        </div>
-        <div className="col-8 p-0">
-          {renderRadioGroup({
-            name: 'condition',
-            value: condition,
-            options: ['New', 'Used'],
-            onChange: setCondition
-          })}
-        </div>
-      </div>
-    </div>
-{/* Kms Driven */}
-{(
-                  <div className="mb-3 d-flex align-items-center">
-                    <div className="row w-100">
-                      <div className="col-4">
-                        <label className="form-label"><b>Kms Driven</b></label>
-                      </div>
-                      <div className="col-8 p-0">
-                        {renderTextInput({
-                          value: kmsDriven,
-                          onChange: (e) => setKmsDriven(e.target.value),
-                          placeholder: "Enter kilometers driven",
-                          type: 'number',
-                          min: 0
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Year Dropdown with Custom Input */}
-                {(
-                  <div className="mb-3 d-flex align-items-center">
-                    <div className="row w-100">
-                      <div className="col-4">
-                        <label className="form-label"><b>Year</b></label>
-                      </div>
-                      <div className="col-8 p-0">
-                        {renderTextInput({
-                          value: year,
-                          onChange: (e) => setYear(e.target.value),
-                          placeholder: "Enter year (e.g., 2023)",
-                          type: 'number',
-                          min: 1900,
-                          max: 2100,
-                          icon: 'calendar'
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                 {/* Fuel Type */}
-                 {(
-                  <div className="mb-3 d-flex align-items-center">
-                    <div className="row w-100">
-                      <div className="col-4">
-                        <label className="form-label"><b>Fuel Type</b></label>
-                      </div>
-                      <div className="col-8 p-0">
-                        {renderSelectInput({
-                          value: fuelType,
-                          onChange: (e) => setFuelType(e.target.value),
-                          options: FUEL_TYPES,
-                          placeholder: 'Select Fuel Type'
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-                 {/* Transmission */}
-                 {!isCarCare && !isCarAccessories && !isSpareParts && !isOilLubricants && subCategory !== 'Buses,Vans&Trucks' && subCategory !== 'Boats' && subCategory !== 'Cars' &&(
-                  <div className="mb-3 d-flex align-items-center">
-                    <div className="row w-100">
-                      <div className="col-4">
-                        <label className="form-label"><b>Transmission</b></label>
-                      </div>
-                      <div className="col-8 p-0">
-                        {renderSelectInput({
-                          value: transmission,
-                          onChange: (e) => setTransmission(e.target.value),
-                          options: TRANSMISSIONS,
-                          placeholder: 'Select Transmission'
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-                 {/* Features - Only show for non-Car Care and non-Car Accessories items */}
-                 {!isCarCare && !isCarAccessories && !isSpareParts && !isOilLubricants && subCategory !== 'Buses,Vans&Trucks' && subCategory !== 'Boats' && subCategory !== 'Select Sub Category' &&<CarFeaturesSelection features={features} setFeatures={setFeatures} />}
-
-                  <div className="mb-3 d-flex align-items-center">
-                    <div className="row w-100">
-                      <div className="col-4">
-                        <label className="form-label"><b>Registration City</b></label>
-                      </div>
-                      <div className="col-8 p-0">
-                        {renderSelectInput({
-                          value: registrationCity,
-                          onChange: (e) => setRegistrationCity(e.target.value),
-                          options: REGISTRATION_CITIES,
-                          placeholder: 'Select Registration City'
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                
-
-                  <div className="mb-3 d-flex align-items-center">
-                    <div className="row w-100">
-                      <div className="col-4">
-                        <label className="form-label"><b>Registered</b></label>
-                      </div>
-                      <div className="col-8 p-0">
-                        {renderRadioGroup({
-                          name: 'registered',
-                          value: registered,
-                          options: REGISTERED_OPTIONS,
-                          onChange: setRegistered
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                
-
-               
-                  <div className="mb-3 d-flex align-items-center">
-                    <div className="row w-100">
-                      <div className="col-4">
-                        <label className="form-label"><b>Car Documents</b></label>
-                      </div>
-                      <div className="col-8 p-0">
-                        {renderRadioGroup({
-                          name: 'docType',
-                          value: docType,
-                          options: DOC_TYPES,
-                          onChange: setDocType
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                
-
-                {/* Assembly */}
-                
-                  <div className="mb-3 d-flex align-items-center">
-                    <div className="row w-100">
-                      <div className="col-4">
-                        <label className="form-label"><b>Assembly</b></label>
-                      </div>
-                      <div className="col-8 p-0">
-                        {renderRadioGroup({
-                          name: 'assembly',
-                          value: assembly,
-                          options: ASSEMBLY_OPTIONS,
-                          onChange: setAssembly
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                <hr />
-    {/* Add the rest of the car-related fields like kmsDriven, year, fuelType, transmission, features, registrationCity, numberOfOwners, body type, color, number of seats, car documents, assembly here in same format */}
-  </>
-)}
-{showFieldsAfterModelForInstallments && (
-        <>
-          {/* Year */}
+        {/* Price - shown for all except Cars On Installments */}
+        {!isCarsOnInstallments && (
           <div className="mb-3 d-flex align-items-center">
             <div className="row w-100">
               <div className="col-4">
-                <label className="form-label"><b>Year</b></label>
+                <label className="form-label"><b>Price</b></label>
               </div>
               <div className="col-8 p-0">
                 {renderTextInput({
-                  value: year,
-                  onChange: (e) => setYear(e.target.value),
-                  placeholder: "Enter year (e.g., 2023)",
-                  type: 'number',
-                  min: 1900,
-                  max: 2100,
-                  icon: 'calendar'
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Condition */}
-          <div className="mb-3 d-flex align-items-center">
-            <div className="row w-100">
-              <div className="col-4">
-                <label className="form-label"><b>Condition</b></label>
-              </div>
-              <div className="col-8 p-0">
-                {renderRadioGroup({
-                  name: 'condition',
-                  value: condition,
-                  options: ['New', 'Used'],
-                  onChange: setCondition
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Transmission */}
-          <div className="mb-3 d-flex align-items-center">
-            <div className="row w-100">
-              <div className="col-4">
-                <label className="form-label"><b>Transmission</b></label>
-              </div>
-              <div className="col-8 p-0">
-                {renderSelectInput({
-                  value: transmission,
-                  onChange: (e) => setTransmission(e.target.value),
-                  options: TRANSMISSIONS,
-                  placeholder: 'Select Transmission'
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Registered */}
-          <div className="mb-3 d-flex align-items-center">
-            <div className="row w-100">
-              <div className="col-4">
-                <label className="form-label"><b>Registered</b></label>
-              </div>
-              <div className="col-8 p-0">
-                {renderRadioGroup({
-                  name: 'registered',
-                  value: registered,
-                  options: REGISTERED_OPTIONS,
-                  onChange: setRegistered
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Monthly Installment */}
-          <div className="mb-3 d-flex align-items-center">
-            <div className="row w-100">
-              <div className="col-4">
-                <label className="form-label"><b>Monthly Installment</b></label>
-              </div>
-              <div className="col-8 p-0">
-                {renderTextInput({
-                  value: monthlyInstall,
-                  onChange: (e) => setMonthlyInstall(e.target.value),
-                  placeholder: "Enter Monthly Installment",
+                  value: price,
+                  onChange: (e) => setPrice(e.target.value),
+                  placeholder: "Enter price",
                   type: 'number',
                   min: 0,
                   prefix: 'Rs'
@@ -824,411 +859,7 @@ const showFieldsAfterModelForInstallments = useMemo(() => isCarsOnInstallmentsFl
               </div>
             </div>
           </div>
-
-          {/* Installment Plan */}
-          <div className="mb-3 d-flex align-items-center">
-            <div className="row w-100">
-              <div className="col-4">
-                <label className="form-label"><b>Installment Plan</b></label>
-              </div>
-              <div className="col-8 p-0">
-                {renderSelectInput({
-                  value: installPlan,
-                  onChange: (e) => setInstallPlan(e.target.value),
-                  options: INSTALL_PLANS,
-                  placeholder: 'Select Installment Plan'
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Fuel Type */}
-          <div className="mb-3 d-flex align-items-center">
-            <div className="row w-100">
-              <div className="col-4">
-                <label className="form-label"><b>Fuel Type</b></label>
-              </div>
-              <div className="col-8 p-0">
-                {renderSelectInput({
-                  value: fuelType,
-                  onChange: (e) => setFuelType(e.target.value),
-                  options: FUEL_TYPES,
-                  placeholder: 'Select Fuel Type'
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Body Type - You'll need to add BODY_TYPES constant */}
-          <div className="mb-3 d-flex align-items-center">
-            <div className="row w-100">
-              <div className="col-4">
-                <label className="form-label"><b>Body Type</b></label>
-              </div>
-              <div className="col-8 p-0">
-                {renderSelectInput({
-                  value: features.bodyType || '',
-                  onChange: (e) => setFeatures(prev => ({ ...prev, bodyType: e.target.value })),
-                  options: ['Sedan', 'Hatchback', 'SUV', 'Crossover', 'Coupe', 'Convertible', 'Wagon', 'Van', 'Other'],
-                  placeholder: 'Select Body Type'
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Color */}
-          <div className="mb-3 d-flex align-items-center">
-            <div className="row w-100">
-              <div className="col-4">
-                <label className="form-label"><b>Color</b></label>
-              </div>
-              <div className="col-8 p-0">
-                {renderSelectInput({
-                  value: features.color || '',
-                  onChange: (e) => setFeatures(prev => ({ ...prev, color: e.target.value })),
-                  options: ['Black', 'White', 'Silver', 'Gray', 'Red', 'Blue', 'Green', 'Yellow', 'Other'],
-                  placeholder: 'Select Color'
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Number of Seats */}
-          <div className="mb-3 d-flex align-items-center">
-            <div className="row w-100">
-              <div className="col-4">
-                <label className="form-label"><b>Number of Seats</b></label>
-              </div>
-              <div className="col-8 p-0">
-                {renderTextInput({
-                  value: features.seats || '',
-                  onChange: (e) => setFeatures(prev => ({ ...prev, seats: e.target.value })),
-                  placeholder: "Enter number of seats",
-                  type: 'number',
-                  min: 1,
-                  max: 10
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Car Documents */}
-          <div className="mb-3 d-flex align-items-center">
-            <div className="row w-100">
-              <div className="col-4">
-                <label className="form-label"><b>Car Documents</b></label>
-              </div>
-              <div className="col-8 p-0">
-                {renderRadioGroup({
-                  name: 'docType',
-                  value: docType,
-                  options: DOC_TYPES,
-                  onChange: setDocType
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Assembly */}
-          <div className="mb-3 d-flex align-items-center">
-            <div className="row w-100">
-              <div className="col-4">
-                <label className="form-label"><b>Assembly</b></label>
-              </div>
-              <div className="col-8 p-0">
-                {renderRadioGroup({
-                  name: 'assembly',
-                  value: assembly,
-                  options: ASSEMBLY_OPTIONS,
-                  onChange: setAssembly
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Features */}
-          <CarFeaturesSelection features={features} setFeatures={setFeatures} />
-        </>
-      )}
-
-                {/* Condition */}
-                {showCondition && !isCarCare && !isCarAccessories && !isSpareParts && !isOilLubricants  &&(
-                  <div className="mb-3 d-flex align-items-center">
-                    <div className="row w-100">
-                      <div className="col-4">
-                        <label className="form-label"><b>Condition</b></label>
-                      </div>
-                      <div className="col-8 p-0">
-                        {renderRadioGroup({
-                          name: 'condition',
-                          value: condition,
-                          options: ['New', 'Used'],
-                          onChange: setCondition
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Kms Driven */}
-                {showKMSDriven && !isCarCare && !isCarAccessories && !isSpareParts && !isOilLubricants &&(
-                  <div className="mb-3 d-flex align-items-center">
-                    <div className="row w-100">
-                      <div className="col-4">
-                        <label className="form-label"><b>Kms Driven</b></label>
-                      </div>
-                      <div className="col-8 p-0">
-                        {renderTextInput({
-                          value: kmsDriven,
-                          onChange: (e) => setKmsDriven(e.target.value),
-                          placeholder: "Enter kilometers driven",
-                          type: 'number',
-                          min: 0
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                
-
-                {/* Fuel Type */}
-                {!isCarCare && !isCarAccessories && !isSpareParts && !isOilLubricants && subCategory !== 'Buses,Vans&Trucks' && subCategory !== 'Boats' && subCategory !== 'Cars On Installments'&& subCategory !== 'Cars' &&(
-                  <div className="mb-3 d-flex align-items-center">
-                    <div className="row w-100">
-                      <div className="col-4">
-                        <label className="form-label"><b>Engine Type</b></label>
-                      </div>
-                      <div className="col-8 p-0">
-                        {renderSelectInput({
-                          value: fuelType,
-                          onChange: (e) => setFuelType(e.target.value),
-                          options: FUEL_TYPES,
-                          placeholder: 'Select Fuel Type'
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Transmission */}
-                {!isCarCare && !isCarAccessories && !isSpareParts && !isOilLubricants && subCategory !== 'Buses,Vans&Trucks' && subCategory !== 'Boats' && subCategory !== 'Cars' && subCategory !== 'Cars On Installments' &&(
-                  <div className="mb-3 d-flex align-items-center">
-                    <div className="row w-100">
-                      <div className="col-4">
-                        <label className="form-label"><b>Transmission</b></label>
-                      </div>
-                      <div className="col-8 p-0">
-                        {renderSelectInput({
-                          value: transmission,
-                          onChange: (e) => setTransmission(e.target.value),
-                          options: TRANSMISSIONS,
-                          placeholder: 'Select Transmission'
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-{/* Year Dropdown with Custom Input */}
-{  !isCarAccessories && !isSpareParts && !isOilLubricants && subCategory !== 'Boats'  && subCategory !== 'Cars On Installments'  && subCategory !== 'Cars' &&(
-                  <div className="mb-3 d-flex align-items-center">
-                    <div className="row w-100">
-                      <div className="col-4">
-                        <label className="form-label"><b>Year</b></label>
-                      </div>
-                      <div className="col-8 p-0">
-                        {renderTextInput({
-                          value: year,
-                          onChange: (e) => setYear(e.target.value),
-                          placeholder: "Enter year (e.g., 2023)",
-                          type: 'number',
-                          min: 1900,
-                          max: 2100,
-                          icon: 'calendar'
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Features - Only show for non-Car Care and non-Car Accessories items */}
-                {!isCarCare && !isCarAccessories && !isSpareParts && !isOilLubricants && subCategory !== 'Buses,Vans&Trucks' && subCategory !== 'Boats' && subCategory !== 'Cars' && subCategory !== 'Cars On Installments' &&<CarFeaturesSelection features={features} setFeatures={setFeatures} />}
-
-                {/* Number of Owners */}
-                {showFieldsAfterModelForCars && !isCarCare && !isCarAccessories && !isSpareParts && !isOilLubricants &&(
-                  <div className="mb-3 d-flex align-items-center">
-                    <div className="row w-100">
-                      <div className="col-4">
-                        <label className="form-label"><b>Number Of Owners</b></label>
-                      </div>
-                      <div className="col-8 p-0">
-                        {renderTextInput({
-                          value: numberOfOwners,
-                          onChange: (e) => setNumberOfOwners(e.target.value),
-                          placeholder: "Enter number of previous owners",
-                          type: 'number',
-                          min: 0
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Registration City */}
-                {showFieldsAfterModelForCars && showRegistrationCity && !isCarCare && !isCarAccessories && !isSpareParts && !isOilLubricants && subCategory !== 'Buses,Vans&Trucks' &&(
-                  <div className="mb-3 d-flex align-items-center">
-                    <div className="row w-100">
-                      <div className="col-4">
-                        <label className="form-label"><b>Registration City</b></label>
-                      </div>
-                      <div className="col-8 p-0">
-                        {renderSelectInput({
-                          value: registrationCity,
-                          onChange: (e) => setRegistrationCity(e.target.value),
-                          options: REGISTRATION_CITIES,
-                          placeholder: 'Select Registration City'
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-             
-
-                {/* Document Type */}
-                {showFieldsAfterModelForCars && !isCarCare && !isCarAccessories && !isSpareParts && !isOilLubricants && subCategory !== 'Buses,Vans&Trucks' && subCategory !== 'Boats' && subCategory !== 'Cars'&&(
-                  <div className="mb-3 d-flex align-items-center">
-                    <div className="row w-100">
-                      <div className="col-4">
-                        <label className="form-label"><b>Car Documents</b></label>
-                      </div>
-                      <div className="col-8 p-0">
-                        {renderRadioGroup({
-                          name: 'docType',
-                          value: docType,
-                          options: DOC_TYPES,
-                          onChange: setDocType
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Assembly */}
-                {!isCarCare && !isCarAccessories && !isSpareParts && !isOilLubricants && subCategory !== 'Buses,Vans&Trucks' && subCategory !== 'Boats' && subCategory !== 'Cars' && subCategory !== 'Cars On Installments' &&(
-                  <div className="mb-3 d-flex align-items-center">
-                    <div className="row w-100">
-                      <div className="col-4">
-                        <label className="form-label"><b>Assembly</b></label>
-                      </div>
-                      <div className="col-8 p-0">
-                        {renderRadioGroup({
-                          name: 'assembly',
-                          value: assembly,
-                          options: ASSEMBLY_OPTIONS,
-                          onChange: setAssembly
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-
-                {/* Product/Service Title */}
-                <div className="mb-3 d-flex align-items-center">
-                  <div className="row w-100">
-                    <div className="col-4">
-                      <label className="form-label fw-bold"><b>Product/Service Title</b></label>
-                    </div>
-                    <div className="col-8 p-0">
-                      <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Enter product or service title"
-                        name="title"
-                        value={postDetails.title}
-                        onChange={handleInputChange}
-                        required
-                      />
-                      <small className="text-muted d-block text-end">
-                        {isCarCare ? 
-                          `Be specific (e.g. "${vehicleType} ${features.carCareType || ''}")` : 
-                          isCarAccessories ?
-                          `Be specific (e.g. "${vehicleType} ${features.carAccessoriesType || ''}")` :
-                          'Be specific (e.g. "Toyota Corolla 2020 Model")'}
-                      </small>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Description */}
-                <div className="mb-3 d-flex align-items-center">
-                  <div className="row w-100">
-                    <div className="col-4">
-                      <label className="form-label fw-bold"><b>Description</b></label>
-                    </div>
-                    <div className="col-8 p-0">
-                      <textarea
-                        className="form-control"
-                        rows={5}
-                        placeholder="Describe the product or service in detail"
-                        name="description"
-                        value={postDetails.description}
-                        onChange={handleInputChange}
-                        required
-                      />
-                      <small className="text-muted d-block text-end">
-                        {isCarCare ? 
-                          "Include key features, usage instructions, and benefits" : 
-                          isCarAccessories ?
-                          "Include key features, compatibility information, and benefits" :
-                          "Include key features, usage history, and benefits"}
-                      </small>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Location */}
-                <div className="mb-3 d-flex align-items-center">
-                  <div className="row w-100">
-                    <div className="col-4">
-                      <label className="form-label fw-bold">Location</label>
-                    </div>
-                    <div className="col-8 p-0">
-                      <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Enter location"
-                        value={location}
-                        onChange={(e) => setLocation(e.target.value)}
-                        required
-                      />
-                      <small className="text-muted d-block text-end">Where is this item located?</small>
-                    </div>
-                  </div>
-                </div>
-                <hr />
-
-                {/* Price */}
-                {showPrice && (
-                  <div className="mb-3 d-flex align-items-center">
-                    <div className="row w-100">
-                      <div className="col-4">
-                        <label className="form-label"><b>Price</b></label>
-                      </div>
-                      <div className="col-8 p-0">
-                        {renderTextInput({
-                          value: price,
-                          onChange: (e) => setPrice(e.target.value),
-                          placeholder: "Enter price",
-                          type: 'number',
-                          min: 0,
-                          prefix: 'Rs'
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
+        )}
 
 <div className="mb-4">
                   <div className="row w-100">
@@ -1339,30 +970,8 @@ const showFieldsAfterModelForInstallments = useMemo(() => isCarsOnInstallmentsFl
                   </div>
                 </div>
                 
-                {/* Down Payment */}
-                {showDownPayment && !isCarCare && !isCarAccessories && (
-                  <div className="mb-3 d-flex align-items-center">
-                    <div className="row w-100">
-                      <div className="col-4">
-                        <label className="form-label"><b>Down Payment</b></label>
-                      </div>
-                      <div className="col-8 p-0">
-                        {renderTextInput({
-                          value: downPayment,
-                          onChange: (e) => setDownPayment(e.target.value),
-                          placeholder: "Enter down payment",
-                          type: 'number',
-                          min: 0,
-                          prefix: 'Rs'
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <hr />
-
-                {/* Contact Name */}
-                <div className="mb-3 d-flex align-items-center">
+{/* Contact Name */}
+<div className="mb-3 d-flex align-items-center">
                   <div className="row w-100">
                     <div className="col-4">
                       <label className="form-label"><b>Contact Person</b></label>
@@ -1404,35 +1013,10 @@ const showFieldsAfterModelForInstallments = useMemo(() => isCarsOnInstallmentsFl
                     </div>
                   </div>
                 </div>
-
-               
-
-                <button type="submit" className="btn btn-warning w-100 fw-bold">
-                  Post Now
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-3 border">
-          {/* Sidebar content */}
-          <div className="p-3">
-            <h5 className="fw-bold mb-3">Posting Tips</h5>
-            <ul className="list-unstyled">
-              <li className="mb-2"><FiCheck className="text-warning me-2" /> Provide clear and detailed specifications</li>
-              <li className="mb-2"><FiCheck className="text-warning me-2" /> Include high-quality photos</li>
-              <li className="mb-2"><FiCheck className="text-warning me-2" /> Mention the condition of the item</li>
-              <li className="mb-2"><FiCheck className="text-warning me-2" /> Be transparent about pricing</li>
-              <li className="mb-2"><FiCheck className="text-warning me-2" /> Specify delivery/transport options</li>
-              <li><FiCheck className="text-warning me-2" /> Provide accurate contact information</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      {/* Category Selection Modal */}
-      {showCategoryModal && renderCategoryModal()}
+        <button type="submit" className="btn btn-warning w-100 fw-bold">
+          Post Now
+        </button>
+      </form>
     </div>
   );
 };

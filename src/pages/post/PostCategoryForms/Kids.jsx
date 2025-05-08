@@ -8,7 +8,7 @@ const CreateKidsPost = ({selectedSubCat,selectedType}) => {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('Select Category');
   const [selectedKidsType, setSelectedKidsType] = useState(selectedSubCat);
-  const [selectedSubKidsType, setSelectedSubKidsType] = useState(selectedType);
+  const [selectedSubKidsType, setSelectedSubKidsType] = useState('');
   const [brand, setBrand] = useState('');
   const [condition, setCondition] = useState('');
   const [ageRange, setAgeRange] = useState('');
@@ -115,19 +115,51 @@ const CreateKidsPost = ({selectedSubCat,selectedType}) => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const submissionData = {
-      ...postDetails,
-      category: selectedCategory,
-      kidsType: selectedKidsType,
-      subKidsType: selectedSubKidsType,
-      brand,
-      condition,
-      ageRange
-    };
-    console.log('Post submitted:', submissionData);
+    const formData = new FormData();
+  
+    formData.append('title', postDetails.title);
+    formData.append('description', postDetails.description);
+    formData.append('contactName', name);
+    formData.append('category', 'Kids');
+    formData.append('subCategory', selectedKidsType);
+    formData.append('location', location);
+    formData.append('price', postDetails.price);
+    formData.append('condition', condition);
+    formData.append('age', ageRange);
+    formData.append('gender', gender);
+    formData.append('type', selectedSubKidsType);
+    formData.append('showPhoneNumber', true); // optional toggle
+  
+    // Upload images
+    postDetails.images.forEach((img, index) => {
+      formData.append(`images[${index}]`, img);
+    });
+  
+    // Upload video
+    if (videoFile) {
+      formData.append('videoFile', videoFile);
+    }
+  
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/posts', {
+        method: 'POST',
+        body: formData,
+      });
+  
+      const result = await response.json();
+      if (result.success) {
+        alert('Post created successfully!');
+      } else {
+        alert('Failed: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Something went wrong');
+    }
   };
+  
  const renderRadioGroup = ({ name, value, options, onChange, required = true }) => (
     <div className="btn-group w-100 gap-2" role="group">
       {options.map((option) => (

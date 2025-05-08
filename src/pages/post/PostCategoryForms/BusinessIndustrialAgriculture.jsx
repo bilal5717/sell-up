@@ -4,9 +4,10 @@ import { FiEdit, FiX, FiChevronDown, FiCheck, FiPlus, FiSearch } from 'react-ico
 import Switch from '@/components/common/Tooglebtn';
 
 const BusinessIndustrialForm = ({selectedSubCat,selectedType}) => {
+  console.log(selectedSubCat,selectedType);
   // State Management
   const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('Business/Industrial/Agriculture');
+  const [selectedCategory, setSelectedCategory] = useState('Business, Industrial & Agriculture');
   const [businessType, setBusinessType] = useState(selectedType);
   const [sellerType, setSellerType] = useState('business');
   const [companyName, setCompanyName] = useState('');
@@ -24,7 +25,8 @@ const BusinessIndustrialForm = ({selectedSubCat,selectedType}) => {
     description: '',
     contactName: '',
   });
-
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
   // Data Constants
   const categories = [
     { id: 1, name: 'Vehicles', icon: '🚗' },
@@ -34,7 +36,7 @@ const BusinessIndustrialForm = ({selectedSubCat,selectedType}) => {
     { id: 5, name: 'Jobs', icon: '💼' },
     { id: 6, name: 'Kids', icon: '👶' },
     { id: 7, name: 'Services', icon: '🔧' },
-    { id: 8, name: 'Business/Industrial/Agriculture', icon: '🏭' },
+    { id: 8, name: 'Business, Industrial & Agriculture', icon: '🏭' },
   ];
 
   const businessTypes = [
@@ -100,23 +102,53 @@ const BusinessIndustrialForm = ({selectedSubCat,selectedType}) => {
     setPostDetails(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const submissionData = {
-      ...postDetails,
-      category: selectedCategory,
-      businessType,
-      sellerType,
-      companyName,
-      price,
-      condition,
-      specifications,
-      operationScale,
-      location,
-      ...(hasSpecialField && { specialField }),
-      ...(showSubCategory && { subCategory })
-    };
-    console.log('Business/Industrial post created:', submissionData);
+    setIsLoading(true);
+    setError(null);
+
+    const formData = new FormData();
+    
+    // Append all form data
+    formData.append('title', postDetails.title);
+    formData.append('description', postDetails.description);
+    formData.append('contactName', postDetails.contactName);
+    formData.append('category', selectedCategory);
+    formData.append('subCategory', businessType);
+    formData.append('price', price);
+    formData.append('location', location);
+    formData.append('condition', condition);
+    formData.append('operationScale', operationScale);
+    formData.append('specifications', specifications);
+    formData.append('businessType', businessType);
+    formData.append('specialField', specialField);
+    formData.append('subCategoryType', subCategory);
+    formData.append('companyName', companyName);
+    formData.append('sellerType', sellerType);
+
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/posts', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to create post');
+      }
+
+      alert('Post created successfully:', data);
+      // Redirect or show success message
+    } catch (err) {
+      setError(err.message);
+      console.error('Error submitting form:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Render Functions
@@ -236,7 +268,7 @@ const BusinessIndustrialForm = ({selectedSubCat,selectedType}) => {
                 
 
                 {/* Sub-Category Dropdown (Conditional) */}
-                { selectedType === 'Baking equipment' || selectedType === 'Food display counters' || selectedType === 'Ovens & Tandoor' || selectedType === 'Farm Machinery and equipment' &&(
+                { (selectedType === 'Baking equipment' || selectedType === 'Food display counters' || selectedType === 'Ovens & Tandoor' || selectedType === 'Farm Machinery and equipment') &&(
                   <div className="mb-3 d-flex align-items-center">
                     <div className="row w-100">
                       <div className="col-4">

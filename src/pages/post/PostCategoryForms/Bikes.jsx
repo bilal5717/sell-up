@@ -1,15 +1,14 @@
 "use client";
 import React, { useState, useRef } from 'react';
-import { FiEdit, FiX, FiChevronDown, FiCheck, FiPlus, FiSearch, FiCalendar } from 'react-icons/fi';
+import {  FiCheck, FiCalendar } from 'react-icons/fi';
 import Switch from '@/components/common/Tooglebtn';
 
-const BikesPosting = ({selectedSubCat,selectedType}) => {
+const BikesPosting = ({selectedSubCat, selectedType}) => {
   // State Management
   const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('Vehicles');
-  const [subCategory, setSubCategory] = useState(selectedSubCat);
-  const [showSubCategoryDropdown, setShowSubCategoryDropdown] = useState(false);
-  const [kind, setKind] = useState(selectedType);
+  const [selectedCategory, setSelectedCategory] = useState('Bikes');
+  const [subCategory] = useState(selectedSubCat);
+  const [kind] = useState(selectedType);
   const [make, setMake] = useState('');
   const [model, setModel] = useState('');
   const [year, setYear] = useState('');
@@ -27,13 +26,10 @@ const BikesPosting = ({selectedSubCat,selectedType}) => {
     description: '',
     contactName: '',
   });
-  const [images, setImages] = useState([]);
-  const [videoFile, setVideoFile] = useState(null);
-  const [name, setName] = useState('');
+  const [images] = useState([]);
+  const [videoFile] = useState(null);
+  const [showPhoneNumber, setShowPhoneNumber] = useState(false); // Added state for phone number toggle
   
-  const imageInputRef = useRef(null);
-  const videoInputRef = useRef(null);
-
   // Data Constants
   const categories = [
     { id: 1, name: 'Vehicles', icon: '🚗' },
@@ -46,7 +42,6 @@ const BikesPosting = ({selectedSubCat,selectedType}) => {
     { id: 8, name: 'Business/Industrial/Agriculture', icon: '🏭' },
   ];
 
-
   const makes = [
     'Honda', 'Yamaha', 'Suzuki','United', 'Road prince','Unique' ,'Super Power','Super Star','Metro','Crown','kawasaki','Power','Ravi','Eagle','Habib','Ghani','Sohrab','Benelli','Derbi','Zongshen','CF Moto','Cineco','Qingqi','Hero','speed','Lifan','Pak Hero','Safari','Super Asia','Toyo','Treet','Union Star','Other'
   ];
@@ -56,10 +51,8 @@ const BikesPosting = ({selectedSubCat,selectedType}) => {
     'Yamaha': ['YZF-R', 'MT', 'FZ', 'YZ', 'Other'],
     'Suzuki': ['GSX-R', 'Hayabusa', 'V-Strom', 'Other'],
     'Kawasaki': ['Ninja', 'Z', 'Versys', 'Other'],
-    'Kawasaki': ['Ninja', 'Z', 'Versys', 'Other'],
     'Harley-Davidson': ['Sportster', 'Softail', 'Touring', 'Other'],
     'Royal Enfield': ['Classic', 'Bullet', 'Himalayan', 'Other']
-    // Add more models as needed
   };
 
   const registrationCities = [
@@ -67,7 +60,6 @@ const BikesPosting = ({selectedSubCat,selectedType}) => {
     'Quetta', 'Multan', 'Faisalabad', 'Hyderabad', 'Other'
   ];
 
-  const years = Array.from({length: 30}, (_, i) => new Date().getFullYear() - i);
 
   // Event Handlers
   const handleInputChange = (e) => {
@@ -75,28 +67,60 @@ const BikesPosting = ({selectedSubCat,selectedType}) => {
     setPostDetails(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const submissionData = {
-      ...postDetails,
-      category: selectedCategory,
-      subCategory,
-      kind,
-      make,
-      model,
-      year,
-      engineType,
-      engineCapacity,
-      kmsDriven,
-      ignitionType,
-      origin,
-      condition,
-      registrationCity,
-      location,
-      price
-    };
-    console.log('Bike post created:', submissionData);
+  
+    const formData = new FormData();
+  
+    // Append regular fields
+    formData.append('title', postDetails.title);
+    formData.append('description', postDetails.description);
+    formData.append('contactName', postDetails.contactName);
+    formData.append('category', selectedCategory);
+    formData.append('subCategory', subCategory);
+    formData.append('kind', kind);
+    formData.append('make', make);
+    formData.append('model', model);
+    formData.append('year', year);
+    formData.append('engineType', engineType);
+    formData.append('engineCapacity', engineCapacity);
+    formData.append('kmsDriven', kmsDriven);
+    formData.append('ignitionType', ignitionType);
+    formData.append('origin', origin);
+    formData.append('condition', condition);
+    formData.append('registrationCity', registrationCity);
+    formData.append('location', location);
+    formData.append('price', price);
+    formData.append('showPhoneNumber', showPhoneNumber);
+  
+    // Append images
+    images.forEach((img, index) => {
+      formData.append(`images[${index}]`, img);
+    });
+  
+    // Append video
+    if (videoFile) {
+      formData.append('videoFile', videoFile);
+    }
+  
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/posts', {
+        method: 'POST',
+        body: formData,
+      });
+  
+      const result = await response.json();
+      if (result.success) {
+        alert('Post created!');
+      } else {
+        alert('Failed: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      alert('An error occurred');
+    }
   };
+  
 
   // Render Functions
   const renderCategoryModal = () => (
@@ -139,8 +163,6 @@ const BikesPosting = ({selectedSubCat,selectedType}) => {
     </div>
   );
 
- 
-
   return (
     <div className="container mt-4 mb-5">
       <div className="row justify-content-center">
@@ -177,7 +199,7 @@ const BikesPosting = ({selectedSubCat,selectedType}) => {
             <div className="row align-items-around mb-3 p-3">
               <form onSubmit={handleSubmit}>
                
-                  {subCategory !== 'Spare Parts'&& subCategory !== 'Bike Accessories'&&(
+                  {subCategory !== 'Spare Parts' && subCategory !== 'Bike Accessories' && (
                     <div className="mb-3 d-flex align-items-center">
                     <div className="row w-100">
                       <div className="col-4">
@@ -205,7 +227,7 @@ const BikesPosting = ({selectedSubCat,selectedType}) => {
             
 
                 {/* Model Dropdown */}
-                {make  && subCategory !== 'Bicycle' &&(
+                {make && subCategory !== 'Bicycle' && (
                   <div className="mb-3 d-flex align-items-center">
                     <div className="row w-100">
                       <div className="col-4">
@@ -229,36 +251,35 @@ const BikesPosting = ({selectedSubCat,selectedType}) => {
                 )}
 
                 {/* Year Dropdown with Custom Input */}
-{model && subCategory !== 'Spare Parts' && (
-  <div className="mb-3 d-flex align-items-center">
-    <div className="row w-100">
-      <div className="col-4">
-        <label className="form-label"><b>Year</b></label>
-      </div>
-      <div className="col-8 p-0">
-        <div className="input-group">
-          
-        <input
-  type="number"
-  className="form-control"
-  value={year}
-  onChange={(e) => setYear(e.target.value)}
-  placeholder="Enter year (e.g., 2023)"
-  min="1900"
-  max="2100"
-  required
-/>
+                {model && subCategory !== 'Spare Parts' && (
+                  <div className="mb-3 d-flex align-items-center">
+                    <div className="row w-100">
+                      <div className="col-4">
+                        <label className="form-label"><b>Year</b></label>
+                      </div>
+                      <div className="col-8 p-0">
+                        <div className="input-group">
+                          <input
+                            type="number"
+                            className="form-control"
+                            value={year}
+                            onChange={(e) => setYear(e.target.value)}
+                            placeholder="Enter year (e.g., 2023)"
+                            min="1900"
+                            max="2100"
+                            required
+                          />
+                          <span className="input-group-text">
+                            <FiCalendar />
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-          <span className="input-group-text">
-            <FiCalendar />
-          </span>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
                 {/* Engine Type */}
-                {subCategory !== 'Spare Parts' && kind !== 'Electric Bikes'&& kind !== 'Electric' && subCategory !== 'Bike Accessories' && subCategory !== 'Bicycle' &&(
+                {subCategory !== 'Spare Parts' && kind !== 'Electric Bikes' && kind !== 'Electric' && subCategory !== 'Bike Accessories' && subCategory !== 'Bicycle' && (
                   <div className="mb-3 d-flex align-items-center">
                     <div className="row w-100">
                       <div className="col-4">
@@ -292,10 +313,10 @@ const BikesPosting = ({selectedSubCat,selectedType}) => {
                       </div>
                     </div>
                   </div>
-                 )}
+                )}
 
                 {/* Engine Capacity */}
-                {subCategory !== 'Spare Parts' && kind !== 'Electric Bikes' && kind !== 'Electric'&& subCategory !== 'Bike Accessories' && subCategory !== 'Bicycle'&&(
+                {subCategory !== 'Spare Parts' && kind !== 'Electric Bikes' && kind !== 'Electric' && subCategory !== 'Bike Accessories' && subCategory !== 'Bicycle' && (
                   <div className="mb-3 d-flex align-items-center">
                     <div className="row w-100">
                       <div className="col-4">
@@ -314,31 +335,32 @@ const BikesPosting = ({selectedSubCat,selectedType}) => {
                       </div>
                     </div>
                   </div>
-                 )}
-{/* Battery Capacity */}
-{(kind === 'Electric Bikes' || kind === 'Electric' )   && (
-  <div className="mb-3 d-flex align-items-center">
-    <div className="row w-100">
-      <div className="col-4">
-        <label className="form-label"><b>Battery Capacity (mAh)</b></label>
-      </div>
-      <div className="col-8 p-0">
-        <input
-          type="number"
-          className="form-control"
-          placeholder="Enter battery capacity"
-          value={engineCapacity}
-          min={0}
-          onChange={(e) => setEngineCapacity(e.target.value)}
-          required
-        />
-      </div>
-    </div>
-  </div>
-)}
+                )}
+
+                {/* Battery Capacity */}
+                {(kind === 'Electric Bikes' || kind === 'Electric') && (
+                  <div className="mb-3 d-flex align-items-center">
+                    <div className="row w-100">
+                      <div className="col-4">
+                        <label className="form-label"><b>Battery Capacity (mAh)</b></label>
+                      </div>
+                      <div className="col-8 p-0">
+                        <input
+                          type="number"
+                          className="form-control"
+                          placeholder="Enter battery capacity"
+                          value={engineCapacity}
+                          min={0}
+                          onChange={(e) => setEngineCapacity(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Kms Driven */}
-                {subCategory !== 'Spare Parts' && subCategory !== 'Bike Accessories' && subCategory !== 'Bicycle'  &&(
+                {subCategory !== 'Spare Parts' && subCategory !== 'Bike Accessories' && subCategory !== 'Bicycle' && (
                   <div className="mb-3 d-flex align-items-center">
                     <div className="row w-100">
                       <div className="col-4">
@@ -357,12 +379,11 @@ const BikesPosting = ({selectedSubCat,selectedType}) => {
                       </div>
                     </div>
                   </div>
-               
-            )}
+                )}
+
                 {/* Ignition Type */}
-                
-                  {selectedType !== 'Electric Bikes' && kind !== 'Electric' && subCategory !== 'Spare Parts' && subCategory !== 'Bike Accessories' && subCategory !== 'Bicycle' && subCategory !== 'ATV & Quads' &&(
-                    <div className="mb-3 d-flex align-items-center">
+                {selectedType !== 'Electric Bikes' && kind !== 'Electric' && subCategory !== 'Spare Parts' && subCategory !== 'Bike Accessories' && subCategory !== 'Bicycle' && subCategory !== 'ATV & Quads' && (
+                  <div className="mb-3 d-flex align-items-center">
                     <div className="row w-100">
                       <div className="col-4">
                         <label className="form-label"><b>Ignition Type</b></label>
@@ -395,100 +416,94 @@ const BikesPosting = ({selectedSubCat,selectedType}) => {
                       </div>
                     </div>
                   </div>
-               
-                  )}
+                )}
 
                 {/* Origin */}
-                
-                 { subCategory !== 'Bicycle' && subCategory !== 'ATV & Quads' &&  (
-                   <div className="mb-3 d-flex align-items-center">
-                   <div className="row w-100">
-                     <div className="col-4">
-                       <label className="form-label"><b>Origin</b></label>
-                     </div>
-                     <div className="col-8 p-0">
-                       <div className="btn-group w-100 gap-2" role="group">
-                         <input
-                           type="radio"
-                           className="btn-check"
-                           name="origin"
-                           id="originLocal"
-                           value="Local"
-                           checked={origin === 'Local'}
-                           onChange={() => setOrigin('Local')}
-                           required
-                         />
-                         <label className="btn btn-outline-secondary" htmlFor="originLocal">Local</label>
-
-                         <input
-                           type="radio"
-                           className="btn-check"
-                           name="origin"
-                           id="originImport"
-                           value="Import"
-                           checked={origin === 'Import'}
-                           onChange={() => setOrigin('Import')}
-                         />
-                         <label className="btn btn-outline-secondary" htmlFor="originImport">Import</label>
-
-                         <input
-                           type="radio"
-                           className="btn-check"
-                           name="origin"
-                           id="originChinese"
-                           value="Chinese"
-                           checked={origin === 'Chinese'}
-                           onChange={() => setOrigin('Chinese')}
-                         />
-                         <label className="btn btn-outline-secondary" htmlFor="originChinese">Chinese</label>
-                       </div>
-                     </div>
-                   </div>
-                 </div>
-                 )}
-                
-
-                {/* Condition */}
-                
+                {subCategory !== 'Bicycle' && subCategory !== 'ATV & Quads' && (
                   <div className="mb-3 d-flex align-items-center">
                     <div className="row w-100">
                       <div className="col-4">
-                        <label className="form-label"><b>Condition</b></label>
+                        <label className="form-label"><b>Origin</b></label>
                       </div>
                       <div className="col-8 p-0">
                         <div className="btn-group w-100 gap-2" role="group">
                           <input
                             type="radio"
                             className="btn-check"
-                            name="condition"
-                            id="conditionNew"
-                            value="New"
-                            checked={condition === 'New'}
-                            onChange={() => setCondition('New')}
+                            name="origin"
+                            id="originLocal"
+                            value="Local"
+                            checked={origin === 'Local'}
+                            onChange={() => setOrigin('Local')}
                             required
                           />
-                          <label className="btn btn-outline-secondary" htmlFor="conditionNew">New</label>
+                          <label className="btn btn-outline-secondary" htmlFor="originLocal">Local</label>
 
                           <input
                             type="radio"
                             className="btn-check"
-                            name="condition"
-                            id="conditionUsed"
-                            value="Used"
-                            checked={condition === 'Used'}
-                            onChange={() => setCondition('Used')}
+                            name="origin"
+                            id="originImport"
+                            value="Import"
+                            checked={origin === 'Import'}
+                            onChange={() => setOrigin('Import')}
                           />
-                          <label className="btn btn-outline-secondary" htmlFor="conditionUsed">Used</label>
+                          <label className="btn btn-outline-secondary" htmlFor="originImport">Import</label>
+
+                          <input
+                            type="radio"
+                            className="btn-check"
+                            name="origin"
+                            id="originChinese"
+                            value="Chinese"
+                            checked={origin === 'Chinese'}
+                            onChange={() => setOrigin('Chinese')}
+                          />
+                          <label className="btn btn-outline-secondary" htmlFor="originChinese">Chinese</label>
                         </div>
                       </div>
                     </div>
                   </div>
-              
+                )}
+
+                {/* Condition */}
+                <div className="mb-3 d-flex align-items-center">
+                  <div className="row w-100">
+                    <div className="col-4">
+                      <label className="form-label"><b>Condition</b></label>
+                    </div>
+                    <div className="col-8 p-0">
+                      <div className="btn-group w-100 gap-2" role="group">
+                        <input
+                          type="radio"
+                          className="btn-check"
+                          name="condition"
+                          id="conditionNew"
+                          value="New"
+                          checked={condition === 'New'}
+                          onChange={() => setCondition('New')}
+                          required
+                        />
+                        <label className="btn btn-outline-secondary" htmlFor="conditionNew">New</label>
+
+                        <input
+                          type="radio"
+                          className="btn-check"
+                          name="condition"
+                          id="conditionUsed"
+                          value="Used"
+                          checked={condition === 'Used'}
+                          onChange={() => setCondition('Used')}
+                        />
+                        <label className="btn btn-outline-secondary" htmlFor="conditionUsed">Used</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
                 {/* Registration City */}
-               
-                  {subCategory !== 'Spare Parts' && subCategory !== 'Bike Accessories' && subCategory !== 'Bicycle' &&(
-                    <div className="mb-3 d-flex align-items-center">
+                {subCategory !== 'Spare Parts' && subCategory !== 'Bike Accessories' && subCategory !== 'Bicycle' && (
+                  <div className="mb-3 d-flex align-items-center">
                     <div className="row w-100">
                       <div className="col-4">
                         <label className="form-label"><b>Registration City</b></label>
@@ -508,8 +523,7 @@ const BikesPosting = ({selectedSubCat,selectedType}) => {
                       </div>
                     </div>
                   </div>
-                  )}
-               
+                )}
 
                 <hr />
 
@@ -535,25 +549,28 @@ const BikesPosting = ({selectedSubCat,selectedType}) => {
                 </div>
 
                 {/* Description */}
-                <div className="mb-3 d-flex align-items-center">
-                  <div className="row w-100">
-                    <div className="col-4">
-                      <label className="form-label fw-bold"><b>Description</b></label>
-                    </div>
-                    <div className="col-8 p-0">
-                      <textarea
-                        className="form-control"
-                        rows={5}
-                        placeholder="Describe the product or service in detail"
-                        name="description"
-                        value={postDetails.description}
-                        onChange={handleInputChange}
-                        required
-                      />
-                      <small className="text-muted d-block text-end">Include key features, usage history, and benefits</small>
-                    </div>
-                  </div>
-                </div>
+<div className="mb-3 d-flex align-items-center">
+  <div className="row w-100">
+    <div className="col-4">
+      <label className="form-label fw-bold"><b>Description</b></label>
+    </div>
+    <div className="col-8 p-0">
+      <textarea
+        className="form-control"
+        rows={5}
+        placeholder="Describe the product or service in detail"
+        name="description"
+        value={postDetails.description}
+        onChange={handleInputChange}
+        required
+      />
+      <small className="text-muted d-block text-end">
+        Include key features, usage history, and benefits
+      </small>
+    </div>
+  </div>
+</div>
+
 
                 {/* Location */}
                 <div className="mb-3 d-flex align-items-center">
@@ -632,14 +649,17 @@ const BikesPosting = ({selectedSubCat,selectedType}) => {
                   </div>
                 </div>
 
-                {/* Show Phone Number Toggle */}
-                <div className="mb-3 d-flex align-items-center">
+                 {/* Show Phone Number Toggle */}
+                 <div className="mb-3 d-flex align-items-center">
                   <div className="row w-100">
                     <div className="col-5">
                       <label className="form-label"><b>Show My Phone Number</b></label>
                     </div>
                     <div className="col-7 p-0 text-end d-flex align-items-end justify-content-end">
-                      <Switch />
+                      <Switch 
+                        value={showPhoneNumber}
+                        onChange={setShowPhoneNumber} // Fixed the onChange prop
+                      />
                     </div>
                   </div>
                 </div>

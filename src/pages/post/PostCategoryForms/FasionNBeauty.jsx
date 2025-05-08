@@ -11,9 +11,10 @@ const CreateFashionBeautyPost = ({selectedSubCat,selectedType}) => {
   const [selectedSubFashionType, setSelectedSubFashionType] = useState(selectedType);
   const [brand, setBrand] = useState('');
   const [condition, setCondition] = useState('');
+  const [material, setMaterial] = useState('');
   const [ageRange, setAgeRange] = useState('');
-  const [showFashionTypeDropdown, setShowFashionTypeDropdown] = useState(false);
-  const [fashionTypeSearchTerm, setFashionTypeSearchTerm] = useState('');
+  const [showPhoneNumber, setShowPhoneNumber] = useState('');
+  const [Footcategory, setFootcategory] = useState('');
   const [location, setLocation] = useState('');
   const [name, setName] = useState('');
   const [gender, setGender] = useState('');
@@ -130,22 +131,62 @@ const CreateFashionBeautyPost = ({selectedSubCat,selectedType}) => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const submissionData = {
-      ...postDetails,
-      category: selectedCategory,
-      fashionType: selectedFashionType,
-      subFashionType: selectedSubFashionType,
-      type,
-      fabric,
-      brand,
-      condition,
-      ageRange,
-      gender
-    };
-    console.log('Post submitted:', submissionData);
+  
+    const formData = new FormData();
+  
+    // Append general fields
+    formData.append('title', postDetails.title);
+    formData.append('description', postDetails.description);
+    formData.append('contactName', name);
+    formData.append('category', selectedCategory);
+    formData.append('subCategory', selectedSubCat);
+    formData.append('location', location);
+    formData.append('price', postDetails.price);
+  
+    // Fashion & Beauty specific
+    formData.append('type', type);
+    formData.append('gender', gender);
+    formData.append('fabric', fabric);
+    formData.append('material', material);
+    formData.append('Footcategory', Footcategory);
+    formData.append('condition', condition);
+    formData.append('language', language);
+    formData.append('age', ageRange);
+  
+    // Optional toggle
+    formData.append('showPhoneNumber', true); // or false, based on your state
+  
+    // Append images
+    postDetails.images.forEach((img, index) => {
+      formData.append(`images[${index}]`, img);
+    });
+  
+    // Append video
+    if (videoFile) {
+      formData.append('videoFile', videoFile);
+    }
+  
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/posts', {
+        method: 'POST',
+        body: formData,
+      });
+  
+      const result = await response.json();
+      if (result.success) {
+        alert('Post created!');
+      } else {
+        alert('Failed: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      alert('An error occurred');
+    }
   };
+  
+  
 
   // Render Functions
   const renderCategoryModal = () => (
@@ -265,8 +306,8 @@ const CreateFashionBeautyPost = ({selectedSubCat,selectedType}) => {
       <div className="col-8 position-relative p-0">
         <select
           className="form-select"
-          value={fabric}
-          onChange={(e) => setFabric(e.target.value)}
+          value={material}
+          onChange={(e) => setMaterial(e.target.value)}
           required
         >
           <option value="" disabled>Select Material</option>
@@ -289,8 +330,8 @@ const CreateFashionBeautyPost = ({selectedSubCat,selectedType}) => {
       <div className="col-8 position-relative p-0">
         <select
           className="form-select"
-          value={fabric}
-          onChange={(e) => setFabric(e.target.value)}
+          value={Footcategory}
+          onChange={(e) => setFootcategory(e.target.value)}
           required
         >
           <option value="" disabled>Select Category</option>
@@ -303,36 +344,32 @@ const CreateFashionBeautyPost = ({selectedSubCat,selectedType}) => {
   </div>
 )}
 {selectedSubCat === 'Fragrance' && (
-  <div className="mb-3 d-flex align-items-center">
-    <div className="row w-100">
-      <div className="col-4">
-        <label className="form-label"><b>Category</b></label>
-      </div>
-      <div className="col-8 p-0">
-        <div className="btn-group w-100 gap-2" role="group">
-          {['Men', 'Women', 'Unisex'].map((option) => (
-            <React.Fragment key={option}>
-              <input
-                type="radio"
-                className="btn-check"
-                name="fragranceCategory"
-                id={`fragrance-${option}`}
-                value={option}
-                checked={gender === option}
-                onChange={() => setGender(option)}
-              />
-              <label
-                className="btn btn-outline-secondary"
-                htmlFor={`fragrance-${option}`}
-              >
-                {option}
-              </label>
-            </React.Fragment>
-          ))}
-        </div>
-      </div>
-    </div>
-  </div>
+ <div className="mb-3 d-flex align-items-center">
+ <div className="row w-100">
+   <div className="col-4">
+     <label className="form-label"><b>Gender</b></label>
+   </div>
+   <div className="col-8 p-0">
+     <div className="d-flex gap-2 flex-wrap">
+       {genderOptions.map((option, index) => (
+         <button
+           key={index}
+           type="button"
+           className={`btn ${gender === option ? 'btn-primary' : 'btn-outline-primary'}`}
+           onClick={() => setGender(option)}
+           style={{
+             padding: '0.375rem 0.75rem',
+             border: '1px solid #dee2e6',
+             borderRadius: '0.25rem'
+           }}
+         >
+           {option}
+         </button>
+       ))}
+     </div>
+   </div>
+ </div>
+</div>
 )}
 {selectedSubCat === 'Fragrance' && (
   <div className="mb-3 d-flex align-items-center">
@@ -470,23 +507,7 @@ const CreateFashionBeautyPost = ({selectedSubCat,selectedType}) => {
                 </div>
                 <hr />
 
-                {/* Brand Field */}
-                <div className="mb-3 d-flex align-items-center">
-                  <div className="row w-100">
-                    <div className="col-4">
-                      <label className="form-label"><b>Brand</b></label>
-                    </div>
-                    <div className="col-8 p-0">
-                      <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Enter brand name (optional)"
-                        value={brand}
-                        onChange={(e) => setBrand(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </div>
+               <br />
 
                 {/* Title Field */}
                 <div className="mb-3 d-flex align-items-center">
@@ -718,14 +739,17 @@ const CreateFashionBeautyPost = ({selectedSubCat,selectedType}) => {
                   </div>
                 </div>
 
-                {/* Show Phone Number Toggle */}
-                <div className="mb-3 d-flex align-items-center">
+                 {/* Show Phone Number Toggle */}
+                 <div className="mb-3 d-flex align-items-center">
                   <div className="row w-100">
                     <div className="col-5">
-                      <label className="form-label"><b>Show My Phone Number In Ads</b></label>
+                      <label className="form-label"><b>Show My Phone Number</b></label>
                     </div>
-                    <div className="col-7 p-0 text-end border">
-                      <Switch />
+                    <div className="col-7 p-0 text-end d-flex align-items-end justify-content-end">
+                      <Switch 
+                        value={showPhoneNumber}
+                        onChange={setShowPhoneNumber} // Fixed the onChange prop
+                      />
                     </div>
                   </div>
                 </div>

@@ -9,8 +9,12 @@ type LoginProps = {
   loginMethod: "phone" | "email";
   setLoginMethod: (method: "phone" | "email") => void;
   switchToSignup: () => void;
-  handleLoginSubmit: (e: React.FormEvent, method: "phone" | "email") => void; // Not used now but preserved
 };
+
+interface ErrorResponse {
+  login?: string;
+  password?: string;
+}
 
 const Login: React.FC<LoginProps> = ({
   loginMethod,
@@ -20,7 +24,7 @@ const Login: React.FC<LoginProps> = ({
   const [phoneLogin, setPhoneLogin] = useState({ phone: "", password: "" });
   const [emailLogin, setEmailLogin] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<any>({});
+  const [errors, setErrors] = useState<ErrorResponse>({});
   const [message, setMessage] = useState<string | null>(null);
 
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
@@ -51,13 +55,16 @@ const Login: React.FC<LoginProps> = ({
       if (response.data.success) {
         setMessage("Login successful!");
         localStorage.setItem("authToken", response.data.token);
-        // redirect logic here if needed
       }
-    } catch (err: any) {
-      if (err.response?.status === 422) {
-        setErrors(err.response.data.errors);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        if (err.response?.status === 422) {
+          setErrors(err.response.data.errors as ErrorResponse);
+        } else {
+          setMessage(err.response?.data?.message || "Login failed.");
+        }
       } else {
-        setMessage(err.response?.data?.message || "Login failed.");
+        setMessage("An unknown error occurred.");
       }
     }
   };
@@ -88,7 +95,7 @@ const Login: React.FC<LoginProps> = ({
           <Form.Group className="mb-2">
             <div className="input-group">
               <span className="input-group-text">
-                <img src="https://flagcdn.com/w20/pk.png" alt="PK" width={24} />
+                <Image src="https://flagcdn.com/w20/pk.png" alt="PK" width={24} height={24} />
                 <span className="mx-1">+92</span>
               </span>
               <Form.Control

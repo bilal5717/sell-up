@@ -3,7 +3,7 @@ import { Form, InputGroup, Button } from "react-bootstrap";
 import { FaEye, FaEyeSlash, FaFacebook } from "react-icons/fa";
 import Image from "next/image";
 import Google from '@/public/images/socialicons/search.png';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { useRouter } from 'next/router';
 
 type FormControlElement = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
@@ -13,7 +13,6 @@ type SignupProps = {
   setLoginMethod: (method: "phone" | "email") => void;
   switchToLogin: () => void;
 };
-
 const Signup: React.FC<SignupProps> = ({
   loginMethod,
   setLoginMethod,
@@ -36,8 +35,9 @@ const Signup: React.FC<SignupProps> = ({
     name: "",
     verification_code: "",
   });
-
   const [errors, setErrors] = useState<Record<string, string[]>>({});
+
+
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -135,11 +135,12 @@ const Signup: React.FC<SignupProps> = ({
         setErrors(prev => ({ ...prev, phone: ['Phone number already exists'] }));
         setPhoneExists(true);
         return true;
-      }else {
+      } else {
         setPhoneExists(false);
         return false;
       }
-    } catch (error) {
+    } catch (err) {
+      console.error("Phone check error:", err);
       setErrors({ ...errors, phone: ['Error checking phone number'] });
       return true;
     }
@@ -172,9 +173,13 @@ const Signup: React.FC<SignupProps> = ({
         setSuccessMessage('');
       }
   
-    } catch (error: any) {
-      console.error('Error sending OTP:', error);
-      setErrors(error.response?.data?.errors || { general: ['Server error. Please try again.'] });
+    } catch (error: unknown) {
+      const err = error as AxiosError;
+      console.error('Error sending OTP:', err);
+      setErrors(
+        (err.response?.data as { errors?: Record<string, string[]> })?.errors || 
+        { general: ['Server error. Please try again.'] }
+      );
       setSuccessMessage('');
     } finally {
       setLoading(false);
@@ -235,7 +240,8 @@ const Signup: React.FC<SignupProps> = ({
       } else {
         setErrors({ ...errors, phone: [response.data.message] });
       }
-    } catch (error) {
+    } catch (err) {
+      console.error("WhatsApp OTP error:", err);
       setErrors({ ...errors, phone: ['Failed to send WhatsApp OTP'] });
     } finally {
       setLoading(false);
@@ -263,7 +269,8 @@ const Signup: React.FC<SignupProps> = ({
       } else {
         setErrors({ ...errors, phone: [response.data.message] });
       }
-    } catch (error) {
+    } catch (err) {
+      console.error("SMS OTP error:", err);
       setErrors({ ...errors, phone: ['Failed to send SMS OTP'] });
     } finally {
       setLoading(false);
@@ -296,6 +303,7 @@ const Signup: React.FC<SignupProps> = ({
         setErrors({ otp: [res.data.message] });
       }
     } catch (err) {
+      console.error("Phone OTP verification error:", err);
       setOtpStatusPhone('❌ Server error while verifying OTP');
       setErrors({ otp: ['Verification failed'] });
     }
@@ -369,8 +377,13 @@ const Signup: React.FC<SignupProps> = ({
       } else {
         setErrors(response.data.errors || {});
       }
-    } catch (error: any) {
-      setErrors(error.response?.data?.errors || { general: ['Registration failed'] });
+    } catch (error: unknown) {
+      const err = error as AxiosError;
+      console.error("Registration error:", err);
+      setErrors(
+    (err.response?.data as { errors?: Record<string, string[]> })?.errors || 
+    { general: ['Registration failed'] }
+  );
     } finally {
       setLoading(false);
     }
@@ -412,8 +425,13 @@ const Signup: React.FC<SignupProps> = ({
       } else {
         setErrors(response.data.errors || {});
       }
-    } catch (error: any) {
-      setErrors(error.response?.data?.errors || { general: ['Registration failed'] });
+    } catch (error: unknown) {
+      const err = error as AxiosError;
+      console.error("Phone registration error:", err);
+      setErrors(
+    (err.response?.data as { errors?: Record<string, string[]> })?.errors || 
+    { general: ['Registration failed'] }
+  );
     } finally {
       setLoading(false);
     }
@@ -614,10 +632,12 @@ const Signup: React.FC<SignupProps> = ({
               <Form.Group className="mb-3 d-flex align-items-center">
                 <div className="input-group">
                   <span className="input-group-text" style={{ padding: '0.375rem 0.75rem' }}>
-                    <img 
+                    <Image 
                       src="https://flagcdn.com/w20/pk.png" 
                       alt="Pakistan" 
-                      style={{ width: '24px', marginRight: '8px' }} 
+                      width={24}
+                      height={16}
+                      style={{ marginRight: '8px' }} 
                     />
                     <span className="mx-0 mt-1">+92</span>
                   </span>
@@ -636,8 +656,8 @@ const Signup: React.FC<SignupProps> = ({
                   />
                 </div>
                 <Form.Control.Feedback type="invalid">
-  {errors.phone?.[0]}
-</Form.Control.Feedback>
+                  {errors.phone?.[0]}
+                </Form.Control.Feedback>
               
               </Form.Group>
               
@@ -665,12 +685,14 @@ const Signup: React.FC<SignupProps> = ({
             </>
           ) : (
             <>
-              <div className="mb-3">
-                <p className="small text-muted">
-                  We've sent a 4-digit OTP to your {otpMethod === 'whatsapp' ? 'WhatsApp' : 'SMS'} 
-                  at +92{phoneSignup.phone}
-                </p>
-              </div>
+              {loginMethod === "phone" && showOtpVerification && (
+        <div className="mb-3">
+          <p className="small text-muted">
+            We&apos;ve sent a 4-digit OTP to your {otpMethod === 'whatsapp' ? 'WhatsApp' : 'SMS'} 
+            at +92{phoneSignup.phone}
+          </p>
+        </div>
+      )}
 
               <div className="d-flex justify-content-between mb-4">
                 {[0, 1, 2, 3].map((index) => (
@@ -711,17 +733,21 @@ const Signup: React.FC<SignupProps> = ({
 
               <div className="text-center mb-3">
                 <p className="small">
-                  Didn't receive code?{' '}
+                  Didn&apos;t receive code?{' '}
                   {showResend ? (
                     <span 
-                      className="text-danger cursor-pointer" 
-                      onClick={() => {
-                        setShowOtpVerification(false);
-                        otpMethod === 'whatsapp' ? handleSendWhatsAppOtp() : handleSendSMSOtp();
-                      }}
-                    >
-                      Resend
-                    </span>
+                    className="text-danger cursor-pointer" 
+                    onClick={() => {
+                      setShowOtpVerification(false);
+                      if (otpMethod === 'whatsapp') {
+                        handleSendWhatsAppOtp();
+                      } else {
+                        handleSendSMSOtp();
+                      }
+                    }}
+                  >
+                    Resend
+                  </span>
                   ) : (
                     <span className="text-muted">
                       Resend code in {secondsLeft} seconds

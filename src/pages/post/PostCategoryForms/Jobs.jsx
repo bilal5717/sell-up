@@ -15,7 +15,7 @@ const JobPostingForm = ({selectedSubCat,selectedType}) => {
   const [careerLevel, setCareerLevel] = useState('');
   const [salaryPeriod, setSalaryPeriod] = useState('');
   const [positionType, setPositionType] = useState('');
-  const [showJobTypeDropdown, setShowJobTypeDropdown] = useState(false);
+  const [price, setPrice] = useState('');
   const [jobTypeSearchTerm, setJobTypeSearchTerm] = useState('');
   const [location, setLocation] = useState('');
   const [postDetails, setPostDetails] = useState({
@@ -94,22 +94,52 @@ const JobPostingForm = ({selectedSubCat,selectedType}) => {
     setPostDetails(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const submissionData = {
-      ...postDetails,
-      category: selectedCategory,
-      jobType,
-      hiringType,
-      companyName,
-      salaryFrom,
-      salaryTo,
-      careerLevel,
-      salaryPeriod,
-      positionType,
-      location
-    };
-    console.log('Job posted:', submissionData);
+    
+    const formData = new FormData();
+    
+    // Add all the form fields to formData
+    formData.append('title', postDetails.title);
+    formData.append('description', postDetails.description);
+    formData.append('category', selectedCategory);
+    formData.append('subCategory', jobType);
+    formData.append('location', location);
+    formData.append('price', price);
+    formData.append('contactName', postDetails.contactName);
+    
+    // Job-specific fields
+    formData.append('jobType', jobType);
+    formData.append('hiringType', hiringType);
+    formData.append('companyName', companyName);
+    formData.append('salaryFrom', salaryFrom);
+    formData.append('salaryTo', salaryTo);
+    formData.append('careerLevel', careerLevel);
+    formData.append('salaryPeriod', salaryPeriod);
+    formData.append('positionType', positionType);
+    
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/posts', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+        },
+        body: formData,
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        console.log('Job posted successfully:', data);
+        // Redirect or show success message
+      } else {
+        console.error('Error posting job:', data);
+        // Show error message
+      }
+    } catch (error) {
+      console.error('Network error:', error);
+      // Show network error message
+    }
   };
 
   // Render Functions
@@ -411,7 +441,29 @@ const JobPostingForm = ({selectedSubCat,selectedType}) => {
                   </div>
                 </div>
                 <hr />
-
+{/* Price */}
+<div className="mb-3 d-flex align-items-center">
+                  <div className="row w-100">
+                    <div className="col-4">
+                      <label className="form-label"><b>Price</b></label>
+                    </div>
+                    <div className="col-8 p-0">
+                      <div className="input-group">
+                        <span className="input-group-text">Rs</span>
+                        <input
+                          type="number"
+                          className="form-control"
+                          placeholder="Enter price"
+                          value={price}
+                          min={0}
+                          onChange={(e) => setPrice(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <hr />
                 {/* Contact Name */}
                 <div className="mb-3 d-flex align-items-center">
                   <div className="row w-100">
