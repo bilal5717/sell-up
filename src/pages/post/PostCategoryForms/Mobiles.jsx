@@ -300,59 +300,61 @@ const removeVideo = () => {
 };
 
 
-  const handleImageUpload = async (file) => {
-    if (!file) return console.error("No file provided");
-  
-    const contentType = file.type;
-    const fileSize = file.size;
-  
-    try {
+const handleImageUpload = async (file) => {
+  if (!file) return console.error("No file provided");
+
+  const contentType = file.type;
+  const fileSize = file.size;
+
+  try {
       // Get the pre-signed URL from the server
       const res = await axios.post('http://127.0.0.1:8000/api/generate-image-url', {
-        contentType,
-        fileSize,
+          contentType,
+          fileSize,
       });
-  
+
       if (!res.data.uploadUrl || !res.data.publicUrl) {
-        throw new Error('Upload URL not received from server');
+          throw new Error('Upload URL not received from server');
       }
-  
+
       const { uploadUrl, publicUrl, filename } = res.data;
-  
+      // Construct the direct image URL using the R2 bucket public domain
+      const directImageUrl = `${publicUrl}`;
+
       // Create a preview URL for the image
       const previewUrl = URL.createObjectURL(file);
-  
       // Add to state immediately with preview
       setPostDetails((prev) => ({
-        ...prev,
-        images: [...prev.images, { preview: previewUrl, publicUrl, filename }],
+          ...prev,
+          images: [...prev.images, { preview: previewUrl, publicUrl: directImageUrl, filename }],
       }));
-  
+      console.log(previewUrl);
       // Upload the file using the pre-signed URL
       const uploadRes = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': contentType,
-          'x-amz-acl': 'public-read',
-        },
-        body: file,
+          method: 'PUT',
+          headers: {
+              'Content-Type': contentType,
+              'x-amz-acl': 'public-read',
+          },
+          body: file,
       });
-  
+
       if (!uploadRes.ok) {
-        throw new Error(`Upload failed with status ${uploadRes.status}`);
+          throw new Error(`Upload failed with status ${uploadRes.status}`);
       }
-  
-      console.log('✅ Image uploaded successfully:', publicUrl);
-    } catch (err) {
+
+      console.log('✅ Image uploaded successfully:', directImageUrl);
+  } catch (err) {
       console.error('❌ Image upload error:', err.message);
       // Remove the failed upload from state
       setPostDetails(prev => ({
-        ...prev,
-        images: prev.images.filter(img => img.publicUrl !== publicUrl)
+          ...prev,
+          images: prev.images.filter(img => img.publicUrl !== publicUrl)
       }));
       alert(`Failed to upload image. Error: ${err.message}`);
-    }
-  };
+  }
+};
+
   
   
 const removeImage = (index) => {

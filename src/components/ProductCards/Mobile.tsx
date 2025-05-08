@@ -14,11 +14,7 @@ import '../../styles/cardstyles.module.css';
 
 interface Mobile {
   id: number;
-  images: {
-    url: string;
-    is_featured?: boolean;
-    order?: number;
-  }[];
+  image: string | null;
   price: string;
   title: string;
   condition: string;
@@ -44,8 +40,14 @@ const Mobiles = () => {
           throw new Error('Failed to fetch data');
         }
         const data = await response.json();
-        console.log('Fetched data:', data);
-        setMobiles(data);
+        console.log(data);
+
+        const mappedData = data.map((mobile: any) => ({
+          ...mobile,
+          image: mobile.images?.[0]?.url || '/images/placeholder.png', // Use first image or a placeholder
+        }));
+
+        setMobiles(mappedData);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An unknown error occurred');
       } finally {
@@ -103,20 +105,18 @@ const Mobiles = () => {
               <Link href={`/postDetails/${mobile.id}`} passHref legacyBehavior>
                 <div className="card product-card">
                   <div className="image-container">
-                    {mobile.images && mobile.images.length > 0 ? (
-                      <Image
-                        src={mobile.images[0].url}
-                        alt={mobile.title}
-                        width={240}
-                        height={180}
-                        className="card-img-top object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/images/placeholder.png';
-                        }}
-                      />
-                    ) : (
-                      <div className="placeholder-image">No Image</div>
-                    )}
+                  {mobile.image?.startsWith('http') ? (
+  <Image
+    src={mobile.image}
+    alt={mobile.title}
+    width={240}
+    height={180}
+    className="card-img-top object-cover"
+  />
+) : (
+  <div className="placeholder-image">No Image</div>
+)}
+
                   </div>
                   <div className="card-body">
                     <div className="price-container">

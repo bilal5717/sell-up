@@ -6,7 +6,7 @@ const nextConfig = {
     styledComponents: true, // 👈 this enables SSR support
   },
   images: {
-    domains: ['flagcdn.com'], // Add the domain here
+    domains: ['flagcdn.com','media.sellup.pk'],
   },
 };
 
