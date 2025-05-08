@@ -233,16 +233,72 @@ const MobilesPosting = ({selectedCat,selectedSubCatOption,selectedAccessory}) =>
     setPostDetails(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleVideoUpload = (e) => {
-    const file = input.files[0];
-    if (file && file.type.includes('video')) {
-      setVideoFile(file);
+  const handleVideoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !file.type.includes('video')) {
+        console.error("Invalid file type. Please upload a video.");
+        return;
     }
-  };
+
+    try {
+        const contentType = file.type;
+        const fileSize = file.size;
+
+        // Get the pre-signed URL from the server
+        const res = await axios.post('http://127.0.0.1:8000/api/generate-video-url', {
+            contentType,
+            fileSize,
+        }, {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!res.data.uploadUrl || !res.data.publicUrl) {
+            throw new Error('Upload URL not received from server');
+        }
+
+        const { uploadUrl, publicUrl } = res.data;
+
+        // Add to state immediately for preview
+        const previewUrl = URL.createObjectURL(file);
+
+        setVideoFile({
+            file,      // Save the actual file for upload
+            preview: previewUrl, // Save the preview URL for displaying
+            publicUrl  // Save the final public URL after upload
+        });
+
+        // Upload the file using the pre-signed URL
+        const uploadRes = await fetch(uploadUrl, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': contentType,
+                'x-amz-acl': 'public-read', // Public access
+            },
+            body: file,
+            mode: 'cors', // Handle CORS
+        });
+
+        if (!uploadRes.ok) {
+            throw new Error(`Upload failed with status ${uploadRes.status} - ${uploadRes.statusText}`);
+        }
+
+        console.log('✅ Video uploaded successfully:', publicUrl);
+    } catch (err) {
+        console.error('❌ Video upload error:', err.message);
+        alert(`Failed to upload video. Error: ${err.message}`);
+    }
+};
+
   
-  const removeVideo = () => {
-    setVideoFile(null);
-  };
+const removeVideo = () => {
+  if (videoFile && videoFile.preview) {
+      URL.revokeObjectURL(videoFile.preview);
+  }
+  setVideoFile(null);
+};
+
 
   const handleImageUpload = async (file) => {
     if (!file) return console.error("No file provided");
@@ -351,9 +407,12 @@ const removeImage = (index) => {
         formData.append('imageUrls', JSON.stringify(imageUrls));
         
         // Append video if exists
-        if (videoFile) {
-            formData.append('videoFile', videoFile);
-        }
+        // Append video if exists
+if (videoFile) {
+    const videoUrls = [videoFile.publicUrl];
+    formData.append('videoUrls', JSON.stringify(videoUrls));
+}
+
         
         // Send the request
         const response = await axios.post('http://127.0.0.1:8000/api/posts', formData, {
@@ -889,33 +948,34 @@ const removeImage = (index) => {
                             backgroundColor: '#f7f7f7'
                           }}
                         >
-                          {videoFile ? (
-                            <>
-                              <video
-                                src={URL.createObjectURL(videoFile)}
-                                className="w-100 h-100 object-fit-cover rounded"
-                                controls
-                              />
-                              <button
-                                type="button"
-                                className="position-absolute top-0 end-0 bg-danger rounded-circle p-0 border-0 d-flex align-items-center justify-content-center"
-                                style={{ width: '20px', height: '20px', transform: 'translate(30%, -30%)' }}
-                                onClick={removeVideo}
-                              >
-                                <FiX className="text-white" style={{ fontSize: '10px' }} />
-                              </button>
-                            </>
-                          ) : (
-                            <label 
-                              htmlFor="video-upload"
-                              className="w-100 h-100 d-flex flex-column align-items-center justify-content-center cursor-pointer"
-                            >
-                              <FiPlus className="text-muted mb-1" />
-                              <small className="text-muted text-center" style={{ fontSize: '0.7rem' }}>
-                                Add Video
-                              </small>
-                            </label>
-                          )}
+                          {videoFile && videoFile.preview ? (
+    <>
+        <video
+            src={videoFile.preview}
+            className="w-100 h-100 object-fit-cover rounded"
+            controls
+        />
+        <button
+            type="button"
+            className="position-absolute top-0 end-0 bg-danger rounded-circle p-0 border-0 d-flex align-items-center justify-content-center"
+            style={{ width: '20px', height: '20px', transform: 'translate(30%, -30%)' }}
+            onClick={removeVideo}
+        >
+            <FiX className="text-white" style={{ fontSize: '10px' }} />
+        </button>
+    </>
+) : (
+    <label 
+        htmlFor="video-upload"
+        className="w-100 h-100 d-flex flex-column align-items-center justify-content-center cursor-pointer"
+    >
+        <FiPlus className="text-muted mb-1" />
+        <small className="text-muted text-center" style={{ fontSize: '0.7rem' }}>
+            Add Video
+        </small>
+    </label>
+)}
+
                         </div>
                       </div>
                       <input
