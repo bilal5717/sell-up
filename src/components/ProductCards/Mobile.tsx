@@ -91,7 +91,7 @@ const Mobiles = () => {
         >
           {mobiles.map((mobile) => (
             <SwiperSlide key={mobile.id} style={{ width: '240px', marginRight: '10px' }} className="gap-3">
-              <Link href={`/postDetails/${mobile.id}`} passHref legacyBehavior>
+              <Link href={`/postDetails/mobile/${mobile.id}`} passHref legacyBehavior>
                 <div className="card product-card">
                   <div className="image-container">
                     <Image

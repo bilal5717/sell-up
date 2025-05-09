@@ -1,92 +1,133 @@
 'use client';
 
+import "react-responsive-carousel/lib/styles/carousel.min.css";
 import { Carousel } from "react-responsive-carousel";
 import { useState } from "react";
 import { LuChevronLeft, LuChevronRight, LuHeart, LuShare2 } from "react-icons/lu";
-import styled from "styled-components";
-import "react-responsive-carousel/lib/styles/carousel.min.css";
-interface ProductImageCarouselProps {
-  // You can define props here if needed
+import 'bootstrap/dist/css/bootstrap.min.css';
+
+interface MediaItem {
+  url: string;
+  type: string;
 }
 
-const ProductImageCarousel: React.FC<ProductImageCarouselProps> = () => {
-    const [isVideoPlaying, setIsVideoPlaying] = useState<boolean>(false);
-    const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-    const [isLiked, setIsLiked] = useState<boolean>(false);
-    const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+const ProductImageCarousel = ({ media }: { media: MediaItem[] }) => {
+    const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isLiked, setIsLiked] = useState(false);
+    const [zoomedMedia, setZoomedMedia] = useState<MediaItem | null>(null);
 
-    const handleVideoClick = () => {
-        setIsVideoPlaying(true);
-        setIsModalOpen(true);
+    const handleVideoClick = (item: MediaItem) => {
+        if (item.type === 'video') {
+            setZoomedMedia(item);
+            setIsVideoPlaying(true);
+            setIsModalOpen(true);
+        }
+    };
+
+    const handleImageClick = (item: MediaItem) => {
+        if (item.type === 'image') {
+            setZoomedMedia(item);
+            setIsModalOpen(true);
+        }
     };
 
     const closeModal = () => {
         setIsVideoPlaying(false);
         setIsModalOpen(false);
-        setZoomedImage(null);
+        setZoomedMedia(null);
     };
 
     const toggleLike = () => setIsLiked(!isLiked);
 
-    const images: string[] = [
-        "https://media.geeksforgeeks.org/wp-content/uploads/20211213172224/1.png",
-        "https://media.geeksforgeeks.org/wp-content/uploads/20211213172225/2.png",
-        "https://media.geeksforgeeks.org/wp-content/uploads/20211213172226/3.png",
-        "https://media.geeksforgeeks.org/wp-content/uploads/20211213172227/4.png",
-        "https://media.geeksforgeeks.org/wp-content/uploads/20211213172229/5.png",
-        "https://media.geeksforgeeks.org/wp-content/uploads/20211213172229/5.png",
-        "https://media.geeksforgeeks.org/wp-content/uploads/20211213172229/5.png"
-    ];
-
-    const handleImageZoom = (image: string) => {
-        setZoomedImage(image);
-        setIsModalOpen(true);
-    };
-
     return (
-        <CarouselContainer>
+        <div style={{ position: "relative" }}>
             {isModalOpen && (
-                <ModalOverlay onClick={closeModal}>
-                    <ModalCloseButton onClick={closeModal}>✖</ModalCloseButton>
+                <div className="modal-overlay" onClick={closeModal}>
+                    <button className="modal-close-btn" onClick={closeModal}>✖</button>
                     {isVideoPlaying ? (
-                        <ModalVideo
-                            src="https://www.w3schools.com/html/mov_bbb.mp4"
+                        <video
+                            src={zoomedMedia?.url}
                             controls
                             autoPlay
+                            className="modal-content"
                             onClick={(e) => e.stopPropagation()}
                         />
                     ) : (
-                        <ModalImage
-                            src={zoomedImage || ''}
+                        <img
+                            src={zoomedMedia?.url}
                             alt="Zoomed"
+                            className="modal-content"
                             onClick={(e) => e.stopPropagation()}
                         />
                     )}
-                </ModalOverlay>
+                </div>
             )}
 
-            <TopRightIcons>
-                <FavIcon onClick={toggleLike} isLiked={isLiked}>
-                    <LuHeart />
-                </FavIcon>
-                <FavIcon>
-                    <LuShare2 />
-                </FavIcon>
-            </TopRightIcons>
+            <div className="top-right-icons">
+                <div className="fav-icon">
+                    <LuHeart
+                        onClick={toggleLike}
+                        className={isLiked ? "liked" : ""}
+                        style={{ cursor: 'pointer' }}
+                    />
+                </div>
+                <div className="fav-icon">
+                    <LuShare2 style={{ cursor: 'pointer' }} />
+                </div>
+            </div>
 
-            <StyledCarousel
+            <Carousel
                 renderArrowPrev={(onClickHandler, hasPrev) =>
                     hasPrev && (
-                        <CarouselArrow className="left" onClick={onClickHandler}>
+                        <button 
+                            onClick={onClickHandler} 
+                            className="carousel-arrow left"
+                            style={{
+                                position: 'absolute',
+                                left: 15,
+                                zIndex: 2,
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                background: 'rgba(255,255,255,0.7)',
+                                border: 'none',
+                                borderRadius: '50%',
+                                width: 40,
+                                height: 40,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer'
+                            }}
+                        >
                             <LuChevronLeft />
-                        </CarouselArrow>
+                        </button>
                     )
                 }
                 renderArrowNext={(onClickHandler, hasNext) =>
                     hasNext && (
-                        <CarouselArrow className="right" onClick={onClickHandler}>
+                        <button 
+                            onClick={onClickHandler} 
+                            className="carousel-arrow right"
+                            style={{
+                                position: 'absolute',
+                                right: 15,
+                                zIndex: 2,
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                background: 'rgba(255,255,255,0.7)',
+                                border: 'none',
+                                borderRadius: '50%',
+                                width: 40,
+                                height: 40,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer'
+                            }}
+                        >
                             <LuChevronRight />
-                        </CarouselArrow>
+                        </button>
                     )
                 }
                 showIndicators={false}
@@ -97,182 +138,110 @@ const ProductImageCarousel: React.FC<ProductImageCarouselProps> = () => {
                 swipeScrollTolerance={5}
                 selectedItem={0}
             >
-                <div>
-                    <VideoThumbnail
-                        src="https://img.youtube.com/vi/YE7VzlLtp-4/maxresdefault.jpg"
-                        alt="video thumbnail"
-                        onClick={handleVideoClick}
-                    />
-                    <VideoPlayButton onClick={handleVideoClick}>▶️</VideoPlayButton>
-                </div>
-                {images.map((image, index) => (
+                {media.map((item, index) => (
                     <div key={index}>
-                        <CarouselImage
-                            src={image}
-                            alt={`image${index + 1}`}
-                            onClick={() => handleImageZoom(image)}
-                        />
+                        {item.type === 'video' ? (
+                            <div style={{ position: 'relative' }}>
+                                <video
+                                    src={item.url}
+                                    controls={false}
+                                    style={{ width: '100%', height: 'auto' }}
+                                    poster="/images/video-placeholder.png"
+                                    onClick={() => handleVideoClick(item)}
+                                />
+                                <button 
+                                    onClick={() => handleVideoClick(item)} 
+                                    className="video-play-btn"
+                                    style={{
+                                        position: 'absolute',
+                                        top: '50%',
+                                        left: '50%',
+                                        transform: 'translate(-50%, -50%)',
+                                        background: 'rgba(0,0,0,0.5)',
+                                        border: 'none',
+                                        borderRadius: '50%',
+                                        width: 60,
+                                        height: 60,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        color: 'white',
+                                        fontSize: 24
+                                    }}
+                                >
+                                    ▶️
+                                </button>
+                            </div>
+                        ) : (
+                            <img
+                                src={item.url}
+                                alt={`media-${index}`}
+                                className="carousel-image"
+                                style={{ 
+                                    width: '100%', 
+                                    height: 'auto',
+                                    cursor: 'pointer'
+                                }}
+                                onClick={() => handleImageClick(item)}
+                            />
+                        )}
                     </div>
                 ))}
-            </StyledCarousel>
-        </CarouselContainer>
+            </Carousel>
+
+            <style jsx>{`
+                .modal-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0,0,0,0.8);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1000;
+                }
+                .modal-content {
+                    max-width: 90%;
+                    max-height: 90%;
+                }
+                .modal-close-btn {
+                    position: absolute;
+                    top: 20px;
+                    right: 20px;
+                    background: none;
+                    border: none;
+                    color: white;
+                    font-size: 24px;
+                    cursor: pointer;
+                    z-index: 1001;
+                }
+                .top-right-icons {
+                    position: absolute;
+                    top: 15px;
+                    right: 15px;
+                    z-index: 2;
+                    display: flex;
+                    gap: 10px;
+                }
+                .fav-icon {
+                    background: rgba(255,255,255,0.7);
+                    border-radius: 50%;
+                    width: 40px;
+                    height: 40px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .liked {
+                    color: red;
+                    fill: red;
+                }
+            `}</style>
+        </div>
     );
 };
-
-// Styled components
-const CarouselContainer = styled.div`
-    position: relative;
-`;
-
-const ModalOverlay = styled.div`
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.8);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-`;
-
-const ModalCloseButton = styled.button`
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    background: #fff;
-    color: #333;
-    border: none;
-    padding: 10px 15px;
-    border-radius: 50%;
-    font-size: 20px;
-    cursor: pointer;
-    z-index: 10000;
-`;
-
-const ModalContent = styled.div`
-    width: 80%;
-    max-height: 80%;
-    object-fit: contain;
-    cursor: pointer;
-    border-radius: 9px;
-`;
-
-const ModalImage = styled.img`
-    ${ModalContent}
-`;
-
-const ModalVideo = styled.video`
-    ${ModalContent}
-`;
-
-const TopRightIcons = styled.div`
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    z-index: 10;
-    display: flex;
-    gap: 10px;
-`;
-
-const FavIcon = styled.div<{ isLiked?: boolean }>`
-    background-color: #333;
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-
-    svg {
-        font-size: 20px;
-        color: ${props => props.isLiked ? '#e0245e' : '#fff'};
-        fill: ${props => props.isLiked ? '#e0245e' : 'none'};
-    }
-`;
-
-const CarouselArrow = styled.button`
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    background: #eaeaea;
-    color: black;
-    border: none;
-    padding: 15px;
-    border-radius: 50%;
-    font-weight: bold;
-    font-size: 24px;
-    cursor: pointer;
-    z-index: 2;
-
-    &.left {
-        left: 10px;
-    }
-
-    &.right {
-        right: 10px;
-    }
-`;
-
-const VideoThumbnail = styled.img`
-    cursor: pointer;
-    width: 100%;
-    position: relative;
-    border-radius: 9px;
-`;
-
-const VideoPlayButton = styled.button`
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: #ffffff;
-    border: none;
-    padding: 15px 30px;
-    border-radius: 50%;
-    font-size: 20px;
-    cursor: pointer;
-`;
-
-const CarouselImage = styled.img`
-    cursor: zoom-in;
-    border-radius: 9px;
-    width: 100%;
-`;
-
-const StyledCarousel = styled(Carousel)`
-    .thumbs-wrapper {
-        padding: 0;
-        margin: 0px !important;
-    }
-
-    .thumb {
-        height: 95px !important;
-        width: 100px !important;
-        padding: 0;
-
-        img {
-            height: 100%;
-            border-radius: 9px;
-        }
-    }
-
-    .thumbs {
-        padding: 0;
-        margin-top: 10px;
-        margin-bottom: 0;
-    }
-
-    .thumb.selected, .thumb:hover {
-        border: 3px solid #333 !important;
-        border-radius: 13px !important;
-    }
-
-    img {
-        border-radius: 9px;
-    }
-`;
 
 export default ProductImageCarousel;

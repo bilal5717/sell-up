@@ -24,7 +24,9 @@
     "react-icons": "^5.5.0",
     "react-responsive-carousel": "^3.2.23",
     "styled-components": "^6.1.17",
-    "swiper": "^11.2.6"
+    "swiper": "^11.2.6",
+    "video.js": "^8.22.0",
+    "videojs-contrib-hls": "^5.15.0"
   },
   "devDependencies": {
     "@types/node": "^20",
