@@ -35,7 +35,7 @@ const Mobiles = () => {
     const fetchMobiles = async () => {
       try {
         const response = await fetch('http://127.0.0.1:8000/api/mobiles');
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch data');
         }
@@ -64,17 +64,6 @@ const Mobiles = () => {
     target.classList.toggle('liked');
   };
 
-  if (loading) {
-    return <div className="container-fluid my-3">Loading...</div>;
-  }
-
-  if (error) {
-    return <div className="container-fluid my-3">Error: {error}</div>;
-  }
-
-  if (mobiles.length === 0) {
-    return <div className="container-fluid my-3">No mobile phones found</div>;
-  }
 
   return (
     <div className="container-fluid my-3">
@@ -85,11 +74,11 @@ const Mobiles = () => {
         </button>
         <Swiper
           modules={[Navigation]}
-          spaceBetween={130}   
+          spaceBetween={130}
           slidesPerView="auto"
-          navigation={{ 
-            prevEl: '.mobile-prev', 
-            nextEl: '.mobile-next' 
+          navigation={{
+            prevEl: '.mobile-prev',
+            nextEl: '.mobile-next'
           }}
           breakpoints={{
             320: { slidesPerView: 1 },
@@ -105,35 +94,40 @@ const Mobiles = () => {
               <Link href={`/postDetails/${mobile.id}`} passHref legacyBehavior>
                 <div className="card product-card">
                   <div className="image-container">
-                  {mobile.image?.startsWith('http') ? (
-  <Image
-    src={mobile.image}
-    alt={mobile.title}
-    width={240}
-    height={180}
-    className="card-img-top object-cover"
-  />
-) : (
-  <div className="placeholder-image">No Image</div>
-)}
-
+                    <Image
+                      src={mobile.image ?? '/images/placeholder.png'}
+                      alt={mobile.title}
+                      width={240}
+                      height={180}
+                      className="card-img-top object-cover"
+                    />
                   </div>
                   <div className="card-body">
-                    <div className="price-container">
+                    <div className="price-container d-flex justify-content-between align-items-center">
                       <h6 className="price">Rs. {mobile.price}</h6>
                       <LuHeart className="heart-icon" onClick={toggleLike} />
                     </div>
-                    <span className='product-title'>{mobile.title.replace(/<[^>]*>?/gm, '')}</span>
-                    <div className="product-status">
+                    <span 
+                      className="product-title text-truncate"
+                      style={{
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      {mobile.title.replace(/<[^>]*>?/gm, '')}
+                    </span>
+                    <div className="product-status d-flex justify-content-between align-items-center mt-2">
                       <div className="info-icons">
                         <LuTag /><span>{mobile.condition || 'New'}</span>
                       </div>
                       <div className="info-icons mobile-label">
-                        {mobile.pta_status === 'PTA Approved' ? <LuWifi /> : <LuWifiOff />} 
+                        {mobile.pta_status === 'PTA Approved' ? <LuWifi /> : <LuWifiOff />}
                         <span>{mobile.pta_status === 'PTA Approved' ? 'PTA' : 'NON PTA'}</span>
                       </div>
                     </div>
-                    <div className="footer-info">
+                    <div className="footer-info d-flex justify-content-between align-items-start mt-2">
                       <div className="address">
                         <LuMapPin /> <span>{mobile.location}</span>
                       </div>

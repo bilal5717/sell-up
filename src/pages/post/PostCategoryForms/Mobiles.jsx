@@ -109,6 +109,46 @@ const TextInput = ({ value, onChange, placeholder, type = 'text', min, max, pref
   </div>
 );
 
+const ProgressBar = ({ progress, fileName }) => (
+  <div className="w-100 mt-1">
+    <div className="d-flex justify-content-between small">
+      <span>{fileName}</span>
+      <span>{progress}%</span>
+    </div>
+    <div className="progress" style={{ height: '5px' }}>
+      <div 
+        className="progress-bar bg-success" 
+        role="progressbar" 
+        style={{ width: `${progress}%` }}
+        aria-valuenow={progress}
+        aria-valuemin="0"
+        aria-valuemax="100"
+      />
+    </div>
+  </div>
+);
+
+const ImageUploadStatus = ({ status }) => {
+  if (status === 'uploading') {
+    return (
+      <div className="position-absolute top-50 start-50 translate-middle">
+        <div className="spinner-border spinner-border-sm text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+  if (status === 'uploaded') {
+    return (
+      <div className="position-absolute top-0 end-0 bg-success rounded-circle p-0 border-0 d-flex align-items-center justify-content-center"
+        style={{ width: '20px', height: '20px', transform: 'translate(30%, -30%)' }}>
+        <FiCheck className="text-white" style={{ fontSize: '10px' }} />
+      </div>
+    );
+  }
+  return null;
+};
+
 const CategoryModal = ({ show, onClose, selectedCategory, onSelect }) => (
   <div className="modal fade show" style={{ display: show ? 'block' : 'none', backgroundColor: 'rgba(0,0,0,0.5)' }}>
     <div className="modal-dialog modal-dialog-centered">
@@ -178,6 +218,9 @@ const MobilesPosting = ({selectedCat,selectedSubCatOption,selectedAccessory}) =>
   const [chargerType, setChargerType] = useState('');
   const [headphoneType, setHeadphoneType] = useState('');
   const [showPhoneNumber, setShowPhoneNumber] = useState(true);
+  const [uploadProgress, setUploadProgress] = useState({
+    video: null
+  });
 
   // ====================== DERIVED VALUES ======================
   const isMobilePhones = useMemo(() => subCategory === 'Mobile Phones', [subCategory]);
@@ -244,6 +287,12 @@ const MobilesPosting = ({selectedCat,selectedSubCatOption,selectedAccessory}) =>
         const contentType = file.type;
         const fileSize = file.size;
 
+        // Reset video progress
+        setUploadProgress(prev => ({
+          ...prev,
+          video: { progress: 0, fileName: file.name }
+        }));
+
         // Get the pre-signed URL from the server
         const res = await axios.post('http://127.0.0.1:8000/api/generate-video-url', {
             contentType,
@@ -270,106 +319,122 @@ const MobilesPosting = ({selectedCat,selectedSubCatOption,selectedAccessory}) =>
         });
 
         // Upload the file using the pre-signed URL
-        const uploadRes = await fetch(uploadUrl, {
-            method: 'PUT',
+        const uploadRes = await axios.put(uploadUrl, file, {
             headers: {
                 'Content-Type': contentType,
                 'x-amz-acl': 'public-read', // Public access
             },
-            body: file,
-            mode: 'cors', // Handle CORS
+            onUploadProgress: (progressEvent) => {
+                const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                setUploadProgress(prev => ({
+                  ...prev,
+                  video: { ...prev.video, progress }
+                }));
+            }
         });
 
-        if (!uploadRes.ok) {
-            throw new Error(`Upload failed with status ${uploadRes.status} - ${uploadRes.statusText}`);
+        if (uploadRes.status !== 200) {
+            throw new Error(`Upload failed with status ${uploadRes.status}`);
         }
 
         console.log('✅ Video uploaded successfully:', publicUrl);
     } catch (err) {
         console.error('❌ Video upload error:', err.message);
         alert(`Failed to upload video. Error: ${err.message}`);
+        setUploadProgress(prev => ({
+          ...prev,
+          video: null
+        }));
     }
-};
-
+  };
   
-const removeVideo = () => {
-  if (videoFile && videoFile.preview) {
-      URL.revokeObjectURL(videoFile.preview);
-  }
-  setVideoFile(null);
-};
+  const removeVideo = () => {
+    if (videoFile && videoFile.preview) {
+        URL.revokeObjectURL(videoFile.preview);
+    }
+    setVideoFile(null);
+    setUploadProgress(prev => ({
+      ...prev,
+      video: null
+    }));
+  };
 
+  const handleImageUpload = async (file) => {
+    if (!file) return console.error("No file provided");
 
-const handleImageUpload = async (file) => {
-  if (!file) return console.error("No file provided");
+    const contentType = file.type;
+    const fileSize = file.size;
+    const fileName = file.name;
 
-  const contentType = file.type;
-  const fileSize = file.size;
+    try {
+        // Create preview URL
+        const previewUrl = URL.createObjectURL(file);
 
-  try {
-      // Get the pre-signed URL from the server
-      const res = await axios.post('http://127.0.0.1:8000/api/generate-image-url', {
-          contentType,
-          fileSize,
-      });
-
-      if (!res.data.uploadUrl || !res.data.publicUrl) {
-          throw new Error('Upload URL not received from server');
-      }
-
-      const { uploadUrl, publicUrl, filename } = res.data;
-      // Construct the direct image URL using the R2 bucket public domain
-      const directImageUrl = `${publicUrl}`;
-
-      // Create a preview URL for the image
-      const previewUrl = URL.createObjectURL(file);
-      // Add to state immediately with preview
-      setPostDetails((prev) => ({
+        // Add to state immediately with preview and status
+        setPostDetails(prev => ({
           ...prev,
-          images: [...prev.images, { preview: previewUrl, publicUrl: directImageUrl, filename }],
-      }));
-      console.log(previewUrl);
-      // Upload the file using the pre-signed URL
-      const uploadRes = await fetch(uploadUrl, {
-          method: 'PUT',
-          headers: {
-              'Content-Type': contentType,
-              'x-amz-acl': 'public-read',
-          },
-          body: file,
-      });
+          images: [...prev.images, { 
+            preview: previewUrl, 
+            filename: fileName,
+            status: 'uploading' // initial status
+          }],
+        }));
 
-      if (!uploadRes.ok) {
-          throw new Error(`Upload failed with status ${uploadRes.status}`);
-      }
+        // Get the pre-signed URL from the server
+        const res = await axios.post('http://127.0.0.1:8000/api/generate-image-url', {
+            contentType,
+            fileSize,
+        });
 
-      console.log('✅ Image uploaded successfully:', directImageUrl);
-  } catch (err) {
-      console.error('❌ Image upload error:', err.message);
-      // Remove the failed upload from state
-      setPostDetails(prev => ({
+        if (!res.data.uploadUrl || !res.data.publicUrl) {
+            throw new Error('Upload URL not received from server');
+        }
+
+        const { uploadUrl, publicUrl } = res.data;
+
+        // Upload the file using the pre-signed URL
+        await axios.put(uploadUrl, file, {
+            headers: {
+                'Content-Type': contentType,
+                'x-amz-acl': 'public-read',
+            }
+        });
+
+        // Update state with public URL and mark as uploaded
+        setPostDetails(prev => ({
           ...prev,
-          images: prev.images.filter(img => img.publicUrl !== publicUrl)
-      }));
-      alert(`Failed to upload image. Error: ${err.message}`);
-  }
-};
+          images: prev.images.map(img => 
+            img.filename === fileName ? 
+            { ...img, publicUrl, status: 'uploaded' } : 
+            img
+          ),
+        }));
 
+        console.log('✅ Image uploaded successfully:', publicUrl);
+    } catch (err) {
+        console.error('❌ Image upload error:', err.message);
+        // Remove the failed upload from state
+        setPostDetails(prev => ({
+          ...prev,
+          images: prev.images.filter(img => img.filename !== fileName)
+        }));
+        alert(`Failed to upload image. Error: ${err.message}`);
+    }
+  };
   
-  
-const removeImage = (index) => {
-  setPostDetails(prev => {
-      const newImages = [...prev.images];
-      const removed = newImages.splice(index, 1);
-      // Clean up object URL if it exists
-      if (removed[0]?.preview) {
-          URL.revokeObjectURL(removed[0].preview);
-      }
-      return { ...prev, images: newImages };
-  });
-};
+  const removeImage = (index) => {
+    setPostDetails(prev => {
+        const newImages = [...prev.images];
+        const removed = newImages.splice(index, 1);
+        // Clean up object URL if it exists
+        if (removed[0]?.preview) {
+            URL.revokeObjectURL(removed[0].preview);
+        }
+        return { ...prev, images: newImages };
+    });
+  };
 
- const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     try {
@@ -409,12 +474,10 @@ const removeImage = (index) => {
         formData.append('imageUrls', JSON.stringify(imageUrls));
         
         // Append video if exists
-        // Append video if exists
-if (videoFile) {
-    const videoUrls = [videoFile.publicUrl];
-    formData.append('videoUrls', JSON.stringify(videoUrls));
-}
-
+        if (videoFile) {
+            const videoUrls = [videoFile.publicUrl];
+            formData.append('videoUrls', JSON.stringify(videoUrls));
+        }
         
         // Send the request
         const response = await axios.post('http://127.0.0.1:8000/api/posts', formData, {
@@ -430,7 +493,7 @@ if (videoFile) {
         console.error('Error submitting form:', error.response?.data || error.message);
         alert('Failed to create post. Please try again.');
     }
-};
+  };
 
   const resetDetails = () => {
     setBrand('');
@@ -877,64 +940,65 @@ if (videoFile) {
                 <br />
 
                 <div className="mb-4">
-  <div className="row w-100">
-    <div className="col-4">
-      <label className="form-label fw-bold">Upload Images</label>
-    </div>
-    <div className="col-8 p-0">
-      <div className="d-flex flex-wrap gap-2">
-        {/* Display uploaded images */}
-        {postDetails.images.map((image, index) => (
-          <div key={index} className="border rounded position-relative"
-            style={{ width: '60px', height: '60px', backgroundColor: '#f7f7f7' }}>
-            <img
-              src={image.preview || image.publicUrl}
-              alt={`Preview ${index}`}
-              className="w-100 h-100 object-fit-cover rounded"
-              onLoad={() => {
-                if (image.preview) {
-                  URL.revokeObjectURL(image.preview);
-                }
-              }}
-            />
-            <button
-              type="button"
-              className="position-absolute top-0 end-0 bg-danger rounded-circle p-0 border-0"
-              style={{ width: '20px', height: '20px', transform: 'translate(30%, -30%)' }}
-              onClick={() => removeImage(index)}
-            >
-              <FiX className="text-white" style={{ fontSize: '10px' }} />
-            </button>
-          </div>
-        ))}
+                  <div className="row w-100">
+                    <div className="col-4">
+                      <label className="form-label fw-bold">Upload Images</label>
+                    </div>
+                    <div className="col-8 p-0">
+                      <div className="d-flex flex-wrap gap-2">
+                        {/* Display uploaded images */}
+                        {postDetails.images.map((image, index) => (
+                          <div key={index} className="border rounded position-relative"
+                            style={{ width: '60px', height: '60px', backgroundColor: '#f7f7f7' }}>
+                            <ImageUploadStatus status={image.status} />
+                            <img
+                              src={image.preview || image.publicUrl}
+                              alt={`Preview ${index}`}
+                              className={`w-100 h-100 object-fit-cover rounded ${image.status === 'uploading' ? 'opacity-50' : ''}`}
+                              onLoad={() => {
+                                if (image.preview) {
+                                  URL.revokeObjectURL(image.preview);
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              className="position-absolute top-0 end-0 bg-danger rounded-circle p-0 border-0"
+                              style={{ width: '20px', height: '20px', transform: 'translate(30%, -30%)' }}
+                              onClick={() => removeImage(index)}
+                            >
+                              <FiX className="text-white" style={{ fontSize: '10px' }} />
+                            </button>
+                          </div>
+                        ))}
 
-        {/* Empty slots */}
-        {Array.from({ length: Math.max(0, 14 - postDetails.images.length) }).map((_, index) => (
-          <div key={`empty-${index}`} className="border rounded position-relative"
-            style={{ width: '60px', height: '60px', backgroundColor: '#f7f7f7' }}>
-            <label htmlFor="image-upload" className="w-100 h-100 d-flex flex-column align-items-center justify-content-center cursor-pointer">
-              <FiPlus className="text-muted mb-1" />
-            </label>
-          </div>
-        ))}
-      </div>
+                        {/* Empty slots for new uploads */}
+                        {Array.from({ length: Math.max(0, 14 - postDetails.images.length) }).map((_, index) => (
+                          <div key={`empty-${index}`} className="border rounded position-relative"
+                            style={{ width: '60px', height: '60px', backgroundColor: '#f7f7f7' }}>
+                            <label htmlFor="image-upload" className="w-100 h-100 d-flex flex-column align-items-center justify-content-center cursor-pointer">
+                              <FiPlus className="text-muted mb-1" />
+                            </label>
+                          </div>
+                        ))}
+                      </div>
 
-      {/* File input (hidden) */}
-      <input
-        id="image-upload"
-        type="file"
-        accept="image/*"
-        multiple
-        className="d-none"
-        onChange={(e) => {
-          const files = Array.from(e.target.files);
-          files.forEach(file => handleImageUpload(file));
-          e.target.value = ''; // reset to allow re-uploading the same file
-        }}
-      />
-    </div>
-  </div>
-</div>
+                      {/* File input (hidden) */}
+                      <input
+                        id="image-upload"
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="d-none"
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files);
+                          files.forEach(file => handleImageUpload(file));
+                          e.target.value = ''; // reset to allow re-uploading the same file
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
 
                 {/* Video Upload Field */}
                 <div className="mb-4">
@@ -951,35 +1015,45 @@ if (videoFile) {
                           }}
                         >
                           {videoFile && videoFile.preview ? (
-    <>
-        <video
-            src={videoFile.preview}
-            className="w-100 h-100 object-fit-cover rounded"
-            controls
-        />
-        <button
-            type="button"
-            className="position-absolute top-0 end-0 bg-danger rounded-circle p-0 border-0 d-flex align-items-center justify-content-center"
-            style={{ width: '20px', height: '20px', transform: 'translate(30%, -30%)' }}
-            onClick={removeVideo}
-        >
-            <FiX className="text-white" style={{ fontSize: '10px' }} />
-        </button>
-    </>
-) : (
-    <label 
-        htmlFor="video-upload"
-        className="w-100 h-100 d-flex flex-column align-items-center justify-content-center cursor-pointer"
-    >
-        <FiPlus className="text-muted mb-1" />
-        <small className="text-muted text-center" style={{ fontSize: '0.7rem' }}>
-            Add Video
-        </small>
-    </label>
-)}
-
+                            <>
+                              <video
+                                  src={videoFile.preview}
+                                  className="w-100 h-100 object-fit-cover rounded"
+                                  controls
+                              />
+                              <button
+                                  type="button"
+                                  className="position-absolute top-0 end-0 bg-danger rounded-circle p-0 border-0 d-flex align-items-center justify-content-center"
+                                  style={{ width: '20px', height: '20px', transform: 'translate(30%, -30%)' }}
+                                  onClick={removeVideo}
+                              >
+                                  <FiX className="text-white" style={{ fontSize: '10px' }} />
+                              </button>
+                            </>
+                          ) : (
+                            <label 
+                                htmlFor="video-upload"
+                                className="w-100 h-100 d-flex flex-column align-items-center justify-content-center cursor-pointer"
+                            >
+                                <FiPlus className="text-muted mb-1" />
+                                <small className="text-muted text-center" style={{ fontSize: '0.7rem' }}>
+                                    Add Video
+                                </small>
+                            </label>
+                          )}
                         </div>
                       </div>
+                      
+                      {/* Show video upload progress */}
+                      {uploadProgress.video && (
+                        <div className="mt-2">
+                          <ProgressBar 
+                            progress={uploadProgress.video.progress} 
+                            fileName={uploadProgress.video.fileName}
+                          />
+                        </div>
+                      )}
+
                       <input
                         type="file"
                         id="video-upload"
