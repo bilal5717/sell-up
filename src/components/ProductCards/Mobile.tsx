@@ -40,7 +40,6 @@ const Mobiles = () => {
           throw new Error('Failed to fetch data');
         }
         const data = await response.json();
-        console.log(data);
 
         const mappedData = data.map((mobile: any) => ({
           ...mobile,

@@ -47,7 +47,18 @@ const AuthPopup = () => {
         className="auth-modal"
         backdrop="static"
       >
-        <Modal.Body className="p-4">
+        <Modal.Body className="p-4 relative">
+          {/* Close button positioned absolutely within Modal.Body */}
+          <button
+            onClick={handleClose}
+            className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 z-10"
+            aria-label="Close"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
           {!selectedMethod ? (
             <div className="text-center">
               <h3 className="text-xl font-bold mb-4">
@@ -55,6 +66,23 @@ const AuthPopup = () => {
               </h3>
               
               <div className="space-y-3 mb-4">
+                 <button
+                  onClick={() => handleMethodSelect('email')}
+                  className="w-full flex items-center justify-center py-2 px-4 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  ✉️
+                  {authMode === 'signup' ? 'Join with Email' : 'Login with Email'}
+                </button>
+                
+                <button
+                  onClick={() => handleMethodSelect('phone')}
+                  className="w-full flex items-center justify-center py-2 px-4 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  📱
+                  {authMode === 'signup' ? 'Join with Phone' : 'Login with Phone'}
+                </button>
+
+                <p>OR</p>
                 <button
                   onClick={() => handleMethodSelect('google')}
                   className="w-full flex items-center justify-center py-2 px-4 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
@@ -78,21 +106,7 @@ const AuthPopup = () => {
                   {authMode === 'signup' ? 'Join with Facebook' : 'Login with Facebook'}
                 </button>
                 
-                <button
-                  onClick={() => handleMethodSelect('email')}
-                  className="w-full flex items-center justify-center py-2 px-4 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  ✉️
-                  {authMode === 'signup' ? 'Join with Email' : 'Login with Email'}
-                </button>
-                
-                <button
-                  onClick={() => handleMethodSelect('phone')}
-                  className="w-full flex items-center justify-center py-2 px-4 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  📱
-                  {authMode === 'signup' ? 'Join with Phone' : 'Login with Phone'}
-                </button>
+               
               </div>
 
               <div className="text-center text-sm text-gray-600">

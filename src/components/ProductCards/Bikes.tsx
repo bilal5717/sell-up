@@ -9,7 +9,7 @@ import { Swiper as SwiperType } from 'swiper/types';
 import Image from 'next/image';
 import 'swiper/css';
 import 'swiper/css/navigation';
-
+import Link from 'next/link';
 interface Bike {
   id: number;
   title: string;
@@ -36,9 +36,16 @@ const Bikes = () => {
     const fetchBikes = async () => {
       try {
         const response = await fetch('http://127.0.0.1:8000/api/bikes');
+        
         if (!response.ok) throw new Error('Failed to fetch bikes');
         const data = await response.json();
-        setBikes(data);
+        
+        const mappedData = data.map((bike: any) => ({
+          ...bike,
+          image: bike.images?.[0]?.url || '/images/placeholder.png', // Use first image or a placeholder
+        }));
+        console.log(mappedData);
+        setBikes(mappedData);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An unknown error occurred');
       } finally {
@@ -101,6 +108,7 @@ const Bikes = () => {
         >
           {bikes.map((bike) => (
             <SwiperSlide key={bike.id} onClick={handleSlideClick} style={{ width: '240px' }}>
+               <Link href={`/postDetails/bikes/${bike.id}`} passHref legacyBehavior>
               <div className="card product-card">
                 <div className="image-container">
                   <Image 
@@ -133,8 +141,10 @@ const Bikes = () => {
                   </div>
                 </div>
               </div>
+               </Link>
             </SwiperSlide>
           ))}
+          
         </Swiper>
         <button className="nav-button next" onClick={() => swiperRef.current?.slideNext()}>
           <FontAwesomeIcon icon={faChevronRight} />
