@@ -15,6 +15,15 @@ interface CategoryData {
   [key: string]: SubCategory[];
 }
 
+interface DynamicCategorySidebarProps {
+  selectedCategory: string;
+  selectedSubCategory: string | null;
+  selectedType: string | null;
+  onCategorySelect: (category: string) => void;
+  onSubCategorySelect: (subCategory: string | null) => void;
+  onTypeSelect: (type: string | null) => void;
+}
+
 const categories: Category[] = [
   { name: 'Mobiles', slug: 'mobiles' },
   { name: 'Vehicles', slug: 'vehicles' },
@@ -35,38 +44,45 @@ const categories: Category[] = [
 
 const subCategories: CategoryData = {
   mobiles: [
-    { name: 'Tablets' }, { name: 'Accessories', types: ['Charging Cables', 'Converters', 'Chargers', 'Screens'] }, 
-    { name: 'Mobile Phones' }, { name: 'Smart Watches' },
-  ],
-  vehicles: [
-    { name: 'Cars' }, { name: 'Car Accessories', types: ['Tools & Gadgets', 'Safety & Security', 'Interior', 'Exterior'] }, 
-    { name: 'Spare Parts', types: ['Engines', 'Lights', 'Mirrors', 'Tyres', 'Wipers'] },
-    { name: 'Car Care', types: ['Air Freshener', 'Cleaners', 'Covers'] }, 
-    { name: 'Oil & Lubricants', types: ['Engine Oil', 'Brake Oil', 'Coolants'] }, 
-    { name: 'Bikes' }, { name: 'Boats' }, { name: 'Rikshaw' },
-  ],
-  bikes: [
-    { name: 'Motorcycles' }, { name: 'Bike Accessories', types: ['Helmets', 'Gloves', 'Bike Covers'] },
-    { name: 'Scooters' }, { name: 'ATV & Quads' }, { name: 'Bicycles' },
-  ],
-  electronics: [
-    { name: 'Computers' }, { name: 'Games' }, { name: 'Cameras' }, { name: 'AC & Coolers' }, 
-    { name: 'Heaters' }, { name: 'Kitchen Appliances', types: ['Microwaves', 'Ovens', 'Blenders'] },
+    { name: 'Tablets' },
+    { name: 'Accessories', types: ['Charging Cables', 'Converters', 'Chargers', 'Screens'] },
+    { name: 'Mobile Phones' },
+    { name: 'Smart Watches' },
   ],
 };
 
-const CategorySidebar: React.FC = () => {
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [activeSubCategory, setActiveSubCategory] = useState<string | null>(null);
+const DynamicCategorySidebar: React.FC<DynamicCategorySidebarProps> = ({
+  selectedCategory,
+  selectedSubCategory,
+  selectedType,
+  onCategorySelect,
+  onSubCategorySelect,
+  onTypeSelect,
+}) => {
   const [showMoreCategories, setShowMoreCategories] = useState<boolean>(false);
 
   const toggleCategory = (slug: string) => {
-    setActiveCategory(activeCategory === slug ? null : slug);
-    setActiveSubCategory(null); // Reset subcategory when changing category
+    onCategorySelect(slug);
+    onSubCategorySelect(null);
+    onTypeSelect(null);
   };
 
   const toggleSubCategory = (name: string) => {
-    setActiveSubCategory(activeSubCategory === name ? null : name);
+    if (selectedSubCategory === name) {
+      onSubCategorySelect(null);
+      onTypeSelect(null);
+    } else {
+      onSubCategorySelect(name);
+      onTypeSelect(null);
+    }
+  };
+
+  const toggleType = (type: string) => {
+    if (selectedType === type) {
+      onTypeSelect(null);
+    } else {
+      onTypeSelect(type);
+    }
   };
 
   const toggleShowMoreCategories = () => {
@@ -74,56 +90,61 @@ const CategorySidebar: React.FC = () => {
   };
 
   return (
-      <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-        <h3 className="font-bold text-lg mb-2">All Categories</h3>
-        <div className="space-y-1">
-          {(showMoreCategories ? categories : categories.slice(0, 4)).map((category) => (
-            <div key={category.slug} className="cursor-pointer">
-              <div
-                className="py-1 px-2 text-gray-800 hover:bg-gray-100"
-                onClick={() => toggleCategory(category.slug)}
-                style={{ fontSize: '12px', lineHeight: '1.5' }}
-              >
-                {category.name}
-              </div>
-
-              {activeCategory === category.slug && subCategories[category.slug] && (
-                <div className="ml-4 space-y-1">
-                  {subCategories[category.slug].map((sub, index) => (
-                    <div key={index}>
-                      <div
-                        className="text-gray-700 cursor-pointer hover:text-blue-600 py-1"
-                        onClick={() => toggleSubCategory(sub.name)}
-                        style={{ fontSize: '12px', lineHeight: '1.5' }}
-                      >
-                        {sub.name}
-                      </div>
-                      {sub.types && activeSubCategory === sub.name && (
-                        <div className="ml-4 space-y-1 text-gray-600">
-                          {sub.types.map((type, i) => (
-                            <div key={i} className="py-1" style={{ fontSize: '12px', lineHeight: '1.5' }}>
-                              - {type}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-          {categories.length > 4 && (
-            <button
-              onClick={toggleShowMoreCategories}
-              className="text-blue-600 text-sm mt-2"
+    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+      <h3 className="font-bold text-lg mb-2">All Categories</h3>
+      <div className="space-y-1">
+        {(showMoreCategories ? categories : categories.slice(0, 4)).map((category) => (
+          <div key={category.slug} className="cursor-pointer">
+            <div
+              className={`py-1 px-2 hover:bg-gray-100 ${selectedCategory === category.slug ? 'text-blue-600 font-medium' : 'text-gray-800'}`}
+              onClick={() => toggleCategory(category.slug)}
+              style={{ fontSize: '12px', lineHeight: '1.5' }}
             >
-              {showMoreCategories ? 'Show Less' : 'Show More'}
-            </button>
-          )}
-        </div>
+              {category.name}
+            </div>
+
+            {selectedCategory === category.slug && subCategories[category.slug] && (
+              <div className="ml-4 space-y-1">
+                {subCategories[category.slug].map((sub, index) => (
+                  <div key={index}>
+                    <div
+                      className={`py-1 cursor-pointer hover:text-blue-600 ${selectedSubCategory === sub.name ? 'text-blue-600 font-medium' : 'text-gray-700'}`}
+                      onClick={() => toggleSubCategory(sub.name)}
+                      style={{ fontSize: '12px', lineHeight: '1.5' }}
+                    >
+                      {sub.name}
+                    </div>
+                    {sub.types && selectedSubCategory === sub.name && (
+                      <div className="ml-4 space-y-1">
+                        {sub.types.map((type, i) => (
+                          <div
+                            key={i}
+                            className={`py-1 cursor-pointer hover:text-blue-600 ${selectedType === type ? 'text-blue-600 font-medium' : 'text-gray-600'}`}
+                            style={{ fontSize: '12px', lineHeight: '1.5' }}
+                            onClick={() => toggleType(type)}
+                          >
+                            - {type}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+        {categories.length > 4 && (
+          <button
+            onClick={toggleShowMoreCategories}
+            className="text-blue-600 text-sm mt-2"
+          >
+            {showMoreCategories ? 'Show Less' : 'Show More'}
+          </button>
+        )}
       </div>
+    </div>
   );
 };
 
-export default CategorySidebar;
+export default DynamicCategorySidebar;

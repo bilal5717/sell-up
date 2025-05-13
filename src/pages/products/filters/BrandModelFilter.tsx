@@ -3,23 +3,36 @@ import React, { useState } from 'react';
 
 interface Brand {
   name: string;
+  count: number;
   models: string[];
 }
 
-const brands: Brand[] = [
-  { name: 'Honda', models: ['Civic', 'City', 'Accord', 'BR-V', 'Vezel'] },
-  { name: 'Toyota', models: ['Corolla', 'Camry', 'Fortuner', 'Yaris', 'Hilux'] },
-  { name: 'Suzuki', models: ['Alto', 'Wagon R', 'Cultus', 'Swift', 'Bolan'] },
-  { name: 'Kia', models: ['Sportage', 'Picanto', 'Sorento', 'Stinger'] },
-  { name: 'Hyundai', models: ['Elantra', 'Tucson', 'Sonata', 'Santa Fe'] },
-  { name: 'BMW', models: ['X5', '3 Series', '5 Series', '7 Series', 'X3'] },
-  { name: 'Audi', models: ['A3', 'A4', 'Q5', 'Q7', 'TT'] },
-  { name: 'Mercedes', models: ['C-Class', 'E-Class', 'S-Class', 'GLA', 'GLE'] },
-];
+const brandOptions: Record<string, Brand[]> = {
+  Mobiles: [
+    { name: 'Apple iPhone', count: 73899, models: ['iPhone 13', 'iPhone 12', 'iPhone 11', 'iPhone SE'] },
+    { name: 'Samsung Mobile', count: 21646, models: ['Galaxy S21', 'Galaxy Note 20', 'Galaxy A52'] },
+    { name: 'Infinix', count: 12032, models: ['Note 10', 'Hot 11', 'Zero X Pro'] },
+    { name: 'Vivo', count: 11539, models: ['V21', 'Y51', 'X60 Pro'] },
+    { name: 'Google', count: 9400, models: ['Pixel 6', 'Pixel 5', 'Pixel 4a'] },
+    { name: 'Xiaomi', count: 9085, models: ['Redmi Note 10', 'Mi 11', 'Poco X3'] },
+  ],
+  'Smart Watch': [
+    { name: 'Apple', count: 1230, models: ['Watch Series 7', 'Watch SE', 'Watch Series 6'] },
+    { name: 'Samsung', count: 539, models: ['Galaxy Watch 4', 'Galaxy Fit 2'] },
+    { name: 'Mi', count: 239, models: ['Mi Band 6', 'Mi Watch Lite'] },
+    { name: 'Fitbit', count: 69, models: ['Charge 5', 'Versa 3', 'Inspire 2'] },
+    { name: 'Garmin', count: 65, models: ['Forerunner 55', 'Vivoactive 4'] },
+  ],
+  Tablets: [
+    { name: 'Apple', count: 2274, models: ['iPad Pro', 'iPad Air', 'iPad Mini'] },
+    { name: 'Samsung', count: 872, models: ['Galaxy Tab S7', 'Galaxy Tab A7'] },
+    { name: 'Lenovo', count: 315, models: ['Tab M10', 'Yoga Tab'] },
+    { name: 'Amazon', count: 222, models: ['Fire HD 10', 'Fire 7'] },
+    { name: 'Huawei', count: 176, models: ['MediaPad M5', 'MatePad T8'] },
+  ],
+};
 
-const famousBrands = ['Honda', 'Toyota', 'Suzuki', 'Kia', 'Hyundai'];
-
-const BrandModelFilter: React.FC = () => {
+const DynamicBrandModelFilter: React.FC<{ category: string }> = ({ category }) => {
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
 
@@ -44,6 +57,8 @@ const BrandModelFilter: React.FC = () => {
     setSelectedModels([]);
   };
 
+  const brands = brandOptions[category] || [];
+
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
       <h3 className="font-bold text-lg mb-2">Brand & Model</h3>
@@ -57,7 +72,7 @@ const BrandModelFilter: React.FC = () => {
         <option value="" disabled>Select Brand</option>
         {brands.map((brand) => (
           <option key={brand.name} value={brand.name}>
-            {brand.name}
+            {brand.name} ({brand.count})
           </option>
         ))}
       </select>
@@ -65,13 +80,13 @@ const BrandModelFilter: React.FC = () => {
       {/* Famous Brands */}
       {!selectedBrand && (
         <div className="flex flex-wrap gap-2 mt-2">
-          {famousBrands.map((brand) => (
+          {brands.slice(0, 5).map((brand) => (
             <button
-              key={brand}
-              onClick={() => handleBrandSelect(brand)}
+              key={brand.name}
+              onClick={() => handleBrandSelect(brand.name)}
               className="text-blue-600 text-sm px-2 py-1 border border-gray-300 rounded hover:bg-gray-100"
             >
-              {brand}
+              {brand.name} ({brand.count})
             </button>
           ))}
         </div>
@@ -127,4 +142,4 @@ const BrandModelFilter: React.FC = () => {
   );
 };
 
-export default BrandModelFilter;
+export default DynamicBrandModelFilter;

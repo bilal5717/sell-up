@@ -30,7 +30,7 @@ export default function Home() {
               <div className="col-12">
                  <Mobiles  />
               </div>
-              <div className="col-12">
+              {/* <div className="col-12">
                  <Bikes  />
               </div>
               <div className="col-12">
@@ -41,7 +41,7 @@ export default function Home() {
               </div>
               <div className="col-12">
                  <Jobs  />
-              </div>
+              </div> */}
           </div>
         </div>
           

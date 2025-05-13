@@ -40,7 +40,6 @@ const Mobiles = () => {
           throw new Error('Failed to fetch data');
         }
         const data = await response.json();
-
         const mappedData = data.map((mobile: any) => ({
           ...mobile,
           image: mobile.images?.[0]?.url || '/images/placeholder.png', // Use first image or a placeholder

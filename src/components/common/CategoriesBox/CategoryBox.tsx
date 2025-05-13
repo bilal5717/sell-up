@@ -12,7 +12,7 @@ import animals from './CategoryImages/animals.svg';
 import more from './CategoryImages/more.svg';
 
 const categories = [
-    { id: 1, title: 'Mobiles', image: mobiles, route: 'products/1' },
+    { id: 1, title: 'Mobiles', image: mobiles, route: 'mobiles/1' },
     { id: 2, title: 'Cars', image: cars, route: 'products/2' },
     { id: 3, title: 'Bikes', image: bikes, route: 'products/3' },
     { id: 4, title: 'House For Sale', image: house_sale, route: 'products/4' },
