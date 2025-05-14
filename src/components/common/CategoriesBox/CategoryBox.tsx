@@ -13,11 +13,11 @@ import more from './CategoryImages/more.svg';
 
 const categories = [
     { id: 1, title: 'Mobiles', image: mobiles, route: 'mobiles/1' },
-    { id: 2, title: 'Cars', image: cars, route: 'products/2' },
-    { id: 3, title: 'Bikes', image: bikes, route: 'products/3' },
-    { id: 4, title: 'House For Sale', image: house_sale, route: 'products/4' },
-    { id: 5, title: 'House For Rent', image: house_rent, route: 'products/5' },
-    { id: 6, title: 'Appartment', image: appartment, route: 'products/6' },
+    { id: 2, title: 'Cars', image: cars, route: 'vehicles/2' },
+    { id: 3, title: 'Bikes', image: bikes, route: '/bikes/3' },
+    { id: 4, title: 'House For Sale', image: house_sale, route: 'property-for-sale/4' },
+    { id: 5, title: 'House For Rent', image: house_rent, route: 'property-for-rent/5' },
+    { id: 6, title: 'Fashion & Beauty', image: appartment, route: 'fashion-beauty/6' },
     { id: 7, title: 'Jobs', image: jobs, route: 'products/7' },
     { id: 8, title: 'Animals', image: animals, route: 'products/8' },
     { id: 9, title: 'More', image: more, route: 'products/9' },

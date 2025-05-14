@@ -34,24 +34,25 @@ const Bikes = () => {
 
   useEffect(() => {
     const fetchBikes = async () => {
-      try {
-        const response = await fetch('http://127.0.0.1:8000/api/bikes');
-        
-        if (!response.ok) throw new Error('Failed to fetch bikes');
-        const data = await response.json();
-        
-        const mappedData = data.map((bike: any) => ({
-          ...bike,
-          image: bike.images?.[0]?.url || '/images/placeholder.png', // Use first image or a placeholder
-        }));
-        console.log(mappedData);
-        setBikes(mappedData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An unknown error occurred');
-      } finally {
-        setLoading(false);
-      }
-    };
+  try {
+    const response = await fetch('http://127.0.0.1:8000/api/bikes');
+    if (!response.ok) throw new Error('Failed to fetch bikes');
+    const data = await response.json();
+   
+
+    // Map the data to handle multiple images
+    const mappedData = data.map((bike: any) => ({
+      ...bike,
+      image: bike.images && bike.images.length > 0 ? bike.images[0].url : '/images/placeholder.png', // Use the first image if available
+    }));
+
+    setBikes(mappedData);
+  } catch (err) {
+    setError(err instanceof Error ? err.message : 'An unknown error occurred');
+  } finally {
+    setLoading(false);
+  }
+};
 
     fetchBikes();
   }, []);
@@ -112,12 +113,12 @@ const Bikes = () => {
               <div className="card product-card">
                 <div className="image-container">
                   <Image 
-                    src={bike.image || '/images/placeholder.png'}
-                    alt={bike.title}
-                    width={240}
-                    height={180}
-                    className="w-full h-auto object-cover"
-                  />
+  src={bike.image || '/images/placeholder.png'}
+  alt={''}
+  width={240}
+  height={180}
+  className="w-full h-auto object-cover"
+/>
                 </div>
                 <div className="card-body">
                   <div className="price-container">

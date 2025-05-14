@@ -40,6 +40,7 @@ const Houses = () => {
         const response = await fetch('http://127.0.0.1:8000/api/properties');
         if (!response.ok) throw new Error('Failed to fetch properties');
         const data = await response.json();
+         console.log(data);
         setProperties(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An unknown error occurred');

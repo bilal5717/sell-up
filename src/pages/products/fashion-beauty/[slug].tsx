@@ -7,45 +7,33 @@ import {
   FiFilter, 
   FiX 
 } from 'react-icons/fi';
-
 import { 
   LuHeart, 
   LuTag, 
-  LuMapPin, 
-  LuWifi, 
-  LuWifiOff 
+  LuMapPin
 } from 'react-icons/lu';
 import axios from 'axios';
 
 // Interfaces
-interface MobileProduct {
+interface FashionProduct {
   id: number;
   post_id: number;
-  brand: string;
-  model: string;
-  condition: string;
+  title: string;
   price: string;
   location: string;
   posted_at: string;
-   images?: { url: string; is_featured: number; order: number }[];
-  pta_status?: string;
-  title?: string;
+  images?: { url: string; is_featured: number; order: number }[];
+  condition?: string;
+  brand?: string;
   category?: string;
   sub_category?: string;
   type?: string;
-  size?: string;
 }
 
 interface FilterState {
   condition: string[];
   location: string[];
   type: string[];
-}
-
-interface Brand {
-  name: string;
-  count: number;
-  models: string[];
 }
 
 interface Category {
@@ -55,6 +43,7 @@ interface Category {
 
 interface SubCategory {
   name: string;
+  slug: string;
   types?: string[];
 }
 
@@ -68,22 +57,12 @@ interface Province {
 }
 
 // Data
-const brandOptions: Record<string, Brand[]> = {
-  Mobiles: [
-    { name: 'Apple iPhone', count: 73899, models: ['iPhone 13', 'iPhone 12', 'iPhone 11', 'iPhone SE'] },
-    { name: 'Samsung Mobile', count: 21646, models: ['Galaxy S21', 'Galaxy Note 20', 'Galaxy A52'] },
-    { name: 'Infinix', count: 12032, models: ['Note 10', 'Hot 11', 'Zero X Pro'] },
-    { name: 'Vivo', count: 11539, models: ['V21', 'Y51', 'X60 Pro'] },
-    { name: 'Google', count: 9400, models: ['Pixel 6', 'Pixel 5', 'Pixel 4a'] },
-    { name: 'Xiaomi', count: 9085, models: ['Redmi Note 10', 'Mi 11', 'Poco X3'] },
-  ]
-};
-
 const categories: Category[] = [
-  { name: 'Mobiles', slug: 'mobiles' },
-  { name: 'Vehicles', slug: 'vehicles' },
+  { name: 'Fashion & Beauty', slug: 'fashion-beauty' },
   { name: 'Property for Rent', slug: 'property-for-rent' },
   { name: 'Property for Sale', slug: 'property-for-sale' },
+  { name: 'Mobiles', slug: 'mobiles' },
+  { name: 'Vehicles', slug: 'vehicles' },
   { name: 'Electronics & Home Appliances', slug: 'electronics-home-appliances' },
   { name: 'Bikes', slug: 'bikes' },
   { name: 'Business, Industrial & Agriculture', slug: 'business-industrial-agriculture' },
@@ -92,21 +71,63 @@ const categories: Category[] = [
   { name: 'Animals', slug: 'animals' },
   { name: 'Books, Sports & Hobbies', slug: 'books-sports-hobbies' },
   { name: 'Furniture & Home Decor', slug: 'furniture-home-decor' },
-  { name: 'Fashion & Beauty', slug: 'fashion-beauty' },
   { name: 'Kids', slug: 'kids' },
   { name: 'Others', slug: 'others' },
 ];
 
 const subCategories: CategoryData = {
-  mobiles: [
-    { name: 'Tablets' },
-    { name: 'Accessories', types: ['Charging Cables', 'Converters', 'Chargers', 'Screens'] },
-    { name: 'Mobile Phones' },
-    { name: 'Smart Watches' },
+  'fashion-beauty': [
+    { 
+      name: 'Clothes', 
+      slug: 'clothes',
+      types: ['Eastern', 'Western', 'Hijabs & Abayas', 'Sports Clothes', 'Kids Clothes', 'Others']
+    },
+    { 
+      name: 'Fashion Accessories', 
+      slug: 'fashion-accessories',
+      types: ['Caps', 'Scarves', 'Ties', 'Belts', 'Socks', 'Gloves', 'Cufflinks', 'Sunglasses']
+    },
+    { 
+      name: 'Makeup', 
+      slug: 'makeup',
+      types: ['Brushes', 'Lips', 'Eyes', 'Face', 'Nails', 'Accessories', 'Others']
+    },
+    { 
+      name: 'Skin & Hair', 
+      slug: 'skin-hair',
+      types: ['Hair Care', 'Skin Care']
+    },
+    { 
+      name: 'Wedding', 
+      slug: 'wedding',
+      types: ['Bridal', 'Grooms', 'Formal']
+    },
+    { 
+      name: 'Footwear', 
+      slug: 'footwear'
+    },
+    { 
+      name: 'Bags', 
+      slug: 'bags'
+    },
+    { 
+      name: 'Jewellery', 
+      slug: 'jewellery'
+    },
+    { 
+      name: 'Watches', 
+      slug: 'watches'
+    },
+    { 
+      name: 'Fragrance', 
+      slug: 'fragrance'
+    },
+    { 
+      name: 'Others', 
+      slug: 'others'
+    }
   ],
 };
-
-const conditions = ['New', 'Used', 'Open Box', 'Refurbished', 'For Parts'];
 
 const provinces: Province[] = [
   { name: 'Punjab', cities: ['Lahore', 'Rawalpindi', 'Faisalabad', 'Multan', 'Gujranwala', 'Sialkot', 'Sargodha', 'Bahawalpur'] },
@@ -116,117 +137,7 @@ const provinces: Province[] = [
   { name: 'Islamabad Capital Territory', cities: ['Islamabad'] },
 ];
 
-const typeOptions: Record<string, { label: string; count: number }[]> = {
-  Accessories: [
-    { label: 'Mobile', count: 930 },
-    { label: 'Tablet', count: 46 },
-    { label: 'Smart Watch', count: 11 },
-  ]
-};
-
 // Components
-const DynamicBrandModelFilter: React.FC<{ category: string }> = ({ category }) => {
-  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
-  const [selectedModels, setSelectedModels] = useState<string[]>([]);
-
-  const handleBrandSelect = (brand: string) => {
-    setSelectedBrand(brand);
-    setSelectedModels([]);
-  };
-
-  const handleModelSelect = (model: string) => {
-    if (selectedModels.includes(model)) {
-      setSelectedModels((prev) => prev.filter((m) => m !== model));
-    } else {
-      setSelectedModels((prev) => [...prev, model]);
-    }
-  };
-
-  const clearSelection = () => {
-    setSelectedBrand(null);
-    setSelectedModels([]);
-  };
-
-  const brands = brandOptions[category] || [];
-
-  return (
-    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-      <h3 className="font-bold text-lg mb-2">Brand & Model</h3>
-      <select
-        className="w-full border rounded p-2 text-gray-700 text-sm mb-2"
-        value={selectedBrand || ''}
-        onChange={(e) => handleBrandSelect(e.target.value)}
-      >
-        <option value="" disabled>Select Brand</option>
-        {brands.map((brand) => (
-          <option key={brand.name} value={brand.name}>
-            {brand.name} ({brand.count})
-          </option>
-        ))}
-      </select>
-
-      {!selectedBrand && (
-        <div className="flex flex-wrap gap-2 mt-2">
-          {brands.slice(0, 5).map((brand) => (
-            <button
-              key={brand.name}
-              onClick={() => handleBrandSelect(brand.name)}
-              className="text-blue-600 text-sm px-2 py-1 border border-gray-300 rounded hover:bg-gray-100"
-            >
-              {brand.name} ({brand.count})
-            </button>
-          ))}
-        </div>
-      )}
-
-      {selectedBrand && (
-        <div className="mt-2">
-          <div className="text-gray-700 text-sm mb-1">Select Models:</div>
-          <div className="flex flex-wrap gap-2">
-            {brands
-              .find((brand) => brand.name === selectedBrand)
-              ?.models.map((model) => (
-                <div
-                  key={model}
-                  className={`px-2 py-1 rounded border cursor-pointer ${
-                    selectedModels.includes(model)
-                      ? 'bg-blue-100 text-blue-700 border-blue-300'
-                      : 'text-gray-700 border-gray-300 hover:bg-gray-100'
-                  } text-sm`}
-                  onClick={() => handleModelSelect(model)}
-                >
-                  {model}
-                </div>
-              ))}
-          </div>
-
-          {selectedModels.length > 0 && (
-            <div className="mt-3 flex items-center">
-              <span className="text-gray-700 text-sm">Selected Models: </span>
-              <div className="flex flex-wrap gap-1 ml-2">
-                {selectedModels.map((model) => (
-                  <span
-                    key={model}
-                    className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-sm"
-                  >
-                    {model}
-                  </span>
-                ))}
-              </div>
-              <button
-                onClick={clearSelection}
-                className="ml-2 text-blue-600 text-xs"
-              >
-                Clear
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
-
 const DynamicCategorySidebar: React.FC<{
   selectedCategory: string;
   selectedSubCategory: string | null;
@@ -297,16 +208,17 @@ const DynamicCategorySidebar: React.FC<{
                     >
                       {sub.name}
                     </div>
-                    {sub.types && selectedSubCategory === sub.name && (
+                    
+                    {selectedSubCategory === sub.name && sub.types && (
                       <div className="ml-4 space-y-1">
-                        {sub.types.map((type, i) => (
+                        {sub.types.map((type, idx) => (
                           <div
-                            key={i}
+                            key={idx}
                             className={`py-1 cursor-pointer hover:text-blue-600 ${selectedType === type ? 'text-blue-600 font-medium' : 'text-gray-600'}`}
-                            style={{ fontSize: '12px', lineHeight: '1.5' }}
                             onClick={() => toggleType(type)}
+                            style={{ fontSize: '11px', lineHeight: '1.5' }}
                           >
-                            - {type}
+                            {type}
                           </div>
                         ))}
                       </div>
@@ -326,48 +238,6 @@ const DynamicCategorySidebar: React.FC<{
           </button>
         )}
       </div>
-    </div>
-  );
-};
-
-const ConditionSelectBox: React.FC = () => {
-  const [selectedCondition, setSelectedCondition] = useState<string | null>(null);
-
-  const handleConditionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedCondition(e.target.value);
-  };
-
-  const clearCondition = () => {
-    setSelectedCondition(null);
-  };
-
-  return (
-    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-      <h3 className="font-bold text-lg mb-2">Condition</h3>
-      {selectedCondition ? (
-        <div className="flex justify-between items-center bg-gray-100 p-2 rounded text-gray-700">
-          <span className="text-sm">{selectedCondition}</span>
-          <button
-            onClick={clearCondition}
-            className="text-blue-600 text-xs"
-          >
-            Change
-          </button>
-        </div>
-      ) : (
-        <select
-          className="w-full border rounded p-2 text-gray-700 text-sm"
-          value={selectedCondition || ''}
-          onChange={handleConditionChange}
-        >
-          <option value="" disabled>Select Condition</option>
-          {conditions.map((condition) => (
-            <option key={condition} value={condition}>
-              {condition}
-            </option>
-          ))}
-        </select>
-      )}
     </div>
   );
 };
@@ -466,7 +336,6 @@ const PriceFilter: React.FC = () => {
   const [minPrice, setMinPrice] = useState<number | ''>('');
   const [maxPrice, setMaxPrice] = useState<number | ''>('');
   const [isPriceSet, setIsPriceSet] = useState<boolean>(false);
-  const [isDeliverable, setIsDeliverable] = useState<boolean>(false);
 
   const handleMinPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value);
@@ -488,15 +357,6 @@ const PriceFilter: React.FC = () => {
     setMinPrice('');
     setMaxPrice('');
     setIsPriceSet(false);
-  };
-
-  const toggleIsDeliverable = () => {
-    setIsDeliverable((prev) => !prev);
-  };
-
-  const clearAllFilters = () => {
-    clearPriceFilter();
-    setIsDeliverable(false);
   };
 
   return (
@@ -542,87 +402,41 @@ const PriceFilter: React.FC = () => {
           </div>
         )}
       </div>
-
-      <div className="mt-4 flex items-center">
-        <input
-          type="checkbox"
-          id="isDeliverable"
-          checked={isDeliverable}
-          onChange={toggleIsDeliverable}
-          className="mr-2 h-4 w-4 text-blue-600 rounded"
-        />
-        <label htmlFor="isDeliverable" className="text-gray-700 text-sm">Is Deliverable</label>
-      </div>
-
-      {isDeliverable && (
-        <div className="mt-2 text-gray-600 text-sm">
-          Deliverable: Yes
-        </div>
-      )}
-
-      <button
-        onClick={clearAllFilters}
-        className="text-blue-600 text-sm mt-3"
-      >
-        Clear All
-      </button>
     </div>
   );
 };
 
-const DynamicTypeFilterBox: React.FC<{ category: string }> = ({ category }) => {
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-
-  const handleTypeChange = (type: string) => {
-    if (selectedTypes.includes(type)) {
-      setSelectedTypes((prev) => prev.filter((t) => t !== type));
-    } else {
-      setSelectedTypes((prev) => [...prev, type]);
-    }
-  };
-
-  const clearSelection = () => {
-    setSelectedTypes([]);
-  };
-
-  const types = typeOptions[category] || [];
+const ConditionFilter: React.FC<{
+  selectedConditions: string[];
+  onConditionChange: (condition: string) => void;
+}> = ({ selectedConditions, onConditionChange }) => {
+  const conditions = ['New', 'Used', 'Refurbished'];
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-      <h3 className="font-bold text-lg mb-2">Type</h3>
-      {selectedTypes.length > 0 ? (
-        <div className="flex justify-between items-center bg-gray-100 p-2 rounded text-gray-700">
-          <span className="text-sm">{selectedTypes.join(', ')}</span>
-          <button
-            onClick={clearSelection}
-            className="text-blue-600 text-xs"
-          >
-            Change
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-1">
-          {types.map((type) => (
-            <label key={type.label} className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={selectedTypes.includes(type.label)}
-                onChange={() => handleTypeChange(type.label)}
-                className="h-4 w-4 text-blue-600 rounded"
-              />
-              <span className="text-gray-700 text-sm">
-                {type.label} ({type.count})
-              </span>
+      <h3 className="font-bold text-lg mb-2">Condition</h3>
+      <div className="space-y-2">
+        {conditions.map((condition) => (
+          <div key={condition} className="flex items-center">
+            <input
+              type="checkbox"
+              id={`condition-${condition}`}
+              checked={selectedConditions.includes(condition)}
+              onChange={() => onConditionChange(condition)}
+              className="mr-2"
+            />
+            <label htmlFor={`condition-${condition}`} className="text-sm">
+              {condition}
             </label>
-          ))}
-        </div>
-      )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
 
-const MobileProductCard: React.FC<{
-  products: MobileProduct[];
+const FashionProductCard: React.FC<{
+  products: FashionProduct[];
   loading?: boolean;
 }> = ({
   products = [],
@@ -671,24 +485,25 @@ const MobileProductCard: React.FC<{
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {products.map((product) => {
         const isLiked = likedProducts.has(product.id);
-        const isPtaApproved = product.pta_status === 'PTA Approved';
         
         return (
           <article
             key={`${product.id}-${product.post_id}`}
             className="bg-white rounded-lg shadow-sm overflow-hidden transition-transform hover:scale-[1.02] hover:shadow-md"
           >
-            <div className="relative aspect-video bg-gray-100">
+            <div className="relative aspect-square bg-gray-100">
               <Image
-                src={product.images?.[0]?.url || '/images/placeholder.png'}
-                alt={`${product.brand} ${product.model}`}
+                src={product.images?.[0]?.url || '/images/fashion-placeholder.png'}
+                alt={product.title}
                 fill
                 className="object-cover"
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               />
-              <span className="absolute top-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
-                Featured
-              </span>
+              {product.condition === 'New' && (
+                <span className="absolute top-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
+                  New
+                </span>
+              )}
             </div>
 
             <div className="p-4">
@@ -708,26 +523,20 @@ const MobileProductCard: React.FC<{
               </div>
 
               <h4 className="text-gray-700 font-medium text-sm line-clamp-2">
-                {product.brand} {product.model}
+                {product.title}
               </h4>
 
-              <div className="flex justify-between items-center text-gray-600 text-xs mt-2">
-                <div className="flex items-center gap-1">
-                  <LuTag />
-                  <span>{product.condition}</span>
+              {product.brand && (
+                <div className="text-gray-600 text-xs mt-1">
+                  <span className="font-medium">Brand:</span> {product.brand}
                 </div>
-                
-                {product.pta_status && product.pta_status !== 'N/A' && (
-                  <div className="flex items-center gap-1">
-                    {isPtaApproved ? (
-                      <LuWifi className="text-green-500" />
-                    ) : (
-                      <LuWifiOff className="text-red-500" />
-                    )}
-                    <span>{isPtaApproved ? 'PTA' : 'NON PTA'}</span>
-                  </div>
-                )}
-              </div>
+              )}
+
+              {product.condition && (
+                <div className="text-gray-600 text-xs mt-1">
+                  <span className="font-medium">Condition:</span> {product.condition}
+                </div>
+              )}
 
               <div className="flex flex-col items-start text-gray-500 text-xs mt-2">
                 <div className="flex items-center gap-1">
@@ -746,9 +555,9 @@ const MobileProductCard: React.FC<{
   );
 };
 
-const MobileCategoryPage: React.FC = () => {
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000000]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('mobiles');
+const FashionAndBeautyPage: React.FC = () => {
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('fashion-beauty');
   const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedFilters, setSelectedFilters] = useState<FilterState>({
@@ -760,13 +569,11 @@ const MobileCategoryPage: React.FC = () => {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     category: true,
     price: true,
-    condition: true,
     location: true,
-    type: true,
+    condition: true,
   });
   const [sortBy, setSortBy] = useState<string>('newest');
-  const [selectedCondition, setSelectedCondition] = useState<string>('all');
-  const [products, setProducts] = useState<MobileProduct[]>([]);
+  const [products, setProducts] = useState<FashionProduct[]>([]);
   const [loading, setLoading] = useState(true);
 
   const toggleSection = (section: string) => {
@@ -776,22 +583,21 @@ const MobileCategoryPage: React.FC = () => {
     }));
   };
 
-  const handleFilterSelect = (filterType: keyof FilterState, value: string) => {
+  const handleConditionChange = (condition: string) => {
     setSelectedFilters(prev => {
-      const currentValues = prev[filterType];
-      const newValues = currentValues.includes(value)
-        ? currentValues.filter(v => v !== value)
-        : [...currentValues, value];
-
+      const newConditions = prev.condition.includes(condition)
+        ? prev.condition.filter(c => c !== condition)
+        : [...prev.condition, condition];
+      
       return {
         ...prev,
-        [filterType]: newValues,
+        condition: newConditions,
       };
     });
   };
 
   const clearFilters = () => {
-    setPriceRange([0, 1000000]);
+    setPriceRange([0, 100000]);
     setSelectedFilters({
       condition: [],
       location: [],
@@ -802,20 +608,19 @@ const MobileCategoryPage: React.FC = () => {
   };
 
   useEffect(() => {
-    const fetchMobileProducts = async () => {
+    const fetchFashionProducts = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('http://127.0.0.1:8000/api/mobiles');
-        console.log(response.data);
+        const response = await axios.get('http://127.0.0.1:8000/api/fashion-products');
         setProducts(response.data);
       } catch (error) {
-        console.error('Error fetching mobile products:', error);
+        console.error('Error fetching fashion products:', error);
       } finally {
         setLoading(false);
       }
     };
     
-    fetchMobileProducts();
+    fetchFashionProducts();
   }, []);
 
   return (
@@ -825,7 +630,19 @@ const MobileCategoryPage: React.FC = () => {
           <div className="flex items-center text-sm text-gray-600">
             <span>Home</span>
             <span className="mx-2">›</span>
-            <span>All Categories</span>
+            <span>Fashion & Beauty</span>
+            {selectedSubCategory && (
+              <>
+                <span className="mx-2">›</span>
+                <span>{selectedSubCategory}</span>
+              </>
+            )}
+            {selectedType && (
+              <>
+                <span className="mx-2">›</span>
+                <span>{selectedType}</span>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -841,16 +658,17 @@ const MobileCategoryPage: React.FC = () => {
               onSubCategorySelect={setSelectedSubCategory}
               onTypeSelect={setSelectedType}
             />
+            <ConditionFilter
+              selectedConditions={selectedFilters.condition}
+              onConditionChange={handleConditionChange}
+            />
             <LocationSidebar />
             <PriceFilter />
-            <DynamicBrandModelFilter category="Mobiles" />
-            <ConditionSelectBox />
-            <DynamicTypeFilterBox category="Accessories" />
           </div>
 
           <div className="w-full lg:w-3/4">
             <div className="md:hidden flex justify-between items-center mb-4">
-              <h1 className="text-xl font-bold">All Categories</h1>
+              <h1 className="text-xl font-bold">Fashion & Beauty</h1>
               <button 
                 onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
                 className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded"
@@ -861,23 +679,13 @@ const MobileCategoryPage: React.FC = () => {
 
             <div className="bg-white rounded-lg shadow-sm p-4 mb-4 flex justify-between items-center">
               <div className="text-sm text-gray-600">
-                Showing {selectedSubCategory || selectedCategory} products
+                Showing {selectedType || selectedSubCategory || selectedCategory} products
+                {selectedFilters.condition.length > 0 && (
+                  <span> ({selectedFilters.condition.join(', ')})</span>
+                )}
               </div>
               
               <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600">Condition:</span>
-                  <select
-                    value={selectedCondition}
-                    onChange={(e) => setSelectedCondition(e.target.value)}
-                    className="border rounded p-2 text-sm"
-                  >
-                    <option value="all">All</option>
-                    <option value="new">New</option>
-                    <option value="used">Used</option>
-                  </select>
-                </div>
-
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-600">Sort by:</span>
                   <select
@@ -894,7 +702,7 @@ const MobileCategoryPage: React.FC = () => {
               </div>
             </div>
 
-            <MobileProductCard 
+            <FashionProductCard 
               products={products}
               loading={loading}
             />
@@ -953,6 +761,34 @@ const MobileCategoryPage: React.FC = () => {
                   </div>
                 )}
               </div>
+
+              <div className="mb-6">
+                <div 
+                  className="flex justify-between items-center cursor-pointer"
+                  onClick={() => toggleSection('condition')}
+                >
+                  <h4 className="font-medium text-gray-800">Condition</h4>
+                  {expandedSections.condition ? <FiChevronUp /> : <FiChevronDown />}
+                </div>
+                {expandedSections.condition && (
+                  <div className="mt-3 space-y-2">
+                    {['New', 'Used', 'Refurbished'].map(condition => (
+                      <div key={condition} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id={`mobile-condition-${condition}`}
+                          checked={selectedFilters.condition.includes(condition)}
+                          onChange={() => handleConditionChange(condition)}
+                          className="mr-2"
+                        />
+                        <label htmlFor={`mobile-condition-${condition}`} className="text-sm">
+                          {condition}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex gap-2">
@@ -976,4 +812,4 @@ const MobileCategoryPage: React.FC = () => {
   );
 };
 
-export default MobileCategoryPage;
+export default FashionAndBeautyPage;
