@@ -41,6 +41,26 @@ const nextConfig = {
         source: '/fashion-beauty/:id',
         destination: '/products/fashion-beauty/:id',
       },
+       {
+        source: '/electronics-home-appliances/:id',
+        destination: '/products/electronics-home-appliances/:id',
+      },
+      {
+        source: '/business-industrial-agriculture/:id',
+        destination: '/products/business-industrial-agriculture/:id',
+      },
+      {
+        source: '/services/:id',
+        destination: '/products/services/:id',
+      },
+      {
+        source: '/jobs/:id',
+        destination: '/products/jobs/:id',
+      },
+      {
+        source: '/animals/:id',
+        destination: '/products/animals/:id',
+      },
     ];
   },
 };

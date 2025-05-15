@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { FiEdit, FiX, FiChevronDown, FiCheck, FiPlus, FiSearch } from 'react-icons/fi';
 import Switch from '@/components/common/Tooglebtn';
-
+import axios from 'axios';
 const BusinessIndustrialForm = ({selectedSubCat,selectedType}) => {
   console.log(selectedSubCat,selectedType);
   // State Management
@@ -21,10 +21,15 @@ const BusinessIndustrialForm = ({selectedSubCat,selectedType}) => {
   const [specialField, setSpecialField] = useState(selectedType);
   const [subCategory, setSubCategory] = useState('');
   const [postDetails, setPostDetails] = useState({
-    title: '',
-    description: '',
-    contactName: '',
-  });
+     title: '',
+     description: '',
+     price: '',
+     images: [],
+   });
+   const [videoFile, setVideoFile] = useState(null);
+   const [uploadProgress, setUploadProgress] = useState({
+       video: null
+     });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   // Data Constants
@@ -39,7 +44,7 @@ const BusinessIndustrialForm = ({selectedSubCat,selectedType}) => {
     { id: 8, name: 'Business, Industrial & Agriculture', icon: '🏭' },
   ];
 
-  const businessTypes = [
+   const businessTypes = [
     'Business For Sale',
     'Food & Restaurant',
     'Construction & Heavy Machinery',
@@ -85,6 +90,196 @@ const BusinessIndustrialForm = ({selectedSubCat,selectedType}) => {
     'Large'
   ];
 
+   // Add video upload handler
+    const handleVideoUpload = async (e) => {
+      const file = e.target.files[0];
+      if (!file || !file.type.includes('video')) {
+          console.error("Invalid file type. Please upload a video.");
+          return;
+      }
+  
+      try {
+          const contentType = file.type;
+          const fileSize = file.size;
+  
+          // Reset video progress
+          setUploadProgress(prev => ({
+            ...prev,
+            video: { progress: 0, fileName: file.name }
+          }));
+  
+          // Get the pre-signed URL from the server
+          const res = await axios.post('http://127.0.0.1:8000/api/generate-video-url', {
+              contentType,
+              fileSize,
+          }, {
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+          });
+  
+          if (!res.data.uploadUrl || !res.data.publicUrl) {
+              throw new Error('Upload URL not received from server');
+          }
+  
+          const { uploadUrl, publicUrl } = res.data;
+  
+          // Add to state immediately for preview
+          const previewUrl = URL.createObjectURL(file);
+  
+          setVideoFile({
+              file,      // Save the actual file for upload
+              preview: previewUrl, // Save the preview URL for displaying
+              publicUrl  // Save the final public URL after upload
+          });
+  
+          // Upload the file using the pre-signed URL
+          const uploadRes = await axios.put(uploadUrl, file, {
+              headers: {
+                  'Content-Type': contentType,
+                  'x-amz-acl': 'public-read', // Public access
+              },
+              onUploadProgress: (progressEvent) => {
+                  const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                  setUploadProgress(prev => ({
+                    ...prev,
+                    video: { ...prev.video, progress }
+                  }));
+              }
+          });
+  
+          if (uploadRes.status !== 200) {
+              throw new Error(`Upload failed with status ${uploadRes.status}`);
+          }
+  
+          console.log('✅ Video uploaded successfully:', publicUrl);
+      } catch (err) {
+          console.error('❌ Video upload error:', err.message);
+          alert(`Failed to upload video. Error: ${err.message}`);
+          setUploadProgress(prev => ({
+            ...prev,
+            video: null
+          }));
+      }
+    };
+
+     // Add video remove handler
+  const removeVideo = () => {
+    setVideoFile(null);
+  };
+  const ProgressBar = ({ progress, fileName }) => (
+  <div className="w-100 mt-1">
+    <div className="d-flex justify-content-between small">
+      <span>{fileName}</span>
+      <span>{progress}%</span>
+    </div>
+    <div className="progress" style={{ height: '5px' }}>
+      <div 
+        className="progress-bar bg-success" 
+        role="progressbar" 
+        style={{ width: `${progress}%` }}
+        aria-valuenow={progress}
+        aria-valuemin="0"
+        aria-valuemax="100"
+      />
+    </div>
+  </div>
+);
+
+const ImageUploadStatus = ({ status }) => {
+  if (status === 'uploading') {
+    return (
+      <div className="position-absolute top-50 start-50 translate-middle">
+        <div className="spinner-border spinner-border-sm text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+  if (status === 'uploaded') {
+    return (
+      <div className="position-absolute top-0 end-0 bg-success rounded-circle p-0 border-0 d-flex align-items-center justify-content-center"
+        style={{ width: '20px', height: '20px', transform: 'translate(30%, -30%)' }}>
+        <FiCheck className="text-white" style={{ fontSize: '10px' }} />
+      </div>
+    );
+  }
+  return null;
+};
+  const handleImageUpload = async (file) => {
+    if (!file) return console.error("No file provided");
+
+    const contentType = file.type;
+    const fileSize = file.size;
+    const fileName = file.name;
+
+    try {
+        // Create preview URL
+        const previewUrl = URL.createObjectURL(file);
+
+        // Add to state immediately with preview and status
+        setPostDetails(prev => ({
+          ...prev,
+          images: [...prev.images, { 
+            preview: previewUrl, 
+            filename: fileName,
+            status: 'uploading' // initial status
+          }],
+        }));
+
+        // Get the pre-signed URL from the server
+        const res = await axios.post('http://127.0.0.1:8000/api/generate-image-url', {
+            contentType,
+            fileSize,
+        });
+
+        if (!res.data.uploadUrl || !res.data.publicUrl) {
+            throw new Error('Upload URL not received from server');
+        }
+
+        const { uploadUrl, publicUrl } = res.data;
+
+        // Upload the file using the pre-signed URL
+        await axios.put(uploadUrl, file, {
+            headers: {
+                'Content-Type': contentType,
+                'x-amz-acl': 'public-read',
+            }
+        });
+
+        // Update state with public URL and mark as uploaded
+        setPostDetails(prev => ({
+          ...prev,
+          images: prev.images.map(img => 
+            img.filename === fileName ? 
+            { ...img, publicUrl, status: 'uploaded' } : 
+            img
+          ),
+        }));
+
+        console.log('✅ Image uploaded successfully:', publicUrl);
+    } catch (err) {
+        console.error('❌ Image upload error:', err.message);
+        // Remove the failed upload from state
+        setPostDetails(prev => ({
+          ...prev,
+          images: prev.images.filter(img => img.filename !== fileName)
+        }));
+        alert(`Failed to upload image. Error: ${err.message}`);
+    }
+  };
+  
+  const removeImage = (index) => {
+    setPostDetails(prev => {
+        const newImages = [...prev.images];
+        const removed = newImages.splice(index, 1);
+        // Clean up object URL if it exists
+        if (removed[0]?.preview) {
+            URL.revokeObjectURL(removed[0].preview);
+        }
+        return { ...prev, images: newImages };
+    });
+  };
   // Derived Values
   const filteredBusinessTypes = businessTypes.filter(option => 
     option.toLowerCase().includes(businessTypeSearchTerm.toLowerCase())
@@ -102,54 +297,56 @@ const BusinessIndustrialForm = ({selectedSubCat,selectedType}) => {
     setPostDetails(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e) => {
+ const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
 
-    const formData = new FormData();
-    
-    // Append all form data
-    formData.append('title', postDetails.title);
-    formData.append('description', postDetails.description);
-    formData.append('contactName', postDetails.contactName);
-    formData.append('category', selectedCategory);
-    formData.append('subCategory', businessType);
-    formData.append('price', price);
-    formData.append('location', location);
-    formData.append('condition', condition);
-    formData.append('operationScale', operationScale);
-    formData.append('specifications', specifications);
-    formData.append('businessType', businessType);
-    formData.append('specialField', specialField);
-    formData.append('subCategoryType', subCategory);
-    formData.append('companyName', companyName);
-    formData.append('sellerType', sellerType);
-
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/posts', {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-        },
-        body: formData,
-      });
+        const formData = new FormData();
+        formData.append('title', postDetails.title);
+        formData.append('description', postDetails.description);
+        formData.append('category', selectedCategory);
+        formData.append('subCategory', businessType);
+        formData.append('price', price);
+        formData.append('location', location);
+        formData.append('contactName', postDetails.contactName);
+        formData.append('businessType', businessType);
+        formData.append('specialField', specialField);
+        formData.append('subCategoryType', subCategory);
+        formData.append('companyName', companyName);
+        formData.append('sellerType', sellerType);
+        formData.append('condition', condition);
+        formData.append('operationScale', operationScale);
+        formData.append('specifications', specifications);
 
-      const data = await response.json();
+        const imageUrls = postDetails.images.map(img => img.publicUrl);
+        formData.append('imageUrls', JSON.stringify(imageUrls));
 
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to create post');
-      }
+        if (videoFile) {
+            const videoUrls = [videoFile.publicUrl];
+            formData.append('videoUrls', JSON.stringify(videoUrls));
+        }
 
-      alert('Post created successfully:', data);
-      // Redirect or show success message
+        const response = await axios.post('http://127.0.0.1:8000/api/business-industrial', formData, {
+            headers: {
+                'Accept': 'application/json',
+            },
+        });
+
+        if (!response.data.success) {
+            throw new Error(response.data.message);
+        }
+
+        alert('Post created successfully');
     } catch (err) {
-      setError(err.message);
-      console.error('Error submitting form:', err);
+        setError(err.response?.data?.message || err.message);
+        console.error('Error submitting form:', err);
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
-  };
+};
+
 
   // Render Functions
   const renderCategoryModal = () => (
@@ -376,6 +573,132 @@ const BusinessIndustrialForm = ({selectedSubCat,selectedType}) => {
                     </div>
                   </div>
                 </div>
+
+                 <div className="mb-4">
+                                                                <div className="row w-100">
+                                                                  <div className="col-4">
+                                                                    <label className="form-label fw-bold">Upload Images</label>
+                                                                  </div>
+                                                                  <div className="col-8 p-0">
+                                                                    <div className="d-flex flex-wrap gap-2">
+                                                                      {/* Display uploaded images */}
+                                                                      {postDetails.images.map((image, index) => (
+                                                                        <div key={index} className="border rounded position-relative"
+                                                                          style={{ width: '60px', height: '60px', backgroundColor: '#f7f7f7' }}>
+                                                                          <ImageUploadStatus status={image.status} />
+                                                                          <img
+                                                                            src={image.preview || image.publicUrl}
+                                                                            alt={`Preview ${index}`}
+                                                                            className={`w-100 h-100 object-fit-cover rounded ${image.status === 'uploading' ? 'opacity-50' : ''}`}
+                                                                            onLoad={() => {
+                                                                              if (image.preview) {
+                                                                                URL.revokeObjectURL(image.preview);
+                                                                              }
+                                                                            }}
+                                                                          />
+                                                                          <button
+                                                                            type="button"
+                                                                            className="position-absolute top-0 end-0 bg-danger rounded-circle p-0 border-0"
+                                                                            style={{ width: '20px', height: '20px', transform: 'translate(30%, -30%)' }}
+                                                                            onClick={() => removeImage(index)}
+                                                                          >
+                                                                            <FiX className="text-white" style={{ fontSize: '10px' }} />
+                                                                          </button>
+                                                                        </div>
+                                                                      ))}
+                                              
+                                                                      {/* Empty slots for new uploads */}
+                                                                      {Array.from({ length: Math.max(0, 14 - postDetails.images.length) }).map((_, index) => (
+                                                                        <div key={`empty-${index}`} className="border rounded position-relative"
+                                                                          style={{ width: '60px', height: '60px', backgroundColor: '#f7f7f7' }}>
+                                                                          <label htmlFor="image-upload" className="w-100 h-100 d-flex flex-column align-items-center justify-content-center cursor-pointer">
+                                                                            <FiPlus className="text-muted mb-1" />
+                                                                          </label>
+                                                                        </div>
+                                                                      ))}
+                                                                    </div>
+                                              
+                                                                    {/* File input (hidden) */}
+                                                                    <input
+                                                                      id="image-upload"
+                                                                      type="file"
+                                                                      accept="image/*"
+                                                                      multiple
+                                                                      className="d-none"
+                                                                      onChange={(e) => {
+                                                                        const files = Array.from(e.target.files);
+                                                                        files.forEach(file => handleImageUpload(file));
+                                                                        e.target.value = ''; // reset to allow re-uploading the same file
+                                                                      }}
+                                                                    />
+                                                                  </div>
+                                                                </div>
+                                                              </div>
+                               
+                                                {/* Video Upload Field */}
+                                                               <div className="mb-4">
+                                                                 <div className="row w-100">
+                                                                   <div className="col-4"> <label className="form-label fw-bold">Upload Video</label></div>
+                                                                   <div className="col-8 p-0">
+                                                                     <div className="d-flex">
+                                                                       <div 
+                                                                         className="border rounded position-relative"
+                                                                         style={{
+                                                                           width: '100%',
+                                                                           height: '120px',
+                                                                           backgroundColor: '#f7f7f7'
+                                                                         }}
+                                                                       >
+                                                                         {videoFile && videoFile.preview ? (
+                                                                           <>
+                                                                             <video
+                                                                                 src={videoFile.preview}
+                                                                                 className="w-100 h-100 object-fit-cover rounded"
+                                                                                 controls
+                                                                             />
+                                                                             <button
+                                                                                 type="button"
+                                                                                 className="position-absolute top-0 end-0 bg-danger rounded-circle p-0 border-0 d-flex align-items-center justify-content-center"
+                                                                                 style={{ width: '20px', height: '20px', transform: 'translate(30%, -30%)' }}
+                                                                                 onClick={removeVideo}
+                                                                             >
+                                                                                 <FiX className="text-white" style={{ fontSize: '10px' }} />
+                                                                             </button>
+                                                                           </>
+                                                                         ) : (
+                                                                           <label 
+                                                                               htmlFor="video-upload"
+                                                                               className="w-100 h-100 d-flex flex-column align-items-center justify-content-center cursor-pointer"
+                                                                           >
+                                                                               <FiPlus className="text-muted mb-1" />
+                                                                               <small className="text-muted text-center" style={{ fontSize: '0.7rem' }}>
+                                                                                   Add Video
+                                                                               </small>
+                                                                           </label>
+                                                                         )}
+                                                                       </div>
+                                                                     </div>
+                                                                     
+                                                                     {/* Show video upload progress */}
+                                                                     {uploadProgress.video && (
+                                                                       <div className="mt-2">
+                                                                         <ProgressBar 
+                                                                           progress={uploadProgress.video.progress} 
+                                                                           fileName={uploadProgress.video.fileName}
+                                                                         />
+                                                                       </div>
+                                                                     )}
+                                               
+                                                                     <input
+                                                                       type="file"
+                                                                       id="video-upload"
+                                                                       className="d-none"
+                                                                       accept="video/*"
+                                                                       onChange={handleVideoUpload}
+                                                                     />
+                                                                   </div>
+                                                                 </div>
+                                                               </div>
                 <hr />
 
                 {/* Contact Name */}

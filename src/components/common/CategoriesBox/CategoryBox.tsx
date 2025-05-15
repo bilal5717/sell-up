@@ -18,9 +18,12 @@ const categories = [
     { id: 4, title: 'House For Sale', image: house_sale, route: 'property-for-sale/4' },
     { id: 5, title: 'House For Rent', image: house_rent, route: 'property-for-rent/5' },
     { id: 6, title: 'Fashion & Beauty', image: appartment, route: 'fashion-beauty/6' },
-    { id: 7, title: 'Jobs', image: jobs, route: 'products/7' },
-    { id: 8, title: 'Animals', image: animals, route: 'products/8' },
-    { id: 9, title: 'More', image: more, route: 'products/9' },
+    { id: 7, title: 'Electronics & Home Appliances', image: jobs, route: 'electronics-home-appliances/7' },
+    { id: 8, title: 'Business, Industrial & Agriculture', image: jobs, route: 'business-industrial-agriculture/8' },
+    { id: 9, title: 'services', image: animals, route: 'services/9' },
+    { id: 10, title: 'jobs', image: more, route: 'jobs/10' },
+    { id: 10, title: 'Animals', image: more, route: 'animals/11' },
+
 ];
 
 const CategoriesBox: React.FC = () => {

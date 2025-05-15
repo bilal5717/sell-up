@@ -38,10 +38,10 @@ export default function Home() {
               </div>
               {/* <div className="col-12">
                  <LandsAndPlots  />
-              </div>
+              </div>*/}
               <div className="col-12">
                  <Jobs  />
-              </div> */}
+              </div> 
           </div>
         </div>
           
