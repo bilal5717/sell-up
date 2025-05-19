@@ -12,18 +12,20 @@ import animals from './CategoryImages/animals.svg';
 import more from './CategoryImages/more.svg';
 
 const categories = [
-    { id: 1, title: 'Mobiles', image: mobiles, route: 'mobiles/1' },
-    { id: 2, title: 'Cars', image: cars, route: 'vehicles/2' },
-    { id: 3, title: 'Bikes', image: bikes, route: '/bikes/3' },
-    { id: 4, title: 'House For Sale', image: house_sale, route: 'property-for-sale/4' },
-    { id: 5, title: 'House For Rent', image: house_rent, route: 'property-for-rent/5' },
-    { id: 6, title: 'Fashion & Beauty', image: appartment, route: 'fashion-beauty/6' },
-    { id: 7, title: 'Electronics & Home Appliances', image: jobs, route: 'electronics-home-appliances/7' },
-    { id: 8, title: 'Business, Industrial & Agriculture', image: jobs, route: 'business-industrial-agriculture/8' },
-    { id: 9, title: 'services', image: animals, route: 'services/9' },
-    { id: 10, title: 'jobs', image: more, route: 'jobs/10' },
-    { id: 10, title: 'Animals', image: more, route: 'animals/11' },
-
+    { id: 1, title: 'Mobiles', image: mobiles, route: '/mobiles' },
+    { id: 2, title: 'Cars', image: cars, route: '/vehicles' },
+    { id: 3, title: 'Bikes', image: bikes, route: '/bikes' },
+    { id: 4, title: 'House For Sale', image: house_sale, route: '/property-for-sale' },
+    { id: 5, title: 'House For Rent', image: house_rent, route: '/property-for-rent' },
+    { id: 6, title: 'Fashion & Beauty', image: appartment, route: '/fashion-beauty' },
+    { id: 7, title: 'Electronics & Home Appliances', image: jobs, route: '/electronics-home-appliances' },
+    { id: 8, title: 'Business, Industrial & Agriculture', image: jobs, route: '/business-industrial-agriculture' },
+    { id: 9, title: 'services', image: animals, route: '/services' },
+    { id: 10, title: 'jobs', image: more, route: '/jobs' },
+    { id: 11, title: 'Animals', image: more, route: '/animals' },
+    { id: 12, title: 'Books, Sports & Hobbies', image: more, route: '/books-sports-hobbies' },
+     { id: 13, title: 'Furniture & Home Decor', image: more, route: '/furniture-home-decor' },
+     { id: 14, title: 'Kids', image: more, route: '/kids' },
 ];
 
 const CategoriesBox: React.FC = () => {

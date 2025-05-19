@@ -17,7 +17,6 @@ import {
 } from 'react-icons/lu';
 import axios from 'axios';
 
-// Interfaces
 interface Product {
   id: number;
   post_id: number;
@@ -33,15 +32,22 @@ interface Product {
   sub_category?: string;
   type?: string;
   warranty?: string;
-  vehicle_details?: {
-    make: string;
-    model: string;
-    year: string;
-    fuel_type: string;
-    transmission: string;
-    kms_driven: string;
+  furniture_details?: {
+    furniture_type?: string;
+    material?: string;
+    dimensions?: string;
+    color?: string;
+    condition?: string;
+    warranty?: string;
+    folding?: string;
+    age?: string;
+    length?: string;
+    width?: string;
+    handmade?: string;
+    origin?: string;
   };
 }
+
 
 interface FilterState {
   condition: string[];
@@ -76,13 +82,13 @@ interface Province {
 
 // Data
 const brandOptions: Record<string, Brand[]> = {
-  'Vehicles': [
-    { name: 'Toyota', count: 7389, models: ['Corolla', 'Camry', 'Hilux', 'Land Cruiser'] },
-    { name: 'Honda', count: 5164, models: ['Civic', 'Accord', 'City', 'CR-V'] },
-    { name: 'Suzuki', count: 2032, models: ['Mehran', 'Cultus', 'Swift', 'Alto'] },
-    { name: 'Nissan', count: 1539, models: ['Sunny', 'March', 'Sentra'] },
-    { name: 'BMW', count: 940, models: ['3 Series', '5 Series', 'X5'] },
-    { name: 'Mercedes', count: 885, models: ['C-Class', 'E-Class', 'S-Class'] },
+  'Furniture & Home Decor': [
+    { name: 'IKEA', count: 1234, models: ['Sofas', 'Beds', 'Wardrobes', 'Tables'] },
+    { name: 'Ashley', count: 987, models: ['Living Room', 'Bedroom', 'Dining Room', 'Home Office'] },
+    { name: 'Herman Miller', count: 765, models: ['Office Chairs', 'Desks', 'Storage'] },
+    { name: 'West Elm', count: 654, models: ['Sofas', 'Beds', 'Dining Tables', 'Lighting'] },
+    { name: 'Ethan Allen', count: 543, models: ['Living Room', 'Bedroom', 'Dining Room'] },
+    { name: 'Pottery Barn', count: 432, models: ['Sofas', 'Beds', 'Dining Tables', 'Rugs'] },
   ]
 };
 
@@ -105,44 +111,40 @@ const categories: Category[] = [
 ];
 
 const subCategories: CategoryData = {
-  'vehicles': [
-    { name: 'Cars', types: [
-      'Sedan', 'Hatchback', 'SUV', 'Crossover', 'Coupe', 'Convertible', 'Wagon', 'Van'
+  'furniture-home-decor': [
+    { name: 'Sofa & Chair', types: [
+      'Sofa Set', 'Arm Chair', 'Dining Chair', 'Recliner', 'Rocking Chair', 'Other'
     ]},
-    { name: 'Cars On Installments', types: [
-      'New Cars', 'Used Cars', 'Commercial Vehicles'
+    { name: 'Beds & Wardrobes', types: [
+      'Single Bed', 'Double Bed', 'Bunk Bed', 'Sofa Bed', 'Single Door Wardrobe', 
+      'Double Door Wardrobe', 'Sliding Door Wardrobe', 'Walk-in Wardrobe', 'Other'
     ]},
-    { name: 'Car Care', types: [
-      'Air Fresher', 'Cleaners', 'Compound Polishes', 'Covers', 
-      'Microfiber Clothes', 'Shampoos', 'Waxes', 'Other'
+    { name: 'Tables & Dining', types: [
+      'Dining Table', 'Coffee Table', 'Study Table', 'Office Table', 'Dining Chair', 
+      'Bar Stool', 'Other'
     ]},
-    { name: 'Car Accessories', types: [
-      'Tools & Gadget', 'Safety & Security', 'Interior', 
-      'Exterior', 'Audio & Multimedia', 'Other'
+    { name: 'Bathroom & Accessories', types: [
+      'Bathroom Cabinet', 'Shower Screen', 'Towel Rack', 'Mirror', 'Other'
     ]},
-    { name: 'Spare Parts', types: [
-      'Engines', 'Fenders', 'Filters', 'Front Grills', 'Fuel Pump', 'Gasket & Seals',
-      'Horns', 'Ignition Coil', 'Lights', 'Mirrors', 'Oxygen Sensors', 'Power Steering',
-      'Radiators & Coolants', 'Spark Plugs', 'Tyres', 'Windscreens', 'Wipers',
-      'AC & Heating', 'Batteries', 'Brakes', 'Bumpers', 'Other'
+    { name: 'Garden & Outdoor', types: [
+      'Patio Furniture', 'Garden Bench', 'Outdoor Table', 'Sun Lounger', 'Other'
     ]},
-    { name: 'Oil & Lubricant', types: [
-      'Chain Lubes', 'Brake Oil', 'Engine Oil', 'Fuel Additives',
-      'Gear Oil', 'Multipurpose Grease', 'Coolants'
+    { name: 'Painting & Mirror', types: [
+      'Wall Painting', 'Decorative Mirror', 'Photo Frame', 'Wall Clock', 'Other'
     ]},
-    { name: 'Buses, Vans & Trucks', types: [
-      'Mini Bus', 'Coaster', 'Hiace', 'Trucks', 'Pickups', 'Other'
+    { name: 'Rugs & Carpets', types: [
+      'Area Rug', 'Carpet', 'Door Mat', 'Prayer Mat', 'Other'
     ]},
-    { name: 'Rikshaw & Chingchi', types: [
-      'Rikshaw', 'Chingchi', 'Other'
+    { name: 'Curtains & Blinds', types: [
+      'Window Curtains', 'Blackout Curtains', 'Blinds', 'Sheer Curtains', 'Other'
     ]},
-    { name: 'Tractors & Trailers', types: [
-      'Tractor', 'Trailer', 'Other'
+    { name: 'Office Furniture', types: [
+      'Office Chair', 'Desk', 'Filing Cabinet', 'Bookshelf', 'Other'
     ]},
-    { name: 'Boats', types: [
-      'Fishing Boat', 'Speed Boat', 'Yacht', 'Other'
+    { name: 'Home Decoration', types: [
+      'Vases', 'Candles', 'Showpieces', 'Artificial Plants', 'Other'
     ]},
-    { name: 'Other Vehicles' }
+    { name: 'Other Household items' }
   ],
 };
 
@@ -157,24 +159,22 @@ const provinces: Province[] = [
 ];
 
 const typeOptions: Record<string, { label: string; count: number }[]> = {
-  'Cars': [
-    { label: 'Sedan', count: 930 },
-    { label: 'SUV', count: 860 },
-    { label: 'Hatchback', count: 410 },
+  'Sofa & Chair': [
+    { label: 'Sofa Set', count: 930 },
+    { label: 'Arm Chair', count: 460 },
+    { label: 'Dining Chair', count: 320 },
   ],
-  'Car Care': [
-    { label: 'Air Fresher', count: 420 },
-    { label: 'Cleaners', count: 380 },
-    { label: 'Shampoos', count: 250 },
+  'Beds & Wardrobes': [
+    { label: 'Single Bed', count: 720 },
+    { label: 'Double Bed', count: 580 },
+    { label: 'Wardrobe', count: 410 },
   ],
-  'Spare Parts': [
-    { label: 'Engines', count: 320 },
-    { label: 'Batteries', count: 280 },
-    { label: 'Tyres', count: 510 },
+  'Tables & Dining': [
+    { label: 'Dining Table', count: 620 },
+    { label: 'Coffee Table', count: 380 },
+    { label: 'Study Table', count: 290 },
   ]
 };
-
-// Reuse all the same components from before, just updating the category-specific parts
 const LocationSidebar: React.FC = () => {
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
@@ -462,6 +462,7 @@ const PriceFilter: React.FC = () => {
     </div>
   );
 };
+// Reuse all the same components from before, just updating the category-specific parts
 const DynamicCategorySidebar: React.FC<{
   selectedCategory: string;
   selectedSubCategory: string | null;
@@ -565,7 +566,7 @@ const DynamicCategorySidebar: React.FC<{
   );
 };
 
-const VehiclesProductCard: React.FC<{ products: Product[]; loading?: boolean }> = ({
+const FurnitureProductCard: React.FC<{ products: Product[]; loading?: boolean }> = ({
   products = [],
   loading = false,
 }) => {
@@ -603,7 +604,7 @@ const VehiclesProductCard: React.FC<{ products: Product[]; loading?: boolean }> 
   if (products.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-500">No vehicles found</p>
+        <p className="text-gray-500">No products found</p>
       </div>
     );
   }
@@ -620,7 +621,7 @@ const VehiclesProductCard: React.FC<{ products: Product[]; loading?: boolean }> 
             <div className="relative aspect-video bg-gray-100">
               <Image
                 src={product.images?.[0]?.url || '/images/placeholder.png'}
-                alt={product.title || 'Vehicle'}
+                alt={`${product.brand} ${product.model}`}
                 fill
                 className="object-cover"
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
@@ -653,21 +654,26 @@ const VehiclesProductCard: React.FC<{ products: Product[]; loading?: boolean }> 
               </h4>
 
               <div className="flex justify-between items-center text-gray-600 text-xs mt-2">
-                <div className="flex items-center gap-1">
-                  <LuTag />
-                  <span>{product.condition || 'Not Specified'}</span>
-                </div>
-                {product.vehicle_details?.make && (
-                  <div className="flex items-center gap-1">
-                    <span>{product.vehicle_details.make}</span>
-                  </div>
-                )}
-                {product.vehicle_details?.model && (
-                  <div className="flex items-center gap-1">
-                    <span>{product.vehicle_details.model}</span>
-                  </div>
-                )}
-              </div>
+  <div className="flex items-center gap-1">
+    <LuTag />
+    <span>
+      {product.furniture_details?.condition || 'Not Specified'}
+    </span>
+  </div>
+
+  {product.furniture_details?.material && (
+    <div className="flex items-center gap-1">
+      <span>Material: {product.furniture_details.material}</span>
+    </div>
+  )}
+
+  {product.furniture_details?.color && (
+    <div className="flex items-center gap-1">
+      <span>Color: {product.furniture_details.color}</span>
+    </div>
+  )}
+</div>
+
 
               <div className="flex flex-col items-start text-gray-500 text-xs mt-2">
                 <div className="flex items-center gap-1">
@@ -686,9 +692,9 @@ const VehiclesProductCard: React.FC<{ products: Product[]; loading?: boolean }> 
   );
 };
 
-const VehiclesCategoryPage: React.FC = () => {
+const FurnitureCategoryPage: React.FC = () => {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000000]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('vehicles');
+  const [selectedCategory, setSelectedCategory] = useState<string>('furniture-home-decor');
   const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedFilters, setSelectedFilters] = useState<FilterState>({
@@ -745,11 +751,11 @@ const VehiclesCategoryPage: React.FC = () => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('http://127.0.0.1:8000/api/vehicles');
+        const response = await axios.get('http://127.0.0.1:8000/api/furniture-home-decor');
         console.log(response.data);
         setProducts(response.data);
       } catch (error) {
-        console.error('Error fetching vehicles:', error);
+        console.error('Error fetching furniture products:', error);
       } finally {
         setLoading(false);
       }
@@ -765,7 +771,7 @@ const VehiclesCategoryPage: React.FC = () => {
           <div className="flex items-center text-sm text-gray-600">
             <span>Home</span>
             <span className="mx-2">›</span>
-            <span>Vehicles</span>
+            <span>Furniture & Home Decor</span>
           </div>
         </div>
       </div>
@@ -791,7 +797,7 @@ const VehiclesCategoryPage: React.FC = () => {
 
           <div className="w-full lg:w-3/4">
             <div className="md:hidden flex justify-between items-center mb-4">
-              <h1 className="text-xl font-bold">Vehicles</h1>
+              <h1 className="text-xl font-bold">Furniture & Home Decor</h1>
               <button 
                 onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
                 className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded"
@@ -803,8 +809,8 @@ const VehiclesCategoryPage: React.FC = () => {
             <div className="bg-white rounded-lg shadow-sm p-4 mb-4 flex justify-between items-center">
               <div className="text-sm text-gray-600">
                 {selectedSubCategory ? 
-                  `Showing ${selectedSubCategory} vehicles${selectedType ? ` (${selectedType})` : ''}` : 
-                  'Showing all vehicles'}
+                  `Showing ${selectedSubCategory} products${selectedType ? ` (${selectedType})` : ''}` : 
+                  'Showing all Furniture & Home Decor products'}
               </div>
               
               <div className="flex items-center gap-4">
@@ -837,7 +843,7 @@ const VehiclesCategoryPage: React.FC = () => {
               </div>
             </div>
 
-            <VehiclesProductCard 
+            <FurnitureProductCard 
               products={products}
               loading={loading}
             />
@@ -919,4 +925,4 @@ const VehiclesCategoryPage: React.FC = () => {
   );
 };
 
-export default VehiclesCategoryPage;
+export default FurnitureCategoryPage;

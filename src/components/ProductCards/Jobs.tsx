@@ -18,7 +18,7 @@ interface Job {
   posted_at: string;
   job_type: string;
   company_name: string;
-  image: string | null;
+  images: { url: string }[];
   salary_from: number | null;
   salary_to: number | null;
   condition: string;
@@ -107,14 +107,14 @@ const Jobs = () => {
             >
               <div className="card product-card h-100">
                 <div className="image-container" style={{ height: '180px', overflow: 'hidden' }}>
-                  {job.image ? (
-                    <Image
-                      src={job.image}
-                      alt={job.title}
-                      width={240}
-                      height={180}
-                      className="card-img-top h-100 object-cover"
-                    />
+                  {job.images ? (
+                   <Image
+                                       src={job.images[0]?.url || '/images/placeholder.png'}
+                                       alt={job.title}
+                                       width={240}
+                                       height={180}
+                                       className="w-full h-auto object-cover"
+                                     />
                   ) : (
                     <div className="placeholder-image d-flex align-items-center justify-content-center h-100 bg-light">
                       <span>No Image</span>

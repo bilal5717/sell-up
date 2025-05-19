@@ -33,15 +33,14 @@ interface Product {
   sub_category?: string;
   type?: string;
   warranty?: string;
-  vehicle_details?: {
-    make: string;
-    model: string;
-    year: string;
-    fuel_type: string;
-    transmission: string;
-    kms_driven: string;
+  books_details?: {
+    sub_type: string;
+    condition: string;
+    language: string;
+    author: string;
   };
 }
+
 
 interface FilterState {
   condition: string[];
@@ -76,13 +75,13 @@ interface Province {
 
 // Data
 const brandOptions: Record<string, Brand[]> = {
-  'Vehicles': [
-    { name: 'Toyota', count: 7389, models: ['Corolla', 'Camry', 'Hilux', 'Land Cruiser'] },
-    { name: 'Honda', count: 5164, models: ['Civic', 'Accord', 'City', 'CR-V'] },
-    { name: 'Suzuki', count: 2032, models: ['Mehran', 'Cultus', 'Swift', 'Alto'] },
-    { name: 'Nissan', count: 1539, models: ['Sunny', 'March', 'Sentra'] },
-    { name: 'BMW', count: 940, models: ['3 Series', '5 Series', 'X5'] },
-    { name: 'Mercedes', count: 885, models: ['C-Class', 'E-Class', 'S-Class'] },
+  'Books, Sports & Hobbies': [
+    { name: 'Nike', count: 7389, models: ['Running Shoes', 'Football', 'Basketball', 'Tennis'] },
+    { name: 'Adidas', count: 5164, models: ['Football Boots', 'Tracksuits', 'Backpacks', 'Training Gear'] },
+    { name: 'Wilson', count: 2032, models: ['Tennis Rackets', 'Basketballs', 'Volleyballs'] },
+    { name: 'Yamaha', count: 1539, models: ['Guitars', 'Keyboards', 'Drums', 'Violins'] },
+    { name: 'Oxford', count: 940, models: ['Dictionaries', 'Textbooks', 'Novels', 'Stationery'] },
+    { name: 'Casio', count: 885, models: ['Calculators', 'Watches', 'Keyboards'] },
   ]
 };
 
@@ -105,44 +104,23 @@ const categories: Category[] = [
 ];
 
 const subCategories: CategoryData = {
-  'vehicles': [
-    { name: 'Cars', types: [
-      'Sedan', 'Hatchback', 'SUV', 'Crossover', 'Coupe', 'Convertible', 'Wagon', 'Van'
+  'books-sports-hobbies': [
+    { name: 'Sports Equipment', types: [
+      'Football', 'Cricket', 'Tennis', 'Basketball', 'Badminton', 
+      'Table Tennis', 'Volleyball', 'Golf', 'Hockey', 'Other Sports'
     ]},
-    { name: 'Cars On Installments', types: [
-      'New Cars', 'Used Cars', 'Commercial Vehicles'
+    { name: 'Musical Instruments', types: [
+      'Guitars', 'Keyboards', 'Drums', 'Violins', 'Flutes', 
+      'Trumpets', 'Saxophones', 'Amplifiers', 'Other Instruments'
     ]},
-    { name: 'Car Care', types: [
-      'Air Fresher', 'Cleaners', 'Compound Polishes', 'Covers', 
-      'Microfiber Clothes', 'Shampoos', 'Waxes', 'Other'
+    { name: 'Gym & Fitness', types: [
+      'Treadmills', 'Exercise Bikes', 'Dumbbells', 'Weight Benches', 
+      'Yoga Mats', 'Resistance Bands', 'Other Gym Equipment'
     ]},
-    { name: 'Car Accessories', types: [
-      'Tools & Gadget', 'Safety & Security', 'Interior', 
-      'Exterior', 'Audio & Multimedia', 'Other'
+    { name: 'Books & Magazines', types: [
+      'Books', 'Magazines', 'Dictionaries', 'Stationary Items', 'Calculators'
     ]},
-    { name: 'Spare Parts', types: [
-      'Engines', 'Fenders', 'Filters', 'Front Grills', 'Fuel Pump', 'Gasket & Seals',
-      'Horns', 'Ignition Coil', 'Lights', 'Mirrors', 'Oxygen Sensors', 'Power Steering',
-      'Radiators & Coolants', 'Spark Plugs', 'Tyres', 'Windscreens', 'Wipers',
-      'AC & Heating', 'Batteries', 'Brakes', 'Bumpers', 'Other'
-    ]},
-    { name: 'Oil & Lubricant', types: [
-      'Chain Lubes', 'Brake Oil', 'Engine Oil', 'Fuel Additives',
-      'Gear Oil', 'Multipurpose Grease', 'Coolants'
-    ]},
-    { name: 'Buses, Vans & Trucks', types: [
-      'Mini Bus', 'Coaster', 'Hiace', 'Trucks', 'Pickups', 'Other'
-    ]},
-    { name: 'Rikshaw & Chingchi', types: [
-      'Rikshaw', 'Chingchi', 'Other'
-    ]},
-    { name: 'Tractors & Trailers', types: [
-      'Tractor', 'Trailer', 'Other'
-    ]},
-    { name: 'Boats', types: [
-      'Fishing Boat', 'Speed Boat', 'Yacht', 'Other'
-    ]},
-    { name: 'Other Vehicles' }
+    { name: 'Others' }
   ],
 };
 
@@ -157,24 +135,126 @@ const provinces: Province[] = [
 ];
 
 const typeOptions: Record<string, { label: string; count: number }[]> = {
-  'Cars': [
-    { label: 'Sedan', count: 930 },
-    { label: 'SUV', count: 860 },
-    { label: 'Hatchback', count: 410 },
+  'Sports Equipment': [
+    { label: 'Football', count: 930 },
+    { label: 'Cricket', count: 860 },
+    { label: 'Tennis', count: 410 },
   ],
-  'Car Care': [
-    { label: 'Air Fresher', count: 420 },
-    { label: 'Cleaners', count: 380 },
-    { label: 'Shampoos', count: 250 },
+  'Books & Magazines': [
+    { label: 'Books', count: 1420 },
+    { label: 'Magazines', count: 380 },
+    { label: 'Dictionaries', count: 250 },
   ],
-  'Spare Parts': [
-    { label: 'Engines', count: 320 },
-    { label: 'Batteries', count: 280 },
-    { label: 'Tyres', count: 510 },
+  'Musical Instruments': [
+    { label: 'Guitars', count: 720 },
+    { label: 'Keyboards', count: 380 },
+    { label: 'Drums', count: 210 },
   ]
 };
 
 // Reuse all the same components from before, just updating the category-specific parts
+const DynamicCategorySidebar: React.FC<{
+  selectedCategory: string;
+  selectedSubCategory: string | null;
+  selectedType: string | null;
+  onCategorySelect: (category: string) => void;
+  onSubCategorySelect: (subCategory: string | null) => void;
+  onTypeSelect: (type: string | null) => void;
+  }> = ({
+    selectedCategory,
+    selectedSubCategory,
+    selectedType,
+    onCategorySelect,
+    onSubCategorySelect,
+    onTypeSelect,
+  }) => {
+  const [showMoreCategories, setShowMoreCategories] = useState<boolean>(false);
+
+  const toggleCategory = (slug: string) => {
+    onCategorySelect(slug);
+    onSubCategorySelect(null);
+    onTypeSelect(null);
+  };
+
+  const toggleSubCategory = (name: string) => {
+    if (selectedSubCategory === name) {
+      onSubCategorySelect(null);
+      onTypeSelect(null);
+    } else {
+      onSubCategorySelect(name);
+      onTypeSelect(null);
+    }
+  };
+
+  const toggleType = (type: string) => {
+    if (selectedType === type) {
+      onTypeSelect(null);
+    } else {
+      onTypeSelect(type);
+    }
+  };
+
+  const toggleShowMoreCategories = () => {
+    setShowMoreCategories((prev) => !prev);
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+      <h3 className="font-bold text-lg mb-2">All Categories</h3>
+      <div className="space-y-1">
+        {(showMoreCategories ? categories : categories.slice(0, 4)).map((category) => (
+          <div key={category.slug} className="cursor-pointer">
+            <div
+              className={`py-1 px-2 hover:bg-gray-100 ${selectedCategory === category.slug ? 'text-blue-600 font-medium' : 'text-gray-800'}`}
+              onClick={() => toggleCategory(category.slug)}
+              style={{ fontSize: '12px', lineHeight: '1.5' }}
+            >
+              {category.name}
+            </div>
+
+            {selectedCategory === category.slug && subCategories[category.slug] && (
+              <div className="ml-4 space-y-1">
+                {subCategories[category.slug].map((sub, index) => (
+                  <div key={index}>
+                    <div
+                      className={`py-1 cursor-pointer hover:text-blue-600 ${selectedSubCategory === sub.name ? 'text-blue-600 font-medium' : 'text-gray-700'}`}
+                      onClick={() => toggleSubCategory(sub.name)}
+                      style={{ fontSize: '12px', lineHeight: '1.5' }}
+                    >
+                      {sub.name}
+                    </div>
+                    {sub.types && selectedSubCategory === sub.name && (
+                      <div className="ml-4 space-y-1">
+                        {sub.types.map((type, i) => (
+                          <div
+                            key={i}
+                            className={`py-1 cursor-pointer hover:text-blue-600 ${selectedType === type ? 'text-blue-600 font-medium' : 'text-gray-600'}`}
+                            style={{ fontSize: '12px', lineHeight: '1.5' }}
+                            onClick={() => toggleType(type)}
+                          >
+                            - {type}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+        {categories.length > 4 && (
+          <button
+            onClick={toggleShowMoreCategories}
+            className="text-blue-600 text-sm mt-2"
+          >
+            {showMoreCategories ? 'Show Less' : 'Show More'}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
 const LocationSidebar: React.FC = () => {
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
@@ -462,110 +542,8 @@ const PriceFilter: React.FC = () => {
     </div>
   );
 };
-const DynamicCategorySidebar: React.FC<{
-  selectedCategory: string;
-  selectedSubCategory: string | null;
-  selectedType: string | null;
-  onCategorySelect: (category: string) => void;
-  onSubCategorySelect: (subCategory: string | null) => void;
-  onTypeSelect: (type: string | null) => void;
-  }> = ({
-    selectedCategory,
-    selectedSubCategory,
-    selectedType,
-    onCategorySelect,
-    onSubCategorySelect,
-    onTypeSelect,
-  }) => {
-  const [showMoreCategories, setShowMoreCategories] = useState<boolean>(false);
 
-  const toggleCategory = (slug: string) => {
-    onCategorySelect(slug);
-    onSubCategorySelect(null);
-    onTypeSelect(null);
-  };
-
-  const toggleSubCategory = (name: string) => {
-    if (selectedSubCategory === name) {
-      onSubCategorySelect(null);
-      onTypeSelect(null);
-    } else {
-      onSubCategorySelect(name);
-      onTypeSelect(null);
-    }
-  };
-
-  const toggleType = (type: string) => {
-    if (selectedType === type) {
-      onTypeSelect(null);
-    } else {
-      onTypeSelect(type);
-    }
-  };
-
-  const toggleShowMoreCategories = () => {
-    setShowMoreCategories((prev) => !prev);
-  };
-
-  return (
-    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-      <h3 className="font-bold text-lg mb-2">All Categories</h3>
-      <div className="space-y-1">
-        {(showMoreCategories ? categories : categories.slice(0, 4)).map((category) => (
-          <div key={category.slug} className="cursor-pointer">
-            <div
-              className={`py-1 px-2 hover:bg-gray-100 ${selectedCategory === category.slug ? 'text-blue-600 font-medium' : 'text-gray-800'}`}
-              onClick={() => toggleCategory(category.slug)}
-              style={{ fontSize: '12px', lineHeight: '1.5' }}
-            >
-              {category.name}
-            </div>
-
-            {selectedCategory === category.slug && subCategories[category.slug] && (
-              <div className="ml-4 space-y-1">
-                {subCategories[category.slug].map((sub, index) => (
-                  <div key={index}>
-                    <div
-                      className={`py-1 cursor-pointer hover:text-blue-600 ${selectedSubCategory === sub.name ? 'text-blue-600 font-medium' : 'text-gray-700'}`}
-                      onClick={() => toggleSubCategory(sub.name)}
-                      style={{ fontSize: '12px', lineHeight: '1.5' }}
-                    >
-                      {sub.name}
-                    </div>
-                    {sub.types && selectedSubCategory === sub.name && (
-                      <div className="ml-4 space-y-1">
-                        {sub.types.map((type, i) => (
-                          <div
-                            key={i}
-                            className={`py-1 cursor-pointer hover:text-blue-600 ${selectedType === type ? 'text-blue-600 font-medium' : 'text-gray-600'}`}
-                            style={{ fontSize: '12px', lineHeight: '1.5' }}
-                            onClick={() => toggleType(type)}
-                          >
-                            - {type}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-        {categories.length > 4 && (
-          <button
-            onClick={toggleShowMoreCategories}
-            className="text-blue-600 text-sm mt-2"
-          >
-            {showMoreCategories ? 'Show Less' : 'Show More'}
-          </button>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const VehiclesProductCard: React.FC<{ products: Product[]; loading?: boolean }> = ({
+const BooksHobbiesProductCard: React.FC<{ products: Product[]; loading?: boolean }> = ({
   products = [],
   loading = false,
 }) => {
@@ -603,7 +581,7 @@ const VehiclesProductCard: React.FC<{ products: Product[]; loading?: boolean }> 
   if (products.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-500">No vehicles found</p>
+        <p className="text-gray-500">No products found</p>
       </div>
     );
   }
@@ -620,7 +598,7 @@ const VehiclesProductCard: React.FC<{ products: Product[]; loading?: boolean }> 
             <div className="relative aspect-video bg-gray-100">
               <Image
                 src={product.images?.[0]?.url || '/images/placeholder.png'}
-                alt={product.title || 'Vehicle'}
+                alt={`${product.brand} ${product.model}`}
                 fill
                 className="object-cover"
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
@@ -653,21 +631,22 @@ const VehiclesProductCard: React.FC<{ products: Product[]; loading?: boolean }> 
               </h4>
 
               <div className="flex justify-between items-center text-gray-600 text-xs mt-2">
-                <div className="flex items-center gap-1">
-                  <LuTag />
-                  <span>{product.condition || 'Not Specified'}</span>
-                </div>
-                {product.vehicle_details?.make && (
-                  <div className="flex items-center gap-1">
-                    <span>{product.vehicle_details.make}</span>
-                  </div>
-                )}
-                {product.vehicle_details?.model && (
-                  <div className="flex items-center gap-1">
-                    <span>{product.vehicle_details.model}</span>
-                  </div>
-                )}
-              </div>
+  <div className="flex items-center gap-1">
+    <LuTag />
+    <span>{product.books_details?.condition || 'Not Specified'}</span>
+  </div>
+  {product.books_details?.language && (
+    <div className="flex items-center gap-1">
+      <span>Language: {product.books_details.language}</span>
+    </div>
+  )}
+  {product.warranty && (
+    <div className="flex items-center gap-1">
+      <span>Warranty: {product.warranty}</span>
+    </div>
+  )}
+</div>
+
 
               <div className="flex flex-col items-start text-gray-500 text-xs mt-2">
                 <div className="flex items-center gap-1">
@@ -686,9 +665,9 @@ const VehiclesProductCard: React.FC<{ products: Product[]; loading?: boolean }> 
   );
 };
 
-const VehiclesCategoryPage: React.FC = () => {
+const BooksHobbiesCategoryPage: React.FC = () => {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000000]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('vehicles');
+  const [selectedCategory, setSelectedCategory] = useState<string>('books-sports-hobbies');
   const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedFilters, setSelectedFilters] = useState<FilterState>({
@@ -745,11 +724,11 @@ const VehiclesCategoryPage: React.FC = () => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('http://127.0.0.1:8000/api/vehicles');
+        const response = await axios.get('http://127.0.0.1:8000/api/books-sports-hobbies');
         console.log(response.data);
         setProducts(response.data);
       } catch (error) {
-        console.error('Error fetching vehicles:', error);
+        console.error('Error fetching books & hobbies products:', error);
       } finally {
         setLoading(false);
       }
@@ -765,7 +744,7 @@ const VehiclesCategoryPage: React.FC = () => {
           <div className="flex items-center text-sm text-gray-600">
             <span>Home</span>
             <span className="mx-2">›</span>
-            <span>Vehicles</span>
+            <span>Books, Sports & Hobbies</span>
           </div>
         </div>
       </div>
@@ -791,7 +770,7 @@ const VehiclesCategoryPage: React.FC = () => {
 
           <div className="w-full lg:w-3/4">
             <div className="md:hidden flex justify-between items-center mb-4">
-              <h1 className="text-xl font-bold">Vehicles</h1>
+              <h1 className="text-xl font-bold">Books, Sports & Hobbies</h1>
               <button 
                 onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
                 className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded"
@@ -803,8 +782,8 @@ const VehiclesCategoryPage: React.FC = () => {
             <div className="bg-white rounded-lg shadow-sm p-4 mb-4 flex justify-between items-center">
               <div className="text-sm text-gray-600">
                 {selectedSubCategory ? 
-                  `Showing ${selectedSubCategory} vehicles${selectedType ? ` (${selectedType})` : ''}` : 
-                  'Showing all vehicles'}
+                  `Showing ${selectedSubCategory} products${selectedType ? ` (${selectedType})` : ''}` : 
+                  'Showing all Books, Sports & Hobbies products'}
               </div>
               
               <div className="flex items-center gap-4">
@@ -837,7 +816,7 @@ const VehiclesCategoryPage: React.FC = () => {
               </div>
             </div>
 
-            <VehiclesProductCard 
+            <BooksHobbiesProductCard 
               products={products}
               loading={loading}
             />
@@ -919,4 +898,4 @@ const VehiclesCategoryPage: React.FC = () => {
   );
 };
 
-export default VehiclesCategoryPage;
+export default BooksHobbiesCategoryPage;

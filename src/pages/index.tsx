@@ -33,12 +33,12 @@ export default function Home() {
                <div className="col-12">
                  <Bikes  />
               </div>
-             <div className="col-12">
+             {<div className="col-12">
                  <Houses  />
-              </div>
-              {/* <div className="col-12">
+              </div>}
+              <div className="col-12">
                  <LandsAndPlots  />
-              </div>*/}
+              </div>
               <div className="col-12">
                  <Jobs  />
               </div> 

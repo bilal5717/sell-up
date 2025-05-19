@@ -33,14 +33,14 @@ interface Product {
   sub_category?: string;
   type?: string;
   warranty?: string;
-  vehicle_details?: {
-    make: string;
-    model: string;
-    year: string;
-    fuel_type: string;
-    transmission: string;
-    kms_driven: string;
-  };
+  kids_details?: {
+    age?: string;
+    age_group?: string;
+    gender?: string;
+    material?: string;
+    condition?: string;
+};
+
 }
 
 interface FilterState {
@@ -76,13 +76,13 @@ interface Province {
 
 // Data
 const brandOptions: Record<string, Brand[]> = {
-  'Vehicles': [
-    { name: 'Toyota', count: 7389, models: ['Corolla', 'Camry', 'Hilux', 'Land Cruiser'] },
-    { name: 'Honda', count: 5164, models: ['Civic', 'Accord', 'City', 'CR-V'] },
-    { name: 'Suzuki', count: 2032, models: ['Mehran', 'Cultus', 'Swift', 'Alto'] },
-    { name: 'Nissan', count: 1539, models: ['Sunny', 'March', 'Sentra'] },
-    { name: 'BMW', count: 940, models: ['3 Series', '5 Series', 'X5'] },
-    { name: 'Mercedes', count: 885, models: ['C-Class', 'E-Class', 'S-Class'] },
+  'Kids': [
+    { name: 'Fisher-Price', count: 2389, models: ['Toys', 'Swings', 'Baby Gear'] },
+    { name: 'LEGO', count: 3164, models: ['Building Blocks', 'Duplo', 'Technic'] },
+    { name: 'Barbie', count: 1532, models: ['Dolls', 'Dreamhouse', 'Accessories'] },
+    { name: 'Hot Wheels', count: 2539, models: ['Cars', 'Tracks', 'Play Sets'] },
+    { name: 'Disney', count: 1940, models: ['Plush Toys', 'Costumes', 'Accessories'] },
+    { name: 'Chicco', count: 1285, models: ['Baby Gear', 'Car Seats', 'Strollers'] },
   ]
 };
 
@@ -105,44 +105,36 @@ const categories: Category[] = [
 ];
 
 const subCategories: CategoryData = {
-  'vehicles': [
-    { name: 'Cars', types: [
-      'Sedan', 'Hatchback', 'SUV', 'Crossover', 'Coupe', 'Convertible', 'Wagon', 'Van'
+  'kids': [
+    { name: 'Kids Furniture', types: [
+      'Baby Cots', 'High Chairs', 'Kids Beds', 'Wardrobes', 'Study Tables'
     ]},
-    { name: 'Cars On Installments', types: [
-      'New Cars', 'Used Cars', 'Commercial Vehicles'
+    { name: 'Toys & Games', types: [
+      'Action Figures', 'Dolls', 'Building Blocks', 'Board Games', 'Puzzles',
+      'Educational Toys', 'Soft Toys', 'Remote Control Toys'
     ]},
-    { name: 'Car Care', types: [
-      'Air Fresher', 'Cleaners', 'Compound Polishes', 'Covers', 
-      'Microfiber Clothes', 'Shampoos', 'Waxes', 'Other'
+    { name: 'Bath & Diapers', types: [
+      'Baby Bath Tubs', 'Potty Seats', 'Diaper Bags', 'Baby Towels'
     ]},
-    { name: 'Car Accessories', types: [
-      'Tools & Gadget', 'Safety & Security', 'Interior', 
-      'Exterior', 'Audio & Multimedia', 'Other'
+    { name: 'Swings & Slides', types: [
+      'Indoor Swings', 'Outdoor Swings', 'Slides', 'Play Gyms'
     ]},
-    { name: 'Spare Parts', types: [
-      'Engines', 'Fenders', 'Filters', 'Front Grills', 'Fuel Pump', 'Gasket & Seals',
-      'Horns', 'Ignition Coil', 'Lights', 'Mirrors', 'Oxygen Sensors', 'Power Steering',
-      'Radiators & Coolants', 'Spark Plugs', 'Tyres', 'Windscreens', 'Wipers',
-      'AC & Heating', 'Batteries', 'Brakes', 'Bumpers', 'Other'
+    { name: 'Kids Accessories', types: [
+      'Bags', 'Jewelry', 'Watches', 'Sunglasses'
     ]},
-    { name: 'Oil & Lubricant', types: [
-      'Chain Lubes', 'Brake Oil', 'Engine Oil', 'Fuel Additives',
-      'Gear Oil', 'Multipurpose Grease', 'Coolants'
+    { name: 'Kids Books', types: [
+      'Story Books', 'Coloring Books', 'Educational Books', 'Activity Books'
     ]},
-    { name: 'Buses, Vans & Trucks', types: [
-      'Mini Bus', 'Coaster', 'Hiace', 'Trucks', 'Pickups', 'Other'
+    { name: 'Kids Vehicle', types: [
+      'Kids Bikes', 'Kids Cars', 'Kids Cycles', 'Kids Scooties', 'Prams & Walkers'
     ]},
-    { name: 'Rikshaw & Chingchi', types: [
-      'Rikshaw', 'Chingchi', 'Other'
+    { name: 'Baby Gear', types: [
+      'Baby Bouncers', 'Baby Carriers', 'Baby Swings', 'Baby Seats', 'Other baby Gears'
     ]},
-    { name: 'Tractors & Trailers', types: [
-      'Tractor', 'Trailer', 'Other'
+    { name: 'Kids Clothing', types: [
+      'Kids Costumes', 'Kids Cloths', 'Kids Shoes', 'Kids Uniform'
     ]},
-    { name: 'Boats', types: [
-      'Fishing Boat', 'Speed Boat', 'Yacht', 'Other'
-    ]},
-    { name: 'Other Vehicles' }
+    { name: 'Others' }
   ],
 };
 
@@ -157,24 +149,132 @@ const provinces: Province[] = [
 ];
 
 const typeOptions: Record<string, { label: string; count: number }[]> = {
-  'Cars': [
-    { label: 'Sedan', count: 930 },
-    { label: 'SUV', count: 860 },
-    { label: 'Hatchback', count: 410 },
+  'Kids Vehicle': [
+    { label: 'Kids Bikes', count: 230 },
+    { label: 'Kids Cars', count: 160 },
+    { label: 'Kids Cycles', count: 310 },
+    { label: 'Kids Scooties', count: 180 },
+    { label: 'Prams & Walkers', count: 120 },
   ],
-  'Car Care': [
-    { label: 'Air Fresher', count: 420 },
-    { label: 'Cleaners', count: 380 },
-    { label: 'Shampoos', count: 250 },
+  'Baby Gear': [
+    { label: 'Baby Bouncers', count: 85 },
+    { label: 'Baby Carriers', count: 120 },
+    { label: 'Baby Swings', count: 90 },
+    { label: 'Baby Seats', count: 110 },
   ],
-  'Spare Parts': [
-    { label: 'Engines', count: 320 },
-    { label: 'Batteries', count: 280 },
-    { label: 'Tyres', count: 510 },
+  'Kids Clothing': [
+    { label: 'Kids Costumes', count: 320 },
+    { label: 'Kids Cloths', count: 580 },
+    { label: 'Kids Shoes', count: 410 },
+    { label: 'Kids Uniform', count: 250 },
   ]
 };
 
 // Reuse all the same components from before, just updating the category-specific parts
+const DynamicCategorySidebar: React.FC<{
+  selectedCategory: string;
+  selectedSubCategory: string | null;
+  selectedType: string | null;
+  onCategorySelect: (category: string) => void;
+  onSubCategorySelect: (subCategory: string | null) => void;
+  onTypeSelect: (type: string | null) => void;
+  }> = ({
+    selectedCategory,
+    selectedSubCategory,
+    selectedType,
+    onCategorySelect,
+    onSubCategorySelect,
+    onTypeSelect,
+  }) => {
+  const [showMoreCategories, setShowMoreCategories] = useState<boolean>(false);
+
+  const toggleCategory = (slug: string) => {
+    onCategorySelect(slug);
+    onSubCategorySelect(null);
+    onTypeSelect(null);
+  };
+
+  const toggleSubCategory = (name: string) => {
+    if (selectedSubCategory === name) {
+      onSubCategorySelect(null);
+      onTypeSelect(null);
+    } else {
+      onSubCategorySelect(name);
+      onTypeSelect(null);
+    }
+  };
+
+  const toggleType = (type: string) => {
+    if (selectedType === type) {
+      onTypeSelect(null);
+    } else {
+      onTypeSelect(type);
+    }
+  };
+
+  const toggleShowMoreCategories = () => {
+    setShowMoreCategories((prev) => !prev);
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+      <h3 className="font-bold text-lg mb-2">All Categories</h3>
+      <div className="space-y-1">
+        {(showMoreCategories ? categories : categories.slice(0, 4)).map((category) => (
+          <div key={category.slug} className="cursor-pointer">
+            <div
+              className={`py-1 px-2 hover:bg-gray-100 ${selectedCategory === category.slug ? 'text-blue-600 font-medium' : 'text-gray-800'}`}
+              onClick={() => toggleCategory(category.slug)}
+              style={{ fontSize: '12px', lineHeight: '1.5' }}
+            >
+              {category.name}
+            </div>
+
+            {selectedCategory === category.slug && subCategories[category.slug] && (
+              <div className="ml-4 space-y-1">
+                {subCategories[category.slug].map((sub, index) => (
+                  <div key={index}>
+                    <div
+                      className={`py-1 cursor-pointer hover:text-blue-600 ${selectedSubCategory === sub.name ? 'text-blue-600 font-medium' : 'text-gray-700'}`}
+                      onClick={() => toggleSubCategory(sub.name)}
+                      style={{ fontSize: '12px', lineHeight: '1.5' }}
+                    >
+                      {sub.name}
+                    </div>
+                    {sub.types && selectedSubCategory === sub.name && (
+                      <div className="ml-4 space-y-1">
+                        {sub.types.map((type, i) => (
+                          <div
+                            key={i}
+                            className={`py-1 cursor-pointer hover:text-blue-600 ${selectedType === type ? 'text-blue-600 font-medium' : 'text-gray-600'}`}
+                            style={{ fontSize: '12px', lineHeight: '1.5' }}
+                            onClick={() => toggleType(type)}
+                          >
+                            - {type}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+        {categories.length > 4 && (
+          <button
+            onClick={toggleShowMoreCategories}
+            className="text-blue-600 text-sm mt-2"
+          >
+            {showMoreCategories ? 'Show Less' : 'Show More'}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Reuse LocationSidebar, PriceFilter, ConditionSelectBox components as they are
 const LocationSidebar: React.FC = () => {
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
@@ -462,110 +562,7 @@ const PriceFilter: React.FC = () => {
     </div>
   );
 };
-const DynamicCategorySidebar: React.FC<{
-  selectedCategory: string;
-  selectedSubCategory: string | null;
-  selectedType: string | null;
-  onCategorySelect: (category: string) => void;
-  onSubCategorySelect: (subCategory: string | null) => void;
-  onTypeSelect: (type: string | null) => void;
-  }> = ({
-    selectedCategory,
-    selectedSubCategory,
-    selectedType,
-    onCategorySelect,
-    onSubCategorySelect,
-    onTypeSelect,
-  }) => {
-  const [showMoreCategories, setShowMoreCategories] = useState<boolean>(false);
-
-  const toggleCategory = (slug: string) => {
-    onCategorySelect(slug);
-    onSubCategorySelect(null);
-    onTypeSelect(null);
-  };
-
-  const toggleSubCategory = (name: string) => {
-    if (selectedSubCategory === name) {
-      onSubCategorySelect(null);
-      onTypeSelect(null);
-    } else {
-      onSubCategorySelect(name);
-      onTypeSelect(null);
-    }
-  };
-
-  const toggleType = (type: string) => {
-    if (selectedType === type) {
-      onTypeSelect(null);
-    } else {
-      onTypeSelect(type);
-    }
-  };
-
-  const toggleShowMoreCategories = () => {
-    setShowMoreCategories((prev) => !prev);
-  };
-
-  return (
-    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-      <h3 className="font-bold text-lg mb-2">All Categories</h3>
-      <div className="space-y-1">
-        {(showMoreCategories ? categories : categories.slice(0, 4)).map((category) => (
-          <div key={category.slug} className="cursor-pointer">
-            <div
-              className={`py-1 px-2 hover:bg-gray-100 ${selectedCategory === category.slug ? 'text-blue-600 font-medium' : 'text-gray-800'}`}
-              onClick={() => toggleCategory(category.slug)}
-              style={{ fontSize: '12px', lineHeight: '1.5' }}
-            >
-              {category.name}
-            </div>
-
-            {selectedCategory === category.slug && subCategories[category.slug] && (
-              <div className="ml-4 space-y-1">
-                {subCategories[category.slug].map((sub, index) => (
-                  <div key={index}>
-                    <div
-                      className={`py-1 cursor-pointer hover:text-blue-600 ${selectedSubCategory === sub.name ? 'text-blue-600 font-medium' : 'text-gray-700'}`}
-                      onClick={() => toggleSubCategory(sub.name)}
-                      style={{ fontSize: '12px', lineHeight: '1.5' }}
-                    >
-                      {sub.name}
-                    </div>
-                    {sub.types && selectedSubCategory === sub.name && (
-                      <div className="ml-4 space-y-1">
-                        {sub.types.map((type, i) => (
-                          <div
-                            key={i}
-                            className={`py-1 cursor-pointer hover:text-blue-600 ${selectedType === type ? 'text-blue-600 font-medium' : 'text-gray-600'}`}
-                            style={{ fontSize: '12px', lineHeight: '1.5' }}
-                            onClick={() => toggleType(type)}
-                          >
-                            - {type}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-        {categories.length > 4 && (
-          <button
-            onClick={toggleShowMoreCategories}
-            className="text-blue-600 text-sm mt-2"
-          >
-            {showMoreCategories ? 'Show Less' : 'Show More'}
-          </button>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const VehiclesProductCard: React.FC<{ products: Product[]; loading?: boolean }> = ({
+const KidsProductCard: React.FC<{ products: Product[]; loading?: boolean }> = ({
   products = [],
   loading = false,
 }) => {
@@ -603,7 +600,7 @@ const VehiclesProductCard: React.FC<{ products: Product[]; loading?: boolean }> 
   if (products.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-500">No vehicles found</p>
+        <p className="text-gray-500">No products found</p>
       </div>
     );
   }
@@ -620,7 +617,7 @@ const VehiclesProductCard: React.FC<{ products: Product[]; loading?: boolean }> 
             <div className="relative aspect-video bg-gray-100">
               <Image
                 src={product.images?.[0]?.url || '/images/placeholder.png'}
-                alt={product.title || 'Vehicle'}
+                alt={product.title || 'Kids product'}
                 fill
                 className="object-cover"
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
@@ -652,22 +649,25 @@ const VehiclesProductCard: React.FC<{ products: Product[]; loading?: boolean }> 
                 {product.title || 'No Title'}
               </h4>
 
-              <div className="flex justify-between items-center text-gray-600 text-xs mt-2">
-                <div className="flex items-center gap-1">
-                  <LuTag />
-                  <span>{product.condition || 'Not Specified'}</span>
-                </div>
-                {product.vehicle_details?.make && (
-                  <div className="flex items-center gap-1">
-                    <span>{product.vehicle_details.make}</span>
-                  </div>
-                )}
-                {product.vehicle_details?.model && (
-                  <div className="flex items-center gap-1">
-                    <span>{product.vehicle_details.model}</span>
-                  </div>
-                )}
-              </div>
+             <div className="flex justify-between items-center text-gray-600 text-xs mt-2">
+    <div className="flex items-center gap-1">
+        <LuTag />
+        <span>
+            {product.kids_details?.condition ? product.kids_details.condition : 'Not Specified'}
+        </span>
+    </div>
+    {product.kids_details?.age && (
+        <div className="flex items-center gap-1">
+            <span>Age: {product.kids_details.age}</span>
+        </div>
+    )}
+    {product.kids_details?.gender && (
+        <div className="flex items-center gap-1">
+            <span>Gender: {product.kids_details.gender}</span>
+        </div>
+    )}
+</div>
+
 
               <div className="flex flex-col items-start text-gray-500 text-xs mt-2">
                 <div className="flex items-center gap-1">
@@ -686,9 +686,9 @@ const VehiclesProductCard: React.FC<{ products: Product[]; loading?: boolean }> 
   );
 };
 
-const VehiclesCategoryPage: React.FC = () => {
+const KidsCategoryPage: React.FC = () => {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000000]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('vehicles');
+  const [selectedCategory, setSelectedCategory] = useState<string>('kids');
   const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedFilters, setSelectedFilters] = useState<FilterState>({
@@ -745,11 +745,11 @@ const VehiclesCategoryPage: React.FC = () => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('http://127.0.0.1:8000/api/vehicles');
+        const response = await axios.get('http://127.0.0.1:8000/api/kids');
         console.log(response.data);
         setProducts(response.data);
       } catch (error) {
-        console.error('Error fetching vehicles:', error);
+        console.error('Error fetching kids products:', error);
       } finally {
         setLoading(false);
       }
@@ -765,7 +765,7 @@ const VehiclesCategoryPage: React.FC = () => {
           <div className="flex items-center text-sm text-gray-600">
             <span>Home</span>
             <span className="mx-2">›</span>
-            <span>Vehicles</span>
+            <span>Kids</span>
           </div>
         </div>
       </div>
@@ -791,7 +791,7 @@ const VehiclesCategoryPage: React.FC = () => {
 
           <div className="w-full lg:w-3/4">
             <div className="md:hidden flex justify-between items-center mb-4">
-              <h1 className="text-xl font-bold">Vehicles</h1>
+              <h1 className="text-xl font-bold">Kids Products</h1>
               <button 
                 onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
                 className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded"
@@ -803,8 +803,8 @@ const VehiclesCategoryPage: React.FC = () => {
             <div className="bg-white rounded-lg shadow-sm p-4 mb-4 flex justify-between items-center">
               <div className="text-sm text-gray-600">
                 {selectedSubCategory ? 
-                  `Showing ${selectedSubCategory} vehicles${selectedType ? ` (${selectedType})` : ''}` : 
-                  'Showing all vehicles'}
+                  `Showing ${selectedSubCategory} products${selectedType ? ` (${selectedType})` : ''}` : 
+                  'Showing all Kids products'}
               </div>
               
               <div className="flex items-center gap-4">
@@ -837,7 +837,7 @@ const VehiclesCategoryPage: React.FC = () => {
               </div>
             </div>
 
-            <VehiclesProductCard 
+            <KidsProductCard 
               products={products}
               loading={loading}
             />
@@ -919,4 +919,4 @@ const VehiclesCategoryPage: React.FC = () => {
   );
 };
 
-export default VehiclesCategoryPage;
+export default KidsCategoryPage;

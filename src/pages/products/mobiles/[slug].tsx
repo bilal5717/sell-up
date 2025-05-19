@@ -1,13 +1,13 @@
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { 
   FiChevronDown, 
   FiChevronUp, 
   FiFilter, 
   FiX 
 } from 'react-icons/fi';
-
 import { 
   LuHeart, 
   LuTag, 
@@ -27,7 +27,7 @@ interface MobileProduct {
   price: string;
   location: string;
   posted_at: string;
-   images?: { url: string; is_featured: number; order: number }[];
+  images?: { url: string; is_featured: number; order: number }[];
   pta_status?: string;
   title?: string;
   category?: string;
@@ -67,43 +67,57 @@ interface Province {
   cities: string[];
 }
 
-// Data
+// Mobile-specific Data
+const mobileCategories: Category[] = [
+  { name: 'Mobile Phones', slug: 'mobile-phones' },
+  { name: 'Tablets', slug: 'tablets' },
+  { name: 'Accessories', slug: 'accessories' },
+  { name: 'Smart Watches', slug: 'smart-watches' },
+];
+
+const mobileSubCategories: CategoryData = {
+  'mobile-phones': [
+    { name: 'Smartphones' },
+    { name: 'Feature Phones' },
+  ],
+  'tablets': [
+    { name: 'iPad' },
+    { name: 'Android Tablets' },
+    { name: 'Windows Tablets' },
+  ],
+  'accessories': [
+    { name: 'Chargers', types: ['Wireless Chargers', 'Fast Chargers'] },
+    { name: 'Cables', types: ['USB-C', 'Lightning', 'Micro USB'] },
+    { name: 'Cases & Covers' },
+  ],
+  'smart-watches': [
+    { name: 'Apple Watch' },
+    { name: 'Samsung Watch' },
+    { name: 'Fitness Trackers' },
+  ],
+};
+
 const brandOptions: Record<string, Brand[]> = {
-  Mobiles: [
+  'Mobile Phones': [
     { name: 'Apple iPhone', count: 73899, models: ['iPhone 13', 'iPhone 12', 'iPhone 11', 'iPhone SE'] },
     { name: 'Samsung Mobile', count: 21646, models: ['Galaxy S21', 'Galaxy Note 20', 'Galaxy A52'] },
     { name: 'Infinix', count: 12032, models: ['Note 10', 'Hot 11', 'Zero X Pro'] },
     { name: 'Vivo', count: 11539, models: ['V21', 'Y51', 'X60 Pro'] },
     { name: 'Google', count: 9400, models: ['Pixel 6', 'Pixel 5', 'Pixel 4a'] },
     { name: 'Xiaomi', count: 9085, models: ['Redmi Note 10', 'Mi 11', 'Poco X3'] },
-  ]
-};
-
-const categories: Category[] = [
-  { name: 'Mobiles', slug: 'mobiles' },
-  { name: 'Vehicles', slug: 'vehicles' },
-  { name: 'Property for Rent', slug: 'property-for-rent' },
-  { name: 'Property for Sale', slug: 'property-for-sale' },
-  { name: 'Electronics & Home Appliances', slug: 'electronics-home-appliances' },
-  { name: 'Bikes', slug: 'bikes' },
-  { name: 'Business, Industrial & Agriculture', slug: 'business-industrial-agriculture' },
-  { name: 'Services', slug: 'services' },
-  { name: 'Jobs', slug: 'jobs' },
-  { name: 'Animals', slug: 'animals' },
-  { name: 'Books, Sports & Hobbies', slug: 'books-sports-hobbies' },
-  { name: 'Furniture & Home Decor', slug: 'furniture-home-decor' },
-  { name: 'Fashion & Beauty', slug: 'fashion-beauty' },
-  { name: 'Kids', slug: 'kids' },
-  { name: 'Others', slug: 'others' },
-];
-
-const subCategories: CategoryData = {
-  mobiles: [
-    { name: 'Tablets' },
-    { name: 'Accessories', types: ['Charging Cables', 'Converters', 'Chargers', 'Screens'] },
-    { name: 'Mobile Phones' },
-    { name: 'Smart Watches' },
   ],
+  'Tablets': [
+    { name: 'Apple iPad', count: 12345, models: ['iPad Pro', 'iPad Air', 'iPad Mini'] },
+    { name: 'Samsung Tablet', count: 9876, models: ['Galaxy Tab S7', 'Galaxy Tab A'] },
+  ],
+  'Accessories': [
+    { name: 'Apple Accessories', count: 5432, models: ['MagSafe Charger', 'Lightning Cable'] },
+    { name: 'Samsung Accessories', count: 4321, models: ['Wireless Charger', 'USB-C Cable'] },
+  ],
+  'Smart Watches': [
+    { name: 'Apple Watch', count: 7654, models: ['Series 7', 'Series 6', 'SE'] },
+    { name: 'Samsung Watch', count: 6543, models: ['Galaxy Watch 4', 'Galaxy Watch Active 2'] },
+  ]
 };
 
 const conditions = ['New', 'Used', 'Open Box', 'Refurbished', 'For Parts'];
@@ -117,7 +131,7 @@ const provinces: Province[] = [
 ];
 
 const typeOptions: Record<string, { label: string; count: number }[]> = {
-  Accessories: [
+  'Accessories': [
     { label: 'Mobile', count: 930 },
     { label: 'Tablet', count: 46 },
     { label: 'Smart Watch', count: 11 },
@@ -242,8 +256,6 @@ const DynamicCategorySidebar: React.FC<{
   onSubCategorySelect,
   onTypeSelect,
 }) => {
-  const [showMoreCategories, setShowMoreCategories] = useState<boolean>(false);
-
   const toggleCategory = (slug: string) => {
     onCategorySelect(slug);
     onSubCategorySelect(null);
@@ -268,46 +280,45 @@ const DynamicCategorySidebar: React.FC<{
     }
   };
 
-  const toggleShowMoreCategories = () => {
-    setShowMoreCategories((prev) => !prev);
-  };
-
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-      <h3 className="font-bold text-lg mb-2">All Categories</h3>
+      <h3 className="font-bold text-lg mb-2">Mobile Categories</h3>
       <div className="space-y-1">
-        {(showMoreCategories ? categories : categories.slice(0, 4)).map((category) => (
+        {mobileCategories.map((category) => (
           <div key={category.slug} className="cursor-pointer">
-            <div
-              className={`py-1 px-2 hover:bg-gray-100 ${selectedCategory === category.slug ? 'text-blue-600 font-medium' : 'text-gray-800'}`}
+            <Link 
+              href={`/${category.slug}`}
+              className={`py-1 px-2 hover:bg-gray-100 block ${selectedCategory === category.slug ? 'text-blue-600 font-medium' : 'text-gray-800'}`}
               onClick={() => toggleCategory(category.slug)}
               style={{ fontSize: '12px', lineHeight: '1.5' }}
             >
               {category.name}
-            </div>
+            </Link>
 
-            {selectedCategory === category.slug && subCategories[category.slug] && (
+            {selectedCategory === category.slug && mobileSubCategories[category.slug] && (
               <div className="ml-4 space-y-1">
-                {subCategories[category.slug].map((sub, index) => (
+                {mobileSubCategories[category.slug].map((sub, index) => (
                   <div key={index}>
-                    <div
-                      className={`py-1 cursor-pointer hover:text-blue-600 ${selectedSubCategory === sub.name ? 'text-blue-600 font-medium' : 'text-gray-700'}`}
+                    <Link
+                      href={`/${category.slug}/${sub.name.toLowerCase().replace(/\s+/g, '-')}`}
+                      className={`py-1 cursor-pointer hover:text-blue-600 block ${selectedSubCategory === sub.name ? 'text-blue-600 font-medium' : 'text-gray-700'}`}
                       onClick={() => toggleSubCategory(sub.name)}
                       style={{ fontSize: '12px', lineHeight: '1.5' }}
                     >
                       {sub.name}
-                    </div>
+                    </Link>
                     {sub.types && selectedSubCategory === sub.name && (
                       <div className="ml-4 space-y-1">
                         {sub.types.map((type, i) => (
-                          <div
+                          <Link
                             key={i}
-                            className={`py-1 cursor-pointer hover:text-blue-600 ${selectedType === type ? 'text-blue-600 font-medium' : 'text-gray-600'}`}
+                            href={`/${category.slug}/${sub.name.toLowerCase().replace(/\s+/g, '-')}/${type.toLowerCase().replace(/\s+/g, '-')}_id`}
+                            className={`py-1 cursor-pointer hover:text-blue-600 block ${selectedType === type ? 'text-blue-600 font-medium' : 'text-gray-600'}`}
                             style={{ fontSize: '12px', lineHeight: '1.5' }}
                             onClick={() => toggleType(type)}
                           >
                             - {type}
-                          </div>
+                          </Link>
                         ))}
                       </div>
                     )}
@@ -317,14 +328,6 @@ const DynamicCategorySidebar: React.FC<{
             )}
           </div>
         ))}
-        {categories.length > 4 && (
-          <button
-            onClick={toggleShowMoreCategories}
-            className="text-blue-600 text-sm mt-2"
-          >
-            {showMoreCategories ? 'Show Less' : 'Show More'}
-          </button>
-        )}
       </div>
     </div>
   );
@@ -748,7 +751,7 @@ const MobileProductCard: React.FC<{
 
 const MobileCategoryPage: React.FC = () => {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000000]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('mobiles');
+  const [selectedCategory, setSelectedCategory] = useState<string>('mobile-phones');
   const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedFilters, setSelectedFilters] = useState<FilterState>({
@@ -823,9 +826,20 @@ const MobileCategoryPage: React.FC = () => {
       <div className="bg-white py-2 px-4 border-b">
         <div className="container mx-auto">
           <div className="flex items-center text-sm text-gray-600">
-            <span>Home</span>
+            <Link href="/" className="hover:text-blue-600">Home</Link>
             <span className="mx-2">›</span>
-            <span>All Categories</span>
+            <Link href="/mobile-phones" className="hover:text-blue-600">Mobile Phones</Link>
+            {selectedSubCategory && (
+              <>
+                <span className="mx-2">›</span>
+                <Link 
+                  href={`/mobile-phones/${selectedSubCategory.toLowerCase().replace(/\s+/g, '-')}_id`} 
+                  className="hover:text-blue-600"
+                >
+                  {selectedSubCategory}
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -843,14 +857,16 @@ const MobileCategoryPage: React.FC = () => {
             />
             <LocationSidebar />
             <PriceFilter />
-            <DynamicBrandModelFilter category="Mobiles" />
+            <DynamicBrandModelFilter category={selectedCategory} />
             <ConditionSelectBox />
-            <DynamicTypeFilterBox category="Accessories" />
+            {selectedCategory === 'accessories' && (
+              <DynamicTypeFilterBox category="Accessories" />
+            )}
           </div>
 
           <div className="w-full lg:w-3/4">
             <div className="md:hidden flex justify-between items-center mb-4">
-              <h1 className="text-xl font-bold">All Categories</h1>
+              <h1 className="text-xl font-bold">Mobile Products</h1>
               <button 
                 onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
                 className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded"

@@ -17,9 +17,10 @@ const nextConfig = {
     ],
   async rewrites() {
     return [
+      
       {
-        source: '/mobiles/:id',
-        destination: '/products/mobiles/:id',
+        source: '/:slug',
+        destination: '/products/mobiles/:slug',
       },
       {
         source: '/vehicles/:id',
@@ -60,6 +61,18 @@ const nextConfig = {
       {
         source: '/animals/:id',
         destination: '/products/animals/:id',
+      },
+      {
+        source: '/books-sports-hobbies/:id',
+        destination: '/products/books-sports-hobbies/:id',
+      },
+      {
+        source: '/furniture-home-decor/:id',
+        destination: '/products/furniture-home-decor/:id',
+      },
+      {
+        source: '/kids/:id',
+        destination: '/products/kids/:id',
       },
     ];
   },
