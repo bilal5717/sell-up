@@ -20,7 +20,7 @@ import axios from 'axios';
 import { usePathname, useSearchParams } from 'next/navigation';
 
 // Interfaces
-interface MobileProduct {
+interface TabletProduct {
   id: number;
   post_id: number;
   brand: string;
@@ -69,66 +69,31 @@ interface Province {
   cities: string[];
 }
 
-// Mobile-specific Data
-const mobileCategories: Category[] = [
-  { name: 'Mobile Phones', slug: 'mobiles' },
+// Tablet-specific Data
+const tabletCategories: Category[] = [
+  { name: 'Mobile Phones', slug: 'mobile-phones' },
   { name: 'Tablets', slug: 'tablets' },
   { name: 'Accessories', slug: 'accessories' },
   { name: 'Smart Watches', slug: 'smart-watches' },
+  
 ];
 
-const mobileSubCategories: CategoryData = {
-  'accessories': [
-    { 
-      name: 'Accessory', 
-      types: [
-        'Charging Cables', 
-        'Converters', 
-        'Chargers', 
-        'Screens', 
-        'Screen Protector',
-        'Mobile Stands', 
-        'Ring Lights', 
-        'Selfie Sticks', 
-        'Power Banks', 
-        'Headphones',
-        'EarPhones', 
-        'Covers & Cases', 
-        'External Memory', 
-        'Other'
-      ] 
-    },
-    { name: 'Chargers', types: ['Wireless Chargers', 'Fast Chargers'] },
-    { name: 'Cables', types: ['USB-C', 'Lightning', 'Micro USB'] },
-    { name: 'Cases & Covers' },
-  ],
-  'smart-watches': [
-    { name: 'Apple Watch' },
-    { name: 'Samsung Watch' },
-    { name: 'Fitness Trackers' },
-  ],
-};
+
 
 const brandOptions: Record<string, Brand[]> = {
-  'Mobile Phones': [
-    { name: 'Apple iPhone', count: 73899, models: ['iPhone 13', 'iPhone 12', 'iPhone 11', 'iPhone SE'] },
-    { name: 'Samsung Mobile', count: 21646, models: ['Galaxy S21', 'Galaxy Note 20', 'Galaxy A52'] },
-    { name: 'Infinix', count: 12032, models: ['Note 10', 'Hot 11', 'Zero X Pro'] },
-    { name: 'Vivo', count: 11539, models: ['V21', 'Y51', 'X60 Pro'] },
-    { name: 'Google', count: 9400, models: ['Pixel 6', 'Pixel 5', 'Pixel 4a'] },
-    { name: 'Xiaomi', count: 9085, models: ['Redmi Note 10', 'Mi 11', 'Poco X3'] },
-  ],
   'Tablets': [
     { name: 'Apple iPad', count: 12345, models: ['iPad Pro', 'iPad Air', 'iPad Mini'] },
     { name: 'Samsung Tablet', count: 9876, models: ['Galaxy Tab S7', 'Galaxy Tab A'] },
+    { name: 'Lenovo', count: 5432, models: ['Tab P11', 'Yoga Tab'] },
+    { name: 'Huawei', count: 4321, models: ['MatePad', 'MediaPad'] }
   ],
-  'Accessories': [
-    { name: 'Apple Accessories', count: 5432, models: ['MagSafe Charger', 'Lightning Cable'] },
-    { name: 'Samsung Accessories', count: 4321, models: ['Wireless Charger', 'USB-C Cable'] },
+  'Tablet Accessories': [
+    { name: 'Apple Accessories', count: 5432, models: ['Apple Pencil', 'Smart Keyboard'] },
+    { name: 'Samsung Accessories', count: 4321, models: ['S Pen', 'Book Cover Keyboard'] },
   ],
-  'Smart Watches': [
-    { name: 'Apple Watch', count: 7654, models: ['Series 7', 'Series 6', 'SE'] },
-    { name: 'Samsung Watch', count: 6543, models: ['Galaxy Watch 4', 'Galaxy Watch Active 2'] },
+  'Tablet Cases': [
+    { name: 'Apple Cases', count: 7654, models: ['Smart Cover', 'Folio Case'] },
+    { name: 'Samsung Cases', count: 6543, models: ['Protective Cover', 'Keyboard Cover'] },
   ]
 };
 
@@ -143,14 +108,14 @@ const provinces: Province[] = [
 ];
 
 const typeOptions: Record<string, { label: string; count: number }[]> = {
-  'Accessories': [
-    { label: 'Mobile', count: 930 },
-    { label: 'Tablet', count: 46 },
-    { label: 'Smart Watch', count: 11 },
+  'Tablet Accessories': [
+    { label: 'Stylus', count: 230 },
+    { label: 'Keyboard', count: 146 },
+    { label: 'Protector', count: 311 },
   ]
 };
 
-// Components
+// Components (adjusted for tablets)
 const DynamicBrandModelFilter: React.FC<{ category: string }> = ({ category }) => {
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
@@ -252,99 +217,6 @@ const DynamicBrandModelFilter: React.FC<{ category: string }> = ({ category }) =
     </div>
   );
 };
-
-const DynamicCategorySidebar: React.FC<{
-  selectedCategory: string;
-  selectedSubCategory: string | null;
-  selectedType: string | null;
-  onCategorySelect: (category: string) => void;
-  onSubCategorySelect: (subCategory: string | null) => void;
-  onTypeSelect: (type: string | null) => void;
-}> = ({
-  selectedCategory,
-  selectedSubCategory,
-  selectedType,
-  onCategorySelect,
-  onSubCategorySelect,
-  onTypeSelect,
-}) => {
-  const toggleCategory = (slug: string) => {
-    onCategorySelect(slug);
-    onSubCategorySelect(null);
-    onTypeSelect(null);
-  };
-
-  const toggleSubCategory = (name: string) => {
-    if (selectedSubCategory === name) {
-      onSubCategorySelect(null);
-      onTypeSelect(null);
-    } else {
-      onSubCategorySelect(name);
-      onTypeSelect(null);
-    }
-  };
-
-  const toggleType = (type: string) => {
-    if (selectedType === type) {
-      onTypeSelect(null);
-    } else {
-      onTypeSelect(type);
-    }
-  };
-
-  return (
-    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-      <h3 className="font-bold text-lg mb-2">Mobile Categories</h3>
-      <div className="space-y-1">
-        {mobileCategories.map((category) => (
-          <div key={category.slug} className="cursor-pointer">
-            <Link 
-              href={`/${category.slug}`}
-              className={`py-1 px-2 hover:bg-gray-100 block ${selectedCategory === category.slug ? 'text-blue-600 font-medium' : 'text-gray-800'}`}
-              onClick={() => toggleCategory(category.slug)}
-              style={{ fontSize: '12px', lineHeight: '1.5' }}
-            >
-              {category.name}
-            </Link>
-
-            {selectedCategory === category.slug && mobileSubCategories[category.slug] && (
-              <div className="ml-4 space-y-1">
-                {mobileSubCategories[category.slug].map((sub, index) => (
-                  <div key={index}>
-                    <Link
-                      href={`/${category.slug}/${sub.name.toLowerCase().replace(/\s+/g, '-')}`}
-                      className={`py-1 cursor-pointer hover:text-blue-600 block ${selectedSubCategory === sub.name ? 'text-blue-600 font-medium' : 'text-gray-700'}`}
-                      onClick={() => toggleSubCategory(sub.name)}
-                      style={{ fontSize: '12px', lineHeight: '1.5' }}
-                    >
-                      {sub.name}
-                    </Link>
-                    {sub.types && selectedSubCategory === sub.name && (
-                      <div className="ml-4 space-y-1">
-                        {sub.types.map((type, i) => (
-                          <Link
-                            key={i}
-                            href={`/${category.slug}/${sub.name.toLowerCase().replace(/\s+/g, '-')}/${type.toLowerCase().replace(/\s+/g, '-')}_id`}
-                            className={`py-1 cursor-pointer hover:text-blue-600 block ${selectedType === type ? 'text-blue-600 font-medium' : 'text-gray-600'}`}
-                            style={{ fontSize: '12px', lineHeight: '1.5' }}
-                            onClick={() => toggleType(type)}
-                          >
-                            - {type}
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
 const ConditionSelectBox: React.FC = () => {
   const [selectedCondition, setSelectedCondition] = useState<string | null>(null);
 
@@ -635,17 +507,76 @@ const DynamicTypeFilterBox: React.FC<{ category: string }> = ({ category }) => {
     </div>
   );
 };
+const DynamicCategorySidebar: React.FC<{
+  selectedCategory: string;
+  selectedSubCategory: string | null;
+  selectedType: string | null;
+  onCategorySelect: (category: string) => void;
+  onSubCategorySelect: (subCategory: string | null) => void;
+  onTypeSelect: (type: string | null) => void;
+}> = ({
+  selectedCategory,
+  selectedSubCategory,
+  selectedType,
+  onCategorySelect,
+  onSubCategorySelect,
+  onTypeSelect,
+}) => {
+  const toggleCategory = (slug: string) => {
+    onCategorySelect(slug);
+    onSubCategorySelect(null);
+    onTypeSelect(null);
+  };
 
-const MobileProductCard: React.FC<{
-  products: MobileProduct[];
+  const toggleSubCategory = (name: string) => {
+    if (selectedSubCategory === name) {
+      onSubCategorySelect(null);
+      onTypeSelect(null);
+    } else {
+      onSubCategorySelect(name);
+      onTypeSelect(null);
+    }
+  };
+
+  const toggleType = (type: string) => {
+    if (selectedType === type) {
+      onTypeSelect(null);
+    } else {
+      onTypeSelect(type);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+      <h3 className="font-bold text-lg mb-2">Tablet Categories</h3>
+      <div className="space-y-1">
+        {tabletCategories.map((category) => (
+          <div key={category.slug} className="cursor-pointer">
+            <Link 
+              href={`/${category.slug}`}
+              className={`py-1 px-2 hover:bg-gray-100 block ${selectedCategory === category.slug ? 'text-blue-600 font-medium' : 'text-gray-800'}`}
+              onClick={() => toggleCategory(category.slug)}
+              style={{ fontSize: '12px', lineHeight: '1.5' }}
+            >
+              {category.name}
+            </Link>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+
+const TabletProductCard: React.FC<{
+  products: TabletProduct[];
   loading?: boolean;
 }> = ({
   products = [],
   loading = false
 }) => {
   const [likedProducts, setLikedProducts] = useState<Set<number>>(new Set());
- 
-  
+
   const toggleLike = useCallback((productId: number) => {
     setLikedProducts(prev => {
       const newSet = new Set(prev);
@@ -678,7 +609,7 @@ const MobileProductCard: React.FC<{
   if (products.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-500">No products found</p>
+        <p className="text-gray-500">No tablets found</p>
       </div>
     );
   }
@@ -696,7 +627,7 @@ const MobileProductCard: React.FC<{
           >
             <div className="relative aspect-video bg-gray-100">
               <Image
-                src={product.images?.[0]?.url || '/images/placeholder.png'}
+                src={product.images?.[0]?.url || '/images/placeholder-tablet.png'}
                 alt={`${product.brand} ${product.model}`}
                 fill
                 className="object-cover"
@@ -762,9 +693,9 @@ const MobileProductCard: React.FC<{
   );
 };
 
-const MobileCategoryPage: React.FC = () => {
+const TabletCategoryPage: React.FC = () => {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000000]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('mobile-phones');
+  const [selectedCategory, setSelectedCategory] = useState<string>('tablets');
   const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedFilters, setSelectedFilters] = useState<FilterState>({
@@ -782,11 +713,12 @@ const MobileCategoryPage: React.FC = () => {
   });
   const [sortBy, setSortBy] = useState<string>('newest');
   const [selectedCondition, setSelectedCondition] = useState<string>('all');
-  const [products, setProducts] = useState<MobileProduct[]>([]);
+  const [products, setProducts] = useState<TabletProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
+
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({
       ...prev,
@@ -820,32 +752,30 @@ const MobileCategoryPage: React.FC = () => {
   };
 
   useEffect(() => {
-    const fetchMobileProducts = async () => {
-  try {
-    setLoading(true);
+    const fetchTabletProducts = async () => {
+      try {
+        setLoading(true);
+        
+        // Construct query string from filters
+        const query = new URLSearchParams();
+        if (selectedCategory) query.append('category', selectedCategory);
+        if (selectedSubCategory) query.append('sub_category', selectedSubCategory);
+        if (selectedCondition && selectedCondition !== 'all') query.append('condition', selectedCondition);
+        if (priceRange[0]) query.append('min_price', priceRange[0].toString());
+        if (priceRange[1]) query.append('max_price', priceRange[1].toString());
 
-    // Construct query string from filters
-    const query = new URLSearchParams();
-    if (selectedCategory) query.append('category', selectedCategory);
-    if (selectedSubCategory) query.append('sub_category', selectedSubCategory);
-    if (selectedCondition && selectedCondition !== 'all') query.append('condition', selectedCondition);
-    if (priceRange[0]) query.append('min_price', priceRange[0].toString());
-    if (priceRange[1]) query.append('max_price', priceRange[1].toString());
-
-    // Fetch products based on filters
-    const response = await axios.get(`http://127.0.0.1:8000/api/mobiles?${query.toString()}`);
-    console.log(response.data);
-    setProducts(response.data);
-  } catch (error) {
-    console.error('Error fetching mobile products:', error);
-  } finally {
-    setLoading(false);
-  }
-};
-
+        // Fetch products based on filters
+        const response = await axios.get(`http://127.0.0.1:8000/api/tablets?${query.toString()}`);
+        setProducts(response.data);
+      } catch (error) {
+        console.error('Error fetching tablet products:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    fetchMobileProducts();
-  }, []);
+    fetchTabletProducts();
+  }, [selectedCategory, selectedSubCategory, selectedCondition, priceRange]);
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -854,12 +784,12 @@ const MobileCategoryPage: React.FC = () => {
           <div className="flex items-center text-sm text-gray-600">
             <Link href="/" className="hover:text-blue-600">Home</Link>
             <span className="mx-2">›</span>
-            <Link href="/mobiles_c1" className="hover:text-blue-600">Mobile Phones</Link>
+            <Link href="/tablets" className="hover:text-blue-600">Tablets</Link>
             {selectedSubCategory && (
               <>
                 <span className="mx-2">›</span>
                 <Link 
-                  href={`/mobiles/${selectedSubCategory.toLowerCase().replace(/\s+/g, '-')}_id`} 
+                  href={`/tablets/${selectedSubCategory.toLowerCase().replace(/\s+/g, '-')}`} 
                   className="hover:text-blue-600"
                 >
                   {selectedSubCategory}
@@ -885,14 +815,14 @@ const MobileCategoryPage: React.FC = () => {
             <PriceFilter />
             <DynamicBrandModelFilter category={selectedCategory} />
             <ConditionSelectBox />
-            {selectedCategory === 'accessories' && (
-              <DynamicTypeFilterBox category="Accessories" />
+            {selectedCategory === 'tablet-accessories' && (
+              <DynamicTypeFilterBox category="Tablet Accessories" />
             )}
           </div>
 
           <div className="w-full lg:w-3/4">
             <div className="md:hidden flex justify-between items-center mb-4">
-              <h1 className="text-xl font-bold">Mobile Products</h1>
+              <h1 className="text-xl font-bold">Tablet Products</h1>
               <button 
                 onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
                 className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded"
@@ -936,7 +866,7 @@ const MobileCategoryPage: React.FC = () => {
               </div>
             </div>
 
-            <MobileProductCard 
+            <TabletProductCard 
               products={products}
               loading={loading}
             />
@@ -1018,4 +948,4 @@ const MobileCategoryPage: React.FC = () => {
   );
 };
 
-export default MobileCategoryPage;
+export default TabletCategoryPage;

@@ -19,9 +19,38 @@ const nextConfig = {
     return [
       
       {
-        source: '/:slug',
+        source: '/mobiles_:slug',
         destination: '/products/mobiles/:slug',
       },
+      {
+        source: '/mobiles',
+        destination: '/products/mobiles',
+      },
+      {
+        source: '/tablets',
+        destination: '/products/mobiles/tablets',
+      },
+      {
+        source: '/mobile-phones',
+        destination: '/products/mobiles/mobile-phones',
+      },
+      {
+        source: '/accessories',
+        destination: '/products/mobiles/accessories',
+      },
+      {
+  source: '/accessories/:type',
+  destination: '/products/mobiles/accessories/:type',
+},
+     {
+  source: '/smart-watches',
+  destination: '/products/mobiles/smart-watches',
+},
+
+{
+  source: '/accessories',
+  destination: '/products/accessories',
+},
       {
         source: '/vehicles/:id',
         destination: '/products/vehicles/:id',

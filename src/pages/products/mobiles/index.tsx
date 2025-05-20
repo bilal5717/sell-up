@@ -71,7 +71,7 @@ interface Province {
 
 // Mobile-specific Data
 const mobileCategories: Category[] = [
-  { name: 'Mobile Phones', slug: 'mobiles' },
+  { name: 'Mobile Phones', slug: 'mobile-phones' },
   { name: 'Tablets', slug: 'tablets' },
   { name: 'Accessories', slug: 'accessories' },
   { name: 'Smart Watches', slug: 'smart-watches' },
@@ -821,28 +821,17 @@ const MobileCategoryPage: React.FC = () => {
 
   useEffect(() => {
     const fetchMobileProducts = async () => {
-  try {
-    setLoading(true);
-
-    // Construct query string from filters
-    const query = new URLSearchParams();
-    if (selectedCategory) query.append('category', selectedCategory);
-    if (selectedSubCategory) query.append('sub_category', selectedSubCategory);
-    if (selectedCondition && selectedCondition !== 'all') query.append('condition', selectedCondition);
-    if (priceRange[0]) query.append('min_price', priceRange[0].toString());
-    if (priceRange[1]) query.append('max_price', priceRange[1].toString());
-
-    // Fetch products based on filters
-    const response = await axios.get(`http://127.0.0.1:8000/api/mobiles?${query.toString()}`);
-    console.log(response.data);
-    setProducts(response.data);
-  } catch (error) {
-    console.error('Error fetching mobile products:', error);
-  } finally {
-    setLoading(false);
-  }
-};
-
+      try {
+        setLoading(true);
+        const response = await axios.get('http://127.0.0.1:8000/api/mobiles');
+        console.log(response.data);
+        setProducts(response.data);
+      } catch (error) {
+        console.error('Error fetching mobile products:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
     
     fetchMobileProducts();
   }, []);
