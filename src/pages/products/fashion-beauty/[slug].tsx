@@ -13,21 +13,27 @@ import {
   LuMapPin
 } from 'react-icons/lu';
 import axios from 'axios';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 
 // Interfaces
 interface FashionProduct {
   id: number;
-  post_id: number;
   title: string;
   price: string;
   location: string;
   posted_at: string;
   images?: { url: string; is_featured: number; order: number }[];
-  condition?: string;
-  brand?: string;
-  category?: string;
-  sub_category?: string;
-  type?: string;
+  fashion_beauty_details?: {
+    type: string;
+    condition: string;
+    gender?: string;
+    fabric?: string;
+    material?: string;
+  };
+  sub_category?: {
+    name: string;
+    slug: string;
+  };
 }
 
 interface FilterState {
@@ -59,20 +65,6 @@ interface Province {
 // Data
 const categories: Category[] = [
   { name: 'Fashion & Beauty', slug: 'fashion-beauty' },
-  { name: 'Property for Rent', slug: 'property-for-rent' },
-  { name: 'Property for Sale', slug: 'property-for-sale' },
-  { name: 'Mobiles', slug: 'mobiles' },
-  { name: 'Vehicles', slug: 'vehicles' },
-  { name: 'Electronics & Home Appliances', slug: 'electronics-home-appliances' },
-  { name: 'Bikes', slug: 'bikes' },
-  { name: 'Business, Industrial & Agriculture', slug: 'business-industrial-agriculture' },
-  { name: 'Services', slug: 'services' },
-  { name: 'Jobs', slug: 'jobs' },
-  { name: 'Animals', slug: 'animals' },
-  { name: 'Books, Sports & Hobbies', slug: 'books-sports-hobbies' },
-  { name: 'Furniture & Home Decor', slug: 'furniture-home-decor' },
-  { name: 'Kids', slug: 'kids' },
-  { name: 'Others', slug: 'others' },
 ];
 
 const subCategories: CategoryData = {
@@ -138,50 +130,53 @@ const provinces: Province[] = [
 ];
 
 // Components
-const DynamicCategorySidebar: React.FC<{
-  selectedCategory: string;
-  selectedSubCategory: string | null;
-  selectedType: string | null;
-  onCategorySelect: (category: string) => void;
-  onSubCategorySelect: (subCategory: string | null) => void;
-  onTypeSelect: (type: string | null) => void;
-}> = ({
+const DynamicCategorySidebar = ({
   selectedCategory,
   selectedSubCategory,
   selectedType,
-  onCategorySelect,
   onSubCategorySelect,
   onTypeSelect,
+}: {
+  selectedCategory: string;
+  selectedSubCategory: string | null;
+  selectedType: string | null;
+  onSubCategorySelect: (subCategory: string | null) => void;
+  onTypeSelect: (type: string | null) => void;
 }) => {
   const [showMoreCategories, setShowMoreCategories] = useState<boolean>(false);
+  const [showMoreSubCategories, setShowMoreSubCategories] = useState<boolean>(false);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  const toggleCategory = (slug: string) => {
-    onCategorySelect(slug);
-    onSubCategorySelect(null);
-    onTypeSelect(null);
-  };
-
-  const toggleSubCategory = (name: string) => {
-    if (selectedSubCategory === name) {
+  const toggleSubCategory = (slug: string) => {
+    if (selectedSubCategory === slug) {
+      router.push('/fashion-beauty');
       onSubCategorySelect(null);
       onTypeSelect(null);
     } else {
-      onSubCategorySelect(name);
+      router.push(`/fashion-beauty/${slug}`);
+      onSubCategorySelect(slug);
       onTypeSelect(null);
     }
   };
 
   const toggleType = (type: string) => {
+    const params = new URLSearchParams(searchParams);
+    
     if (selectedType === type) {
+      params.delete('type');
       onTypeSelect(null);
     } else {
+      params.set('type', type);
       onTypeSelect(type);
     }
+    
+    router.push(`${pathname}?${params.toString()}`);
   };
 
-  const toggleShowMoreCategories = () => {
-    setShowMoreCategories((prev) => !prev);
-  };
+  const toggleShowMoreCategories = () => setShowMoreCategories((prev) => !prev);
+  const toggleShowMoreSubCategories = () => setShowMoreSubCategories((prev) => !prev);
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
@@ -191,7 +186,6 @@ const DynamicCategorySidebar: React.FC<{
           <div key={category.slug} className="cursor-pointer">
             <div
               className={`py-1 px-2 hover:bg-gray-100 ${selectedCategory === category.slug ? 'text-blue-600 font-medium' : 'text-gray-800'}`}
-              onClick={() => toggleCategory(category.slug)}
               style={{ fontSize: '12px', lineHeight: '1.5' }}
             >
               {category.name}
@@ -199,50 +193,51 @@ const DynamicCategorySidebar: React.FC<{
 
             {selectedCategory === category.slug && subCategories[category.slug] && (
               <div className="ml-4 space-y-1">
-                {subCategories[category.slug].map((sub, index) => (
-                  <div key={index}>
-                    <div
-                      className={`py-1 cursor-pointer hover:text-blue-600 ${selectedSubCategory === sub.name ? 'text-blue-600 font-medium' : 'text-gray-700'}`}
-                      onClick={() => toggleSubCategory(sub.name)}
-                      style={{ fontSize: '12px', lineHeight: '1.5' }}
-                    >
-                      {sub.name}
-                    </div>
-                    
-                    {selectedSubCategory === sub.name && sub.types && (
-                      <div className="ml-4 space-y-1">
-                        {sub.types.map((type, idx) => (
-                          <div
-                            key={idx}
-                            className={`py-1 cursor-pointer hover:text-blue-600 ${selectedType === type ? 'text-blue-600 font-medium' : 'text-gray-600'}`}
-                            onClick={() => toggleType(type)}
-                            style={{ fontSize: '11px', lineHeight: '1.5' }}
-                          >
-                            {type}
-                          </div>
-                        ))}
+                {subCategories[category.slug]
+                  .slice(0, showMoreSubCategories ? undefined : 6)
+                  .map((sub, index) => (
+                    <div key={index}>
+                      <div
+                        className={`py-1 cursor-pointer hover:text-blue-600 ${selectedSubCategory === sub.slug ? 'text-blue-600 font-medium' : 'text-gray-700'}`}
+                        onClick={() => toggleSubCategory(sub.slug)}
+                        style={{ fontSize: '12px', lineHeight: '1.5' }}
+                      >
+                        {sub.name}
                       </div>
-                    )}
-                  </div>
-                ))}
+                      {selectedSubCategory === sub.slug && sub.types && (
+                        <div className="ml-4 space-y-1">
+                          {sub.types.map((type, idx) => (
+                            <div
+                              key={idx}
+                              className={`py-1 cursor-pointer hover:text-blue-600 ${selectedType === type ? 'text-blue-600 font-medium' : 'text-gray-600'}`}
+                              onClick={() => toggleType(type)}
+                              style={{ fontSize: '11px', lineHeight: '1.5' }}
+                            >
+                              {type}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                {subCategories[category.slug].length > 6 && (
+                  <button
+                    onClick={toggleShowMoreSubCategories}
+                    className="text-blue-600 text-xs ml-2"
+                  >
+                    {showMoreSubCategories ? 'Show Less' : 'Show More'}
+                  </button>
+                )}
               </div>
             )}
           </div>
         ))}
-        {categories.length > 4 && (
-          <button
-            onClick={toggleShowMoreCategories}
-            className="text-blue-600 text-sm mt-2"
-          >
-            {showMoreCategories ? 'Show Less' : 'Show More'}
-          </button>
-        )}
       </div>
     </div>
   );
 };
 
-const LocationSidebar: React.FC = () => {
+const LocationSidebar = () => {
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const [showMoreCities, setShowMoreCities] = useState<boolean>(false);
@@ -332,7 +327,7 @@ const LocationSidebar: React.FC = () => {
   );
 };
 
-const PriceFilter: React.FC = () => {
+const PriceFilter = () => {
   const [minPrice, setMinPrice] = useState<number | ''>('');
   const [maxPrice, setMaxPrice] = useState<number | ''>('');
   const [isPriceSet, setIsPriceSet] = useState<boolean>(false);
@@ -406,10 +401,13 @@ const PriceFilter: React.FC = () => {
   );
 };
 
-const ConditionFilter: React.FC<{
+const ConditionFilter = ({
+  selectedConditions,
+  onConditionChange,
+}: {
   selectedConditions: string[];
   onConditionChange: (condition: string) => void;
-}> = ({ selectedConditions, onConditionChange }) => {
+}) => {
   const conditions = ['New', 'Used', 'Refurbished'];
 
   return (
@@ -435,12 +433,12 @@ const ConditionFilter: React.FC<{
   );
 };
 
-const FashionProductCard: React.FC<{
+const FashionProductCard = ({
+  products,
+  loading = false
+}: {
   products: FashionProduct[];
   loading?: boolean;
-}> = ({
-  products = [],
-  loading = false
 }) => {
   const [likedProducts, setLikedProducts] = useState<Set<number>>(new Set());
 
@@ -485,10 +483,11 @@ const FashionProductCard: React.FC<{
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {products.map((product) => {
         const isLiked = likedProducts.has(product.id);
+        const condition = product.fashion_beauty_details?.condition;
         
         return (
           <article
-            key={`${product.id}-${product.post_id}`}
+            key={product.id}
             className="bg-white rounded-lg shadow-sm overflow-hidden transition-transform hover:scale-[1.02] hover:shadow-md"
           >
             <div className="relative aspect-square bg-gray-100">
@@ -499,7 +498,7 @@ const FashionProductCard: React.FC<{
                 className="object-cover"
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               />
-              {product.condition === 'New' && (
+              {condition === 'New' && (
                 <span className="absolute top-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
                   New
                 </span>
@@ -526,15 +525,15 @@ const FashionProductCard: React.FC<{
                 {product.title}
               </h4>
 
-              {product.brand && (
+              {product.sub_category?.name && (
                 <div className="text-gray-600 text-xs mt-1">
-                  <span className="font-medium">Brand:</span> {product.brand}
+                  <span className="font-medium">Category:</span> {product.sub_category.name}
                 </div>
               )}
 
-              {product.condition && (
+              {condition && (
                 <div className="text-gray-600 text-xs mt-1">
-                  <span className="font-medium">Condition:</span> {product.condition}
+                  <span className="font-medium">Condition:</span> {condition}
                 </div>
               )}
 
@@ -555,7 +554,10 @@ const FashionProductCard: React.FC<{
   );
 };
 
-const FashionAndBeautyPage: React.FC = () => {
+const FashionAndBeautySlugPage = ({ params, searchParams }: { 
+  params: { slug?: string[] };
+  searchParams: { [key: string]: string | string[] | undefined };
+}) => {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000]);
   const [selectedCategory, setSelectedCategory] = useState<string>('fashion-beauty');
   const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
@@ -575,6 +577,46 @@ const FashionAndBeautyPage: React.FC = () => {
   const [sortBy, setSortBy] = useState<string>('newest');
   const [products, setProducts] = useState<FashionProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // Extract filters from URL
+ useEffect(() => {
+  const subCategory = params?.slug?.[0] || null;
+  const type = typeof searchParams?.type === 'string' ? searchParams.type : null;
+
+  setSelectedSubCategory(subCategory);
+  setSelectedType(type);
+}, [params, searchParams]);
+
+  const fetchFashionProducts = useCallback(async () => {
+    try {
+      setLoading(true);
+      
+      // Build query parameters
+      const queryParams = new URLSearchParams();
+      if (selectedSubCategory) queryParams.append('subcategory', selectedSubCategory);
+      if (selectedType) queryParams.append('type', selectedType);
+      
+      // Add condition filters if selected
+      if (selectedFilters.condition.length > 0) {
+        queryParams.append('condition', selectedFilters.condition.join(','));
+      }
+
+      const url = `http://127.0.0.1:8000/api/fashion-products?${queryParams.toString()}`;
+      const response = await axios.get(url);
+      
+      setProducts(response.data);
+    } catch (error) {
+      console.error('Error fetching fashion products:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedSubCategory, selectedType, selectedFilters.condition]);
+
+  useEffect(() => {
+    fetchFashionProducts();
+  }, [fetchFashionProducts]);
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({
@@ -605,23 +647,19 @@ const FashionAndBeautyPage: React.FC = () => {
     });
     setSelectedSubCategory(null);
     setSelectedType(null);
+    router.push('/fashion-beauty');
   };
 
-  useEffect(() => {
-    const fetchFashionProducts = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get('http://127.0.0.1:8000/api/fashion-products');
-        setProducts(response.data);
-      } catch (error) {
-        console.error('Error fetching fashion products:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchFashionProducts();
-  }, []);
+  const getDisplayName = () => {
+    if (selectedType) return selectedType;
+    if (selectedSubCategory) {
+      const subCat = subCategories['fashion-beauty'].find(
+        sub => sub.slug === selectedSubCategory
+      );
+      return subCat?.name || selectedSubCategory;
+    }
+    return 'Fashion & Beauty';
+  };
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -634,13 +672,7 @@ const FashionAndBeautyPage: React.FC = () => {
             {selectedSubCategory && (
               <>
                 <span className="mx-2">›</span>
-                <span>{selectedSubCategory}</span>
-              </>
-            )}
-            {selectedType && (
-              <>
-                <span className="mx-2">›</span>
-                <span>{selectedType}</span>
+                <span>{getDisplayName()}</span>
               </>
             )}
           </div>
@@ -654,7 +686,6 @@ const FashionAndBeautyPage: React.FC = () => {
               selectedCategory={selectedCategory}
               selectedSubCategory={selectedSubCategory}
               selectedType={selectedType}
-              onCategorySelect={setSelectedCategory}
               onSubCategorySelect={setSelectedSubCategory}
               onTypeSelect={setSelectedType}
             />
@@ -679,7 +710,7 @@ const FashionAndBeautyPage: React.FC = () => {
 
             <div className="bg-white rounded-lg shadow-sm p-4 mb-4 flex justify-between items-center">
               <div className="text-sm text-gray-600">
-                Showing {selectedType || selectedSubCategory || selectedCategory} products
+                Showing {getDisplayName()} products
                 {selectedFilters.condition.length > 0 && (
                   <span> ({selectedFilters.condition.join(', ')})</span>
                 )}
@@ -812,4 +843,4 @@ const FashionAndBeautyPage: React.FC = () => {
   );
 };
 
-export default FashionAndBeautyPage;
+export default FashionAndBeautySlugPage;

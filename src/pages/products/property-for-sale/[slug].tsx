@@ -1,6 +1,8 @@
+
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { 
   FiChevronDown, 
   FiChevronUp, 
@@ -9,12 +11,24 @@ import {
 } from 'react-icons/fi';
 import { 
   LuHeart, 
-  LuTag, 
   LuMapPin
 } from 'react-icons/lu';
 import axios from 'axios';
 
 // Interfaces
+interface PropertySaleDetails {
+  sub_type: string;
+  furnish: string;
+  bedrooms: string;
+  bathrooms: string;
+  storeys: string;
+  floor_level: string;
+  area: string;
+  area_unit: string;
+  features: string[];
+  other_feature: string;
+}
+
 interface PropertyProduct {
   id: number;
   post_id: number;
@@ -23,12 +37,7 @@ interface PropertyProduct {
   location: string;
   posted_at: string;
   images?: { url: string; is_featured: number; order: number }[];
-  bedrooms?: string;
-  bathrooms?: string;
-  area?: string;
-  category?: string;
-  sub_category?: string;
-  type?: string;
+  property_sale_details?: PropertySaleDetails;
 }
 
 interface FilterState {
@@ -57,23 +66,16 @@ interface Province {
   cities: string[];
 }
 
+interface Pagination {
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+}
+
 // Data
 const categories: Category[] = [
-  { name: 'Property for Rent', slug: 'property-for-rent' },
   { name: 'Property for Sale', slug: 'property-for-sale' },
-  { name: 'Mobiles', slug: 'mobiles' },
-  { name: 'Vehicles', slug: 'vehicles' },
-  { name: 'Electronics & Home Appliances', slug: 'electronics-home-appliances' },
-  { name: 'Bikes', slug: 'bikes' },
-  { name: 'Business, Industrial & Agriculture', slug: 'business-industrial-agriculture' },
-  { name: 'Services', slug: 'services' },
-  { name: 'Jobs', slug: 'jobs' },
-  { name: 'Animals', slug: 'animals' },
-  { name: 'Books, Sports & Hobbies', slug: 'books-sports-hobbies' },
-  { name: 'Furniture & Home Decor', slug: 'furniture-home-decor' },
-  { name: 'Fashion & Beauty', slug: 'fashion-beauty' },
-  { name: 'Kids', slug: 'kids' },
-  { name: 'Others', slug: 'others' },
 ];
 
 const subCategories: CategoryData = {
@@ -110,21 +112,29 @@ const DynamicCategorySidebar: React.FC<{
   onSubCategorySelect,
   onTypeSelect,
 }) => {
+  const router = useRouter();
   const [showMoreCategories, setShowMoreCategories] = useState<boolean>(false);
 
   const toggleCategory = (slug: string) => {
-    onCategorySelect(slug);
-    onSubCategorySelect(null);
-    onTypeSelect(null);
-  };
+  onCategorySelect(slug);
+  onSubCategorySelect(null);
+  onTypeSelect(null);
+  if (slug === 'property-for-sale') {
+    router.push('/products/property-for-sale');
+  } else {
+    router.push(`/${slug}`);
+  }
+};
 
-  const toggleSubCategory = (name: string) => {
+  const toggleSubCategory = (name: string, slug: string) => {
     if (selectedSubCategory === name) {
       onSubCategorySelect(null);
       onTypeSelect(null);
+      router.push(`/property-for-sale`);
     } else {
       onSubCategorySelect(name);
       onTypeSelect(null);
+      router.push(`/property-for-sale/${slug}`);
     }
   };
 
@@ -152,7 +162,7 @@ const DynamicCategorySidebar: React.FC<{
                   <div key={index}>
                     <div
                       className={`py-1 cursor-pointer hover:text-blue-600 ${selectedSubCategory === sub.name ? 'text-blue-600 font-medium' : 'text-gray-700'}`}
-                      onClick={() => toggleSubCategory(sub.name)}
+                      onClick={() => toggleSubCategory(sub.name, sub.slug)}
                       style={{ fontSize: '12px', lineHeight: '1.5' }}
                     >
                       {sub.name}
@@ -176,7 +186,9 @@ const DynamicCategorySidebar: React.FC<{
   );
 };
 
-const LocationSidebar: React.FC = () => {
+const LocationSidebar: React.FC<{
+  onLocationSelect: (location: string | null) => void;
+}> = ({ onLocationSelect }) => {
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const [showMoreCities, setShowMoreCities] = useState<boolean>(false);
@@ -188,17 +200,20 @@ const LocationSidebar: React.FC = () => {
     setSelectedProvince(province);
     setSelectedCity(null);
     setIsLocationSelected(false);
+    onLocationSelect(null);
   };
 
   const handleCitySelect = (city: string) => {
     setSelectedCity(city);
     setIsLocationSelected(true);
+    onLocationSelect(city);
   };
 
   const clearSelection = () => {
     setSelectedProvince(null);
     setSelectedCity(null);
     setIsLocationSelected(false);
+    onLocationSelect(null);
   };
 
   return (
@@ -266,7 +281,9 @@ const LocationSidebar: React.FC = () => {
   );
 };
 
-const PriceFilter: React.FC = () => {
+const PriceFilter: React.FC<{
+  onPriceChange: (min: number | '', max: number | '') => void;
+}> = ({ onPriceChange }) => {
   const [minPrice, setMinPrice] = useState<number | ''>('');
   const [maxPrice, setMaxPrice] = useState<number | ''>('');
   const [isPriceSet, setIsPriceSet] = useState<boolean>(false);
@@ -285,12 +302,14 @@ const PriceFilter: React.FC = () => {
 
   const applyPriceFilter = () => {
     setIsPriceSet(true);
+    onPriceChange(minPrice, maxPrice);
   };
 
   const clearPriceFilter = () => {
     setMinPrice('');
     setMaxPrice('');
     setIsPriceSet(false);
+    onPriceChange('', '');
   };
 
   return (
@@ -430,19 +449,19 @@ const PropertyProductCard: React.FC<{
               </h4>
 
               <div className="flex justify-between items-center text-gray-600 text-xs mt-2">
-                {product.bedrooms && (
+                {product.property_sale_details?.bedrooms && (
                   <div className="flex items-center gap-1">
-                    <span>{product.bedrooms} Beds</span>
+                    <span>{product.property_sale_details.bedrooms} Beds</span>
                   </div>
                 )}
-                {product.bathrooms && (
+                {product.property_sale_details?.bathrooms && (
                   <div className="flex items-center gap-1">
-                    <span>{product.bathrooms} Baths</span>
+                    <span>{product.property_sale_details.bathrooms} Baths</span>
                   </div>
                 )}
-                {product.area && (
+                {product.property_sale_details?.area && (
                   <div className="flex items-center gap-1">
-                    <span>{product.area} sq.ft</span>
+                    <span>{product.property_sale_details.area} {product.property_sale_details.area_unit}</span>
                   </div>
                 )}
               </div>
@@ -464,15 +483,14 @@ const PropertyProductCard: React.FC<{
   );
 };
 
-const PropertyForSalePage: React.FC = () => {
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000000]);
+const PropertyForSaleSlugPage: React.FC = () => {
+ const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [priceRange, setPriceRange] = useState<{ min: number | ''; max: number | '' }>({ min: '', max: '' });
   const [selectedCategory, setSelectedCategory] = useState<string>('property-for-sale');
   const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
-  const [selectedFilters, setSelectedFilters] = useState<FilterState>({
-    condition: [],
-    location: [],
-    type: [],
-  });
+  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState<boolean>(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     category: true,
@@ -481,8 +499,88 @@ const PropertyForSalePage: React.FC = () => {
   });
   const [sortBy, setSortBy] = useState<string>('newest');
   const [products, setProducts] = useState<PropertyProduct[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [pagination, setPagination] = useState<Pagination>({ current_page: 1, last_page: 1, per_page: 12, total: 0 });
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [loading, setLoading] = useState<boolean>(true);
 
+  useEffect(() => {
+    if (!pathname) return;
+
+    const pathParts = pathname.split('/').filter(Boolean);
+    const categorySlug = 'property-for-sale';
+
+    // Initialize subcategory from URL
+    if (pathParts.length > 1) {
+      const subCategorySlug = pathParts[1];
+      const subCategory = subCategories[categorySlug]?.find(sub => sub.slug === subCategorySlug);
+      
+      if (subCategory) {
+        setSelectedSubCategory(subCategory.name);
+      } else {
+        setSelectedSubCategory(null);
+      }
+    } else {
+      setSelectedSubCategory(null);
+    }
+
+    // Initialize filters from query params
+    const min = searchParams.get('min_price');
+    const max = searchParams.get('max_price');
+    const location = searchParams.get('location');
+
+    if (min) setPriceRange(prev => ({ ...prev, min: Number(min) }));
+    if (max) setPriceRange(prev => ({ ...prev, max: Number(max) }));
+    if (location) setSelectedLocation(location);
+  }, [pathname, searchParams]);
+
+    const fetchPropertyProducts = useCallback(async () => {
+    try {
+      setLoading(true);
+      const subCategorySlug = selectedSubCategory 
+        ? subCategories['property-for-sale'].find(sub => sub.name === selectedSubCategory)?.slug 
+        : null;
+
+      const params = new URLSearchParams();
+      if (priceRange.min) params.append('min_price', priceRange.min.toString());
+      if (priceRange.max) params.append('max_price', priceRange.max.toString());
+      if (selectedLocation) params.append('location', selectedLocation);
+      params.append('page', currentPage.toString());
+      params.append('per_page', '12');
+
+      const url = subCategorySlug 
+        ? `http://127.0.0.1:8000/api/properties-for-sale/${subCategorySlug}`
+        : 'http://127.0.0.1:8000/api/properties-for-sale';
+
+      const response = await axios.get(`${url}?${params.toString()}`);
+      const { data, pagination } = response.data;
+
+setProducts(Array.isArray(data) ? data : []);
+setPagination(pagination || { current_page: 1, last_page: 1, per_page: 12, total: 0 });
+    } catch (error) {
+      console.error('Error fetching property products:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedSubCategory, priceRange, selectedLocation, currentPage]);;
+  useEffect(() => {
+    fetchPropertyProducts();
+  }, [fetchPropertyProducts]);
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (priceRange.min) params.set('min_price', priceRange.min.toString());
+    if (priceRange.max) params.set('max_price', priceRange.max.toString());
+    if (selectedLocation) params.set('location', selectedLocation);
+
+    const subCategorySlug = selectedSubCategory 
+      ? subCategories['property-for-sale'].find(sub => sub.name === selectedSubCategory)?.slug 
+      : null;
+
+    const url = subCategorySlug 
+      ? `/property-for-sale/${subCategorySlug}?${params.toString()}`
+      : `/property-for-sale?${params.toString()}`;
+
+    router.push(url);
+  }, [selectedSubCategory, priceRange, selectedLocation]);
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({
       ...prev,
@@ -491,31 +589,28 @@ const PropertyForSalePage: React.FC = () => {
   };
 
   const clearFilters = () => {
-    setPriceRange([0, 10000000]);
-    setSelectedFilters({
-      condition: [],
-      location: [],
-      type: [],
-    });
+    setPriceRange({ min: '', max: '' });
+    setSelectedLocation(null);
     setSelectedSubCategory(null);
+    setCurrentPage(1);
+    router.push('/property-for-sale');
   };
 
-  useEffect(() => {
-    const fetchPropertyProducts = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get('http://127.0.0.1:8000/api/properties-for-sale');
-        console.log(response.data);
-        setProducts(response.data);
-      } catch (error) {
-        console.error('Error fetching property products:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchPropertyProducts();
-  }, []);
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= pagination.last_page) {
+      setCurrentPage(page);
+    }
+  };
+
+  const handlePriceChange = (min: number | '', max: number | '') => {
+    setPriceRange({ min, max });
+    setCurrentPage(1); // Reset to first page on filter change
+  };
+
+  const handleLocationSelect = (location: string | null) => {
+    setSelectedLocation(location);
+    setCurrentPage(1); // Reset to first page on filter change
+  };
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -525,6 +620,12 @@ const PropertyForSalePage: React.FC = () => {
             <span>Home</span>
             <span className="mx-2">›</span>
             <span>Property for Sale</span>
+            {selectedSubCategory && (
+              <>
+                <span className="mx-2">›</span>
+                <span>{selectedSubCategory}</span>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -540,8 +641,8 @@ const PropertyForSalePage: React.FC = () => {
               onSubCategorySelect={setSelectedSubCategory}
               onTypeSelect={() => {}}
             />
-            <LocationSidebar />
-            <PriceFilter />
+            <LocationSidebar onLocationSelect={handleLocationSelect} />
+            <PriceFilter onPriceChange={handlePriceChange} />
           </div>
 
           <div className="w-full lg:w-3/4">
@@ -583,11 +684,31 @@ const PropertyForSalePage: React.FC = () => {
             />
             <div className="mt-6 flex justify-center">
               <nav className="flex items-center gap-1">
-                <button className="px-3 py-1 rounded border text-sm">Previous</button>
-                <button className="px-3 py-1 rounded border bg-blue-600 text-white text-sm">1</button>
-                <button className="px-3 py-1 rounded border text-sm">2</button>
-                <button className="px-3 py-1 rounded border text-sm">3</button>
-                <button className="px-3 py-1 rounded border text-sm">Next</button>
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className={`px-3 py-1 rounded border text-sm ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
+                >
+                  Previous
+                </button>
+                {Array.from({ length: pagination.last_page }, (_, index) => index + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => handlePageChange(page)}
+                    className={`px-3 py-1 rounded border text-sm ${
+                      currentPage === page ? 'bg-blue-600 text-white' : 'hover:bg-gray-100'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === pagination.last_page}
+                  className={`px-3 py-1 rounded border text-sm ${currentPage === pagination.last_page ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
+                >
+                  Next
+                </button>
               </nav>
             </div>
           </div>
@@ -621,16 +742,16 @@ const PropertyForSalePage: React.FC = () => {
                         type="number"
                         placeholder="Min"
                         className="w-24 p-2 border rounded text-sm"
-                        value={priceRange[0]}
-                        onChange={(e) => setPriceRange([Number(e.target.value), priceRange[1]])}
+                        value={priceRange.min}
+                        onChange={(e) => setPriceRange({ min: Number(e.target.value) || '', max: priceRange.max })}
                       />
                       <span className="mx-2">to</span>
                       <input
                         type="number"
                         placeholder="Max"
                         className="w-24 p-2 border rounded text-sm"
-                        value={priceRange[1]}
-                        onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
+                        value={priceRange.max}
+                        onChange={(e) => setPriceRange({ min: priceRange.min, max: Number(e.target.value) || '' })}
                       />
                     </div>
                   </div>
@@ -659,4 +780,4 @@ const PropertyForSalePage: React.FC = () => {
   );
 };
 
-export default PropertyForSalePage;
+export default PropertyForSaleSlugPage;

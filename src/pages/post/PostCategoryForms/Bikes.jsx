@@ -43,6 +43,7 @@ const ImageUploadStatus = ({ status }) => {
 };
 
 const BikesPosting = ({selectedSubCat, selectedType}) => {
+  console.log(selectedType);
   // State Management
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('Bikes');
@@ -276,7 +277,7 @@ const BikesPosting = ({selectedSubCat, selectedType}) => {
     formData.append('contactName', postDetails.contactName);
     formData.append('category', selectedCategory);
     formData.append('subCategory', subCategory);
-    formData.append('kind', kind);
+    formData.append('kind', selectedType);
     formData.append('make', make);
     formData.append('model', model);
     formData.append('year', year);

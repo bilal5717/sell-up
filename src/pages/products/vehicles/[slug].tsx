@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/router';
 import Image from 'next/image';
 import { 
   FiChevronDown, 
@@ -7,13 +8,10 @@ import {
   FiFilter, 
   FiX 
 } from 'react-icons/fi';
-
 import { 
   LuHeart, 
   LuTag, 
-  LuMapPin, 
-  LuWifi, 
-  LuWifiOff 
+  LuMapPin 
 } from 'react-icons/lu';
 import axios from 'axios';
 
@@ -49,103 +47,25 @@ interface FilterState {
   type: string[];
 }
 
-interface Brand {
-  name: string;
-  count: number;
-  models: string[];
-}
-
-interface Category {
-  name: string;
-  slug: string;
-}
-
-interface SubCategory {
-  name: string;
-  types?: string[];
-}
-
-interface CategoryData {
-  [key: string]: SubCategory[];
-}
-
 interface Province {
   name: string;
   cities: string[];
 }
 
+interface TypeOption {
+  label: string;
+  count: number;
+}
+
+interface SubCategory {
+  name: string;
+  slug: string;
+  types?: string[];
+}
+interface CategoryData {
+  [key: string]: SubCategory[];
+}
 // Data
-const brandOptions: Record<string, Brand[]> = {
-  'Vehicles': [
-    { name: 'Toyota', count: 7389, models: ['Corolla', 'Camry', 'Hilux', 'Land Cruiser'] },
-    { name: 'Honda', count: 5164, models: ['Civic', 'Accord', 'City', 'CR-V'] },
-    { name: 'Suzuki', count: 2032, models: ['Mehran', 'Cultus', 'Swift', 'Alto'] },
-    { name: 'Nissan', count: 1539, models: ['Sunny', 'March', 'Sentra'] },
-    { name: 'BMW', count: 940, models: ['3 Series', '5 Series', 'X5'] },
-    { name: 'Mercedes', count: 885, models: ['C-Class', 'E-Class', 'S-Class'] },
-  ]
-};
-
-const categories: Category[] = [
-  { name: 'Mobiles', slug: 'mobiles' },
-  { name: 'Vehicles', slug: 'vehicles' },
-  { name: 'Property for Rent', slug: 'property-for-rent' },
-  { name: 'Property for Sale', slug: 'property-for-sale' },
-  { name: 'Electronics & Home Appliances', slug: 'electronics-home-appliances' },
-  { name: 'Bikes', slug: 'bikes' },
-  { name: 'Business, Industrial & Agriculture', slug: 'business-industrial-agriculture' },
-  { name: 'Services', slug: 'services' },
-  { name: 'Jobs', slug: 'jobs' },
-  { name: 'Animals', slug: 'animals' },
-  { name: 'Books, Sports & Hobbies', slug: 'books-sports-hobbies' },
-  { name: 'Furniture & Home Decor', slug: 'furniture-home-decor' },
-  { name: 'Fashion & Beauty', slug: 'fashion-beauty' },
-  { name: 'Kids', slug: 'kids' },
-  { name: 'Others', slug: 'others' },
-];
-
-const subCategories: CategoryData = {
-  'vehicles': [
-    { name: 'Cars', types: [
-      'Sedan', 'Hatchback', 'SUV', 'Crossover', 'Coupe', 'Convertible', 'Wagon', 'Van'
-    ]},
-    { name: 'Cars On Installments', types: [
-      'New Cars', 'Used Cars', 'Commercial Vehicles'
-    ]},
-    { name: 'Car Care', types: [
-      'Air Fresher', 'Cleaners', 'Compound Polishes', 'Covers', 
-      'Microfiber Clothes', 'Shampoos', 'Waxes', 'Other'
-    ]},
-    { name: 'Car Accessories', types: [
-      'Tools & Gadget', 'Safety & Security', 'Interior', 
-      'Exterior', 'Audio & Multimedia', 'Other'
-    ]},
-    { name: 'Spare Parts', types: [
-      'Engines', 'Fenders', 'Filters', 'Front Grills', 'Fuel Pump', 'Gasket & Seals',
-      'Horns', 'Ignition Coil', 'Lights', 'Mirrors', 'Oxygen Sensors', 'Power Steering',
-      'Radiators & Coolants', 'Spark Plugs', 'Tyres', 'Windscreens', 'Wipers',
-      'AC & Heating', 'Batteries', 'Brakes', 'Bumpers', 'Other'
-    ]},
-    { name: 'Oil & Lubricant', types: [
-      'Chain Lubes', 'Brake Oil', 'Engine Oil', 'Fuel Additives',
-      'Gear Oil', 'Multipurpose Grease', 'Coolants'
-    ]},
-    { name: 'Buses, Vans & Trucks', types: [
-      'Mini Bus', 'Coaster', 'Hiace', 'Trucks', 'Pickups', 'Other'
-    ]},
-    { name: 'Rikshaw & Chingchi', types: [
-      'Rikshaw', 'Chingchi', 'Other'
-    ]},
-    { name: 'Tractors & Trailers', types: [
-      'Tractor', 'Trailer', 'Other'
-    ]},
-    { name: 'Boats', types: [
-      'Fishing Boat', 'Speed Boat', 'Yacht', 'Other'
-    ]},
-    { name: 'Other Vehicles' }
-  ],
-};
-
 const conditions = ['New', 'Used', 'Open Box', 'Refurbished', 'For Parts'];
 
 const provinces: Province[] = [
@@ -156,25 +76,76 @@ const provinces: Province[] = [
   { name: 'Islamabad Capital Territory', cities: ['Islamabad'] },
 ];
 
-const typeOptions: Record<string, { label: string; count: number }[]> = {
-  'Cars': [
+const subCategories: SubCategory[] = [
+  { name: 'Cars', slug: 'cars', types: ['Sedan', 'Hatchback', 'SUV', 'Crossover', 'Coupe', 'Convertible', 'Wagon', 'Van'] },
+  { name: 'Cars On Installments', slug: 'cars-on-installments', types: ['New Cars', 'Used Cars', 'Commercial Vehicles'] },
+  { name: 'Car Care', slug: 'car-care', types: ['Air Fresher', 'Cleaners', 'Compound Polishes', 'Covers', 'Microfiber Clothes', 'Shampoos', 'Waxes', 'Other'] },
+  { name: 'Car Accessories', slug: 'car-accessories', types: ['Tools & Gadget', 'Safety & Security', 'Interior', 'Exterior', 'Audio & Multimedia', 'Other'] },
+  { name: 'Spare Parts', slug: 'spare-parts', types: ['Engines', 'Fenders', 'Filters', 'Front Grills', 'Fuel Pump', 'Gasket & Seals', 'Horns', 'Ignition Coil', 'Lights', 'Mirrors', 'Oxygen Sensors', 'Power Steering', 'Radiators & Coolants', 'Spark Plugs', 'Tyres', 'Windscreens', 'Wipers', 'AC & Heating', 'Batteries', 'Brakes', 'Bumpers', 'Other'] },
+  { name: 'Oil & Lubricant', slug: 'oil-and-lubricant', types: ['Chain Lubes', 'Brake Oil', 'Engine Oil', 'Fuel Additives', 'Gear Oil', 'Multipurpose Grease', 'Coolants'] },
+  { name: 'Buses, Vans & Trucks', slug: 'buses,-vans-and-trucks', types: ['Mini Bus', 'Coaster', 'Hiace', 'Trucks', 'Pickups', 'Other'] },
+  { name: 'Rikshaw & Chingchi', slug: 'rikshaw-and-chingchi', types: ['Rikshaw', 'Chingchi', 'Other'] },
+  { name: 'Tractors & Trailers', slug: 'tractors-and-trailers', types: ['Tractor', 'Trailer', 'Other'] },
+  { name: 'Boats', slug: 'boats', types: ['Fishing Boat', 'Speed Boat', 'Yacht', 'Other'] },
+  { name: 'Other Vehicles', slug: 'other-vehicles' }
+];
+
+
+const typeOptions: Record<string, TypeOption[]> = {
+  'cars': [
     { label: 'Sedan', count: 930 },
     { label: 'SUV', count: 860 },
     { label: 'Hatchback', count: 410 },
+    { label: 'Crossover', count: 320 },
+    { label: 'Coupe', count: 210 }
   ],
-  'Car Care': [
-    { label: 'Air Fresher', count: 420 },
+  'cars-on-installments': [
+    { label: 'New Cars', count: 540 },
+    { label: 'Used Cars', count: 380 },
+    { label: 'Commercial Vehicles', count: 120 }
+  ],
+  'car-care': [
+    { label: 'Air Freshener', count: 420 },
     { label: 'Cleaners', count: 380 },
     { label: 'Shampoos', count: 250 },
+    { label: 'Waxes', count: 180 }
   ],
-  'Spare Parts': [
+  'car-accessories': [
+    { label: 'Tools & Gadget', count: 310 },
+    { label: 'Safety & Security', count: 290 },
+    { label: 'Audio & Multimedia', count: 270 }
+  ],
+  'spare-parts': [
     { label: 'Engines', count: 320 },
     { label: 'Batteries', count: 280 },
     { label: 'Tyres', count: 510 },
+    { label: 'Brakes', count: 230 }
+  ],
+  'oil-lubricant': [
+    { label: 'Engine Oil', count: 450 },
+    { label: 'Brake Oil', count: 210 },
+    { label: 'Gear Oil', count: 190 }
+  ],
+  'buses-vans-trucks': [
+    { label: 'Mini Bus', count: 120 },
+    { label: 'Coaster', count: 90 },
+    { label: 'Hiace', count: 150 }
+  ],
+  'rikshaw-chingchi': [
+    { label: 'Rikshaw', count: 180 },
+    { label: 'Chingchi', count: 150 }
+  ],
+  'tractors-trailers': [
+    { label: 'Tractor', count: 110 },
+    { label: 'Trailer', count: 80 }
+  ],
+  'boats': [
+    { label: 'Fishing Boat', count: 60 },
+    { label: 'Speed Boat', count: 40 }
   ]
 };
 
-// Reuse all the same components from before, just updating the category-specific parts
+// Components
 const LocationSidebar: React.FC = () => {
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
@@ -264,8 +235,10 @@ const LocationSidebar: React.FC = () => {
     </div>
   );
 };
-const DynamicTypeFilterBox: React.FC<{ category: string }> = ({ category }) => {
+
+const DynamicTypeFilterBox: React.FC<{ slug: string }> = ({ slug }) => {
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const router = useRouter();
 
   const handleTypeChange = (type: string) => {
     if (selectedTypes.includes(type)) {
@@ -279,7 +252,7 @@ const DynamicTypeFilterBox: React.FC<{ category: string }> = ({ category }) => {
     setSelectedTypes([]);
   };
 
-  const types = typeOptions[category] || [];
+  const types = typeOptions[slug] || [];
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
@@ -314,6 +287,7 @@ const DynamicTypeFilterBox: React.FC<{ category: string }> = ({ category }) => {
     </div>
   );
 };
+
 const ConditionSelectBox: React.FC = () => {
   const [selectedCondition, setSelectedCondition] = useState<string | null>(null);
 
@@ -355,6 +329,7 @@ const ConditionSelectBox: React.FC = () => {
     </div>
   );
 };
+
 const PriceFilter: React.FC = () => {
   const [minPrice, setMinPrice] = useState<number | ''>('');
   const [maxPrice, setMaxPrice] = useState<number | ''>('');
@@ -462,108 +437,132 @@ const PriceFilter: React.FC = () => {
     </div>
   );
 };
+
 const DynamicCategorySidebar: React.FC<{
-  selectedCategory: string;
-  selectedSubCategory: string | null;
-  selectedType: string | null;
-  onCategorySelect: (category: string) => void;
-  onSubCategorySelect: (subCategory: string | null) => void;
-  onTypeSelect: (type: string | null) => void;
-  }> = ({
-    selectedCategory,
-    selectedSubCategory,
-    selectedType,
-    onCategorySelect,
-    onSubCategorySelect,
-    onTypeSelect,
-  }) => {
-  const [showMoreCategories, setShowMoreCategories] = useState<boolean>(false);
+  slug: string | string[] | undefined;
+  onSubCategorySelect: (slug: string) => void;
+}> = ({ slug, onSubCategorySelect }) => {
+  const [showMoreSubCategories, setShowMoreSubCategories] = useState(false);
+  const [showMoreTypes, setShowMoreTypes] = useState(false);
+  const [selectedType, setSelectedType] = useState<string | null>(null);
 
-  const toggleCategory = (slug: string) => {
-    onCategorySelect(slug);
-    onSubCategorySelect(null);
-    onTypeSelect(null);
-  };
+  const router = useRouter();
+  const query = router.query;
 
-  const toggleSubCategory = (name: string) => {
-    if (selectedSubCategory === name) {
-      onSubCategorySelect(null);
-      onTypeSelect(null);
+  const subCategories: SubCategory[] = [
+    { name: 'Cars', slug: 'cars', types: [] },
+    { name: 'Cars On Installments', slug: 'cars-on-installments', types: [] },
+    {
+      name: 'Car Care', slug: 'car-care', types: [
+        'Air Fresher', 'Cleaners', 'Compound Polishes', 'Covers', 'Microfiber Clothes',
+        'Shampoos', 'Waxes', 'Other'
+      ]
+    },
+    {
+      name: 'Car Accessories', slug: 'car-accessories', types: [
+        'Tools & Gadget', 'Safety & Security', 'Interior', 'Exterior', 'Audio & Multimedia', 'Other'
+      ]
+    },
+    {
+      name: 'Spare Parts', slug: 'spare-parts-vehicle', types: [
+        'Engines', 'Fenders', 'Filters', 'Front Grills', 'Fuel Pump', 'Gasket & Seals', 'Horns',
+        'Ignition Coil', 'Ignition Switches', 'Insulation Sheets', 'Lights', 'Mirrors', 'Oxygen Sensors',
+        'Power Steering', 'Radiators & Coolants', 'Spark Plugs', 'Sun Visor', 'Suspension Parts', 'Trunk Parts',
+        'Tyres', 'Windscreens', 'Wipers', 'AC & Heating', 'Antennas', 'Batteries', 'Belts & Cables', 'Bonnets',
+        'Brakes', 'Bumpers', 'Bushing', 'Buttons', 'Catalytic Converters', 'Door & Components', 'Engine Shields'
+      ]
+    },
+    {
+      name: 'Oil & Lubricant', slug: 'oil-and-lubricant', types: [
+        'Chain Lubes And Cleaners', 'Brake Oil', 'CUTE Oil', 'Engine Oil', 'Fuel Additives',
+        'Gear Oil', 'Multipurpose Grease', 'Oil additives', 'Coolants'
+      ]
+    },
+    { name: 'Buses, Vans & Trucks', slug: 'buses-vans-trucks', types: [] },
+    { name: 'Rikshaw & Chingchi', slug: 'rikshaw-chingchi', types: [] },
+    { name: 'Tractors & Trailers', slug: 'tractors-trailers', types: [] },
+    { name: 'Boats', slug: 'boats', types: [] },
+    { name: 'Other Vehicles', slug: 'other-vehicles', types: [] }
+  ];
+
+  const selectedSubCat = subCategories.find(sc => sc.slug === slug);
+  const visibleSubCategories = showMoreSubCategories ? subCategories : subCategories.slice(0, 6);
+
+ const handleTypeClick = (type: string) => {
+  const typeSlug = type.toLowerCase().replace(/\s+/g, '-');
+  router.push(`/${typeSlug}`, undefined, { shallow: true });
+};
+
+
+  useEffect(() => {
+    if (query.type && typeof query.type === 'string') {
+      setSelectedType(query.type);
     } else {
-      onSubCategorySelect(name);
-      onTypeSelect(null);
+      setSelectedType(null);
     }
-  };
-
-  const toggleType = (type: string) => {
-    if (selectedType === type) {
-      onTypeSelect(null);
-    } else {
-      onTypeSelect(type);
-    }
-  };
-
-  const toggleShowMoreCategories = () => {
-    setShowMoreCategories((prev) => !prev);
-  };
+  }, [query]);
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-      <h3 className="font-bold text-lg mb-2">All Categories</h3>
+      <h3 className="font-bold text-lg mb-2">Vehicles</h3>
       <div className="space-y-1">
-        {(showMoreCategories ? categories : categories.slice(0, 4)).map((category) => (
-          <div key={category.slug} className="cursor-pointer">
+        {visibleSubCategories.map((subCategory) => (
+          <div key={subCategory.slug}>
             <div
-              className={`py-1 px-2 hover:bg-gray-100 ${selectedCategory === category.slug ? 'text-blue-600 font-medium' : 'text-gray-800'}`}
-              onClick={() => toggleCategory(category.slug)}
-              style={{ fontSize: '12px', lineHeight: '1.5' }}
+              className={`py-1 px-2 cursor-pointer hover:text-blue-600 ${
+                slug === subCategory.slug ? 'text-blue-600 font-semibold' : 'text-gray-700'
+              }`}
+              onClick={() => {
+                onSubCategorySelect(subCategory.slug);
+                setShowMoreTypes(false);
+                setSelectedType(null);
+              }}
+              style={{ fontSize: '13px', lineHeight: '1.5' }}
             >
-              {category.name}
+              {subCategory.name}
             </div>
 
-            {selectedCategory === category.slug && subCategories[category.slug] && (
-              <div className="ml-4 space-y-1">
-                {subCategories[category.slug].map((sub, index) => (
-                  <div key={index}>
-                    <div
-                      className={`py-1 cursor-pointer hover:text-blue-600 ${selectedSubCategory === sub.name ? 'text-blue-600 font-medium' : 'text-gray-700'}`}
-                      onClick={() => toggleSubCategory(sub.name)}
-                      style={{ fontSize: '12px', lineHeight: '1.5' }}
-                    >
-                      {sub.name}
-                    </div>
-                    {sub.types && selectedSubCategory === sub.name && (
-                      <div className="ml-4 space-y-1">
-                        {sub.types.map((type, i) => (
-                          <div
-                            key={i}
-                            className={`py-1 cursor-pointer hover:text-blue-600 ${selectedType === type ? 'text-blue-600 font-medium' : 'text-gray-600'}`}
-                            style={{ fontSize: '12px', lineHeight: '1.5' }}
-                            onClick={() => toggleType(type)}
-                          >
-                            - {type}
-                          </div>
-                        ))}
-                      </div>
-                    )}
+            {/* Only show types of selected subcategory */}
+            {slug === subCategory.slug && subCategory.types && subCategory.types.length > 0 && (
+              <div className="pl-4 mt-1 text-xs text-gray-600 space-y-1">
+                {(showMoreTypes ? subCategory.types : subCategory.types.slice(0, 6)).map((type, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => handleTypeClick(type)}
+                    className={`truncate cursor-pointer ${
+                      selectedType === type ? 'text-blue-500 font-medium' : 'hover:text-blue-500'
+                    }`}
+                  >
+                    • {type}
                   </div>
                 ))}
+
+                {subCategory.types.length > 6 && (
+                  <button
+                    onClick={() => setShowMoreTypes(prev => !prev)}
+                    className="text-blue-500 text-xs mt-1"
+                  >
+                    {showMoreTypes ? 'Show Less' : 'Show More'}
+                  </button>
+                )}
               </div>
             )}
           </div>
         ))}
-        {categories.length > 4 && (
+
+        {subCategories.length > 6 && (
           <button
-            onClick={toggleShowMoreCategories}
+            onClick={() => setShowMoreSubCategories(prev => !prev)}
             className="text-blue-600 text-sm mt-2"
           >
-            {showMoreCategories ? 'Show Less' : 'Show More'}
+            {showMoreSubCategories ? 'Show Less Categories' : 'Show More Categories'}
           </button>
         )}
       </div>
     </div>
   );
 };
+
 
 const VehiclesProductCard: React.FC<{ products: Product[]; loading?: boolean }> = ({
   products = [],
@@ -686,11 +685,12 @@ const VehiclesProductCard: React.FC<{ products: Product[]; loading?: boolean }> 
   );
 };
 
-const VehiclesCategoryPage: React.FC = () => {
+const VehiclesSlugPage: React.FC = () => {
+  const router = useRouter();
+  const { slug } = router.query;
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000000]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('vehicles');
-  const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
-  const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedFilters, setSelectedFilters] = useState<FilterState>({
     condition: [],
     location: [],
@@ -698,7 +698,6 @@ const VehiclesCategoryPage: React.FC = () => {
   });
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState<boolean>(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    category: true,
     price: true,
     condition: true,
     location: true,
@@ -706,8 +705,6 @@ const VehiclesCategoryPage: React.FC = () => {
   });
   const [sortBy, setSortBy] = useState<string>('newest');
   const [selectedCondition, setSelectedCondition] = useState<string>('all');
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({
@@ -737,26 +734,58 @@ const VehiclesCategoryPage: React.FC = () => {
       location: [],
       type: [],
     });
-    setSelectedSubCategory(null);
-    setSelectedType(null);
+    setSelectedCondition('all');
   };
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get('http://127.0.0.1:8000/api/vehicles');
-        console.log(response.data);
-        setProducts(response.data);
-      } catch (error) {
-        console.error('Error fetching vehicles:', error);
-      } finally {
-        setLoading(false);
+  const fetchProducts = useCallback(async () => {
+    try {
+      setLoading(true);
+      
+      // Build query parameters based on selected filters
+      const params: Record<string, any> = {
+        slug: Array.isArray(slug) ? slug.join('/') : slug,
+        sort: sortBy,
+        condition: selectedCondition === 'all' ? undefined : selectedCondition,
+      };
+
+      if (priceRange[0] > 0 || priceRange[1] < 1000000) {
+        params.min_price = priceRange[0];
+        params.max_price = priceRange[1];
       }
-    };
-    
+
+      // Add selected filters to params
+      Object.entries(selectedFilters).forEach(([key, values]) => {
+        if (values.length > 0) {
+          params[key] = values.join(',');
+        }
+      });
+
+      const response = await axios.get('http://127.0.0.1:8000/api/vehicles', {
+        params,
+      });
+      
+      setProducts(response.data);
+    } catch (error) {
+      console.error('Error fetching vehicles:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [slug, sortBy, selectedCondition, priceRange, selectedFilters]);
+
+  useEffect(() => {
+    if (!router.isReady) return;
     fetchProducts();
-  }, []);
+  }, [router.isReady, fetchProducts]);
+
+  const handleSubCategorySelect = (subCategorySlug: string) => {
+    router.push(`/${subCategorySlug}`, undefined, { shallow: true });
+  };
+
+  const getSubCategoryName = () => {
+    if (!slug) return 'Vehicles';
+    const subCategory = subCategories.find(sc => sc.slug === slug);
+    return subCategory?.name || 'Vehicles';
+  };
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -766,6 +795,12 @@ const VehiclesCategoryPage: React.FC = () => {
             <span>Home</span>
             <span className="mx-2">›</span>
             <span>Vehicles</span>
+            {slug && (
+              <>
+                <span className="mx-2">›</span>
+                <span className="capitalize">{getSubCategoryName()}</span>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -773,25 +808,23 @@ const VehiclesCategoryPage: React.FC = () => {
       <div className="container mx-auto py-4 px-4">
         <div className="flex flex-col lg:flex-row gap-4">
           <div className="w-full lg:w-1/4 space-y-4">
-            <DynamicCategorySidebar
-              selectedCategory={selectedCategory}
-              selectedSubCategory={selectedSubCategory}
-              selectedType={selectedType}
-              onCategorySelect={setSelectedCategory}
-              onSubCategorySelect={setSelectedSubCategory}
-              onTypeSelect={setSelectedType}
+            <DynamicCategorySidebar 
+              slug={slug}
+              onSubCategorySelect={handleSubCategorySelect}
             />
             <LocationSidebar />
             <PriceFilter />
             <ConditionSelectBox />
-            {selectedSubCategory && typeOptions[selectedSubCategory] && (
-              <DynamicTypeFilterBox category={selectedSubCategory} />
+            {slug && typeOptions[slug as string] && (
+              <DynamicTypeFilterBox slug={slug as string} />
             )}
           </div>
 
           <div className="w-full lg:w-3/4">
             <div className="md:hidden flex justify-between items-center mb-4">
-              <h1 className="text-xl font-bold">Vehicles</h1>
+              <h1 className="text-xl font-bold capitalize">
+                {getSubCategoryName()}
+              </h1>
               <button 
                 onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
                 className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded"
@@ -800,20 +833,19 @@ const VehiclesCategoryPage: React.FC = () => {
               </button>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm p-4 mb-4 flex justify-between items-center">
+            <div className="bg-white rounded-lg shadow-sm p-4 mb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div className="text-sm text-gray-600">
-                {selectedSubCategory ? 
-                  `Showing ${selectedSubCategory} vehicles${selectedType ? ` (${selectedType})` : ''}` : 
-                  'Showing all vehicles'}
+                Showing {getSubCategoryName().toLowerCase()}
+                <span className="ml-2 text-gray-500">({products.length} results)</span>
               </div>
               
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full md:w-auto">
+                <div className="flex items-center gap-2 w-full md:w-auto">
                   <span className="text-sm text-gray-600">Condition:</span>
                   <select
                     value={selectedCondition}
                     onChange={(e) => setSelectedCondition(e.target.value)}
-                    className="border rounded p-2 text-sm"
+                    className="border rounded p-2 text-sm w-full md:w-auto"
                   >
                     <option value="all">All</option>
                     <option value="new">New</option>
@@ -821,12 +853,12 @@ const VehiclesCategoryPage: React.FC = () => {
                   </select>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full md:w-auto">
                   <span className="text-sm text-gray-600">Sort by:</span>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="border rounded p-2 text-sm"
+                    className="border rounded p-2 text-sm w-full md:w-auto"
                   >
                     <option value="newest">Newest First</option>
                     <option value="price-low">Price: Low to High</option>
@@ -841,15 +873,18 @@ const VehiclesCategoryPage: React.FC = () => {
               products={products}
               loading={loading}
             />
-            <div className="mt-6 flex justify-center">
-              <nav className="flex items-center gap-1">
-                <button className="px-3 py-1 rounded border text-sm">Previous</button>
-                <button className="px-3 py-1 rounded border bg-blue-600 text-white text-sm">1</button>
-                <button className="px-3 py-1 rounded border text-sm">2</button>
-                <button className="px-3 py-1 rounded border text-sm">3</button>
-                <button className="px-3 py-1 rounded border text-sm">Next</button>
-              </nav>
-            </div>
+            
+            {products.length > 0 && (
+              <div className="mt-6 flex justify-center">
+                <nav className="flex items-center gap-1">
+                  <button className="px-3 py-1 rounded border text-sm">Previous</button>
+                  <button className="px-3 py-1 rounded border bg-blue-600 text-white text-sm">1</button>
+                  <button className="px-3 py-1 rounded border text-sm">2</button>
+                  <button className="px-3 py-1 rounded border text-sm">3</button>
+                  <button className="px-3 py-1 rounded border text-sm">Next</button>
+                </nav>
+              </div>
+            )}
           </div>
         </div>
 
@@ -906,7 +941,10 @@ const VehiclesCategoryPage: React.FC = () => {
                 Clear all
               </button>
               <button 
-                onClick={() => setMobileFiltersOpen(false)}
+                onClick={() => {
+                  setMobileFiltersOpen(false);
+                  fetchProducts();
+                }}
                 className="flex-1 py-2 bg-blue-600 rounded text-white font-medium"
               >
                 Show results
@@ -919,4 +957,4 @@ const VehiclesCategoryPage: React.FC = () => {
   );
 };
 
-export default VehiclesCategoryPage;
+export default VehiclesSlugPage;

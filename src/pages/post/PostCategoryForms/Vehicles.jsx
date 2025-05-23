@@ -374,7 +374,7 @@ const handleSubmit = async (e) => {
   // Add basic post details
   formData.append('category', selectedCategory);
   formData.append('subCategory', subCategory);
-  formData.append('vehicleType', vehicleType);
+  formData.append('vehicleType', selectedType);
   formData.append('title', postDetails.title);
   formData.append('description', postDetails.description);
   formData.append('contactName', postDetails.contactName);

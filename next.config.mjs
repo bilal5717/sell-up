@@ -1,23 +1,22 @@
-// next.config.js
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   compiler: {
-    styledComponents: true, // 👈 this enables SSR support
+    styledComponents: true,
   },
   images: {
     domains: ['flagcdn.com', 'media.sellup.pk', 'via.placeholder.com'],
   },
   remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'via.placeholder.com',
-        pathname: '/**',
-      },
-    ],
+    {
+      protocol: 'https',
+      hostname: 'via.placeholder.com',
+      pathname: '/**',
+    },
+  ],
   async rewrites() {
     return [
-      
+      // Specific mobile-related routes
       {
         source: '/mobiles_:slug',
         destination: '/products/mobiles/:slug',
@@ -39,69 +38,64 @@ const nextConfig = {
         destination: '/products/mobiles/accessories',
       },
       {
-  source: '/accessories/:type',
-  destination: '/products/mobiles/accessories/:type',
-},
-     {
-  source: '/smart-watches',
-  destination: '/products/mobiles/smart-watches',
-},
+        source: '/accessories/:type',
+        destination: '/products/mobiles/accessories/:type',
+      },
+      {
+        source: '/smart-watches',
+        destination: '/products/mobiles/smart-watches',
+      },
+      // Specific vehicle-related routes
+      {
+        source: '/vehicles',
+        destination: '/products/vehicles',
+      },
+      {
+        source: '/bikes',
+        destination: '/products/bikes',
+      },
+      {
+        source: '/bikes/:type',
+        destination: '/products/bikes/subCat/:type',
+      },
 
-{
-  source: '/accessories',
-  destination: '/products/accessories',
-},
       {
-        source: '/vehicles/:id',
-        destination: '/products/vehicles/:id',
+        source: '/property-for-rent',
+        destination: '/products/property-for-rent',
       },
       {
-        source: '/bikes/:id',
-        destination: '/products/bikes/:id',
+        source: '/property-for-rent/:slug',
+        destination: '/products/property-for-rent/:slug',
       },
       {
-        source: '/property-for-rent/:id',
-        destination: '/products/property-for-rent/:id',
+        source: '/property-for-sale',
+        destination: '/products/property-for-sale',
       },
       {
-        source: '/property-for-sale/:id',
-        destination: '/products/property-for-sale/:id',
+        source: '/property-for-sale/:slug',
+        destination: '/products/property-for-sale/:slug',
+      },
+
+      {
+        source: '/fashion-beauty',
+        destination: '/products/fashion-beauty',
       },
       {
-        source: '/fashion-beauty/:id',
-        destination: '/products/fashion-beauty/:id',
+        source: '/fashion-beauty/:slug',
+        destination: '/products/fashion-beauty/:slug',
       },
-       {
-        source: '/electronics-home-appliances/:id',
-        destination: '/products/electronics-home-appliances/:id',
+
+      {
+        source: '/business-industrial-agriculture',
+        destination: '/products/business-industrial-agriculture',
       },
       {
-        source: '/business-industrial-agriculture/:id',
-        destination: '/products/business-industrial-agriculture/:id',
+        source: '/business-industrial-agriculture/:slug',
+        destination: '/products/business-industrial-agriculture/:slug',
       },
       {
-        source: '/services/:id',
-        destination: '/products/services/:id',
-      },
-      {
-        source: '/jobs/:id',
-        destination: '/products/jobs/:id',
-      },
-      {
-        source: '/animals/:id',
-        destination: '/products/animals/:id',
-      },
-      {
-        source: '/books-sports-hobbies/:id',
-        destination: '/products/books-sports-hobbies/:id',
-      },
-      {
-        source: '/furniture-home-decor/:id',
-        destination: '/products/furniture-home-decor/:id',
-      },
-      {
-        source: '/kids/:id',
-        destination: '/products/kids/:id',
+        source: '/:slug',
+        destination: '/products/vehicles/:slug',
       },
     ];
   },

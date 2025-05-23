@@ -4,6 +4,7 @@ import { FiEdit, FiX, FiChevronDown, FiCheck, FiPlus, FiSearch, FiCalendar } fro
 import Switch from '@/components/common/Tooglebtn';
 import axios from 'axios';
 const PropertyPosting = ({selectedSubCat}) => {
+  console.log(selectedSubCat);
   // Data Constants
   const categories = [
     { id: 1, name: 'Mobiles', icon: '📱' },
@@ -252,6 +253,7 @@ const ImageUploadStatus = ({ status }) => {
     formData.append('description', state.postDetails.description);
     formData.append('category', state.selectedCategory);
     formData.append('subCategory', state.subCategory);
+    formData.append('sub_type', state.subCategory);
     formData.append('bedrooms', state.bedrooms);
     formData.append('bathrooms', state.bathrooms);
     formData.append('storeys', state.storeys);

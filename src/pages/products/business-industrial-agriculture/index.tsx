@@ -1,8 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/router';
-import Link from 'next/link';
+import { useRouter, usePathname } from 'next/navigation';
 import { 
   FiChevronDown, 
   FiChevronUp, 
@@ -17,10 +16,9 @@ import {
   LuWifiOff 
 } from 'react-icons/lu';
 import axios from 'axios';
-import { usePathname, useSearchParams } from 'next/navigation';
 
 // Interfaces
-interface MobileProduct {
+interface Product {
   id: number;
   post_id: number;
   brand: string;
@@ -30,12 +28,10 @@ interface MobileProduct {
   location: string;
   posted_at: string;
   images?: { url: string; is_featured: number; order: number }[];
-  pta_status?: string;
   title?: string;
   category?: string;
   sub_category?: string;
   type?: string;
-  size?: string;
 }
 
 interface FilterState {
@@ -69,67 +65,67 @@ interface Province {
   cities: string[];
 }
 
-// Mobile-specific Data
-const mobileCategories: Category[] = [
-  { name: 'Mobile Phones', slug: 'mobile-phones' },
-  { name: 'Tablets', slug: 'tablets' },
-  { name: 'Accessories', slug: 'accessories' },
-  { name: 'Smart Watches', slug: 'smart-watches' },
+// Data
+const categories: Category[] = [
+  { name: 'Business, Industrial & Agriculture', slug: 'business-industrial-agriculture' },
 ];
 
-const mobileSubCategories: CategoryData = {
-  'accessories': [
+const subCategories: CategoryData = {
+  'business-industrial-agriculture': [
     { 
-      name: 'Accessory', 
+      name: 'Business For Sale', 
       types: [
-        'Charging Cables', 
-        'Converters', 
-        'Chargers', 
-        'Screens', 
-        'Screen Protector',
-        'Mobile Stands', 
-        'Ring Lights', 
-        'Selfie Sticks', 
-        'Power Banks', 
-        'Headphones',
-        'EarPhones', 
-        'Covers & Cases', 
-        'External Memory', 
-        'Other'
+        'Mobile Shops', 'Water Plants', 'Beauty Salons', 'Grocery Store', 
+        'Hotel & Resturant', 'Pharmacies', 'Snooker Clubs', 'Cosmetic & jewellery Shop',
+        'Gyms', 'Clinics', 'Franchises', 'Gift and Toy Shops', 'Petrol Pump',
+        'Auto parts shop', 'Other Bussiness'
       ] 
     },
-    { name: 'Chargers', types: ['Wireless Chargers', 'Fast Chargers'] },
-    { name: 'Cables', types: ['USB-C', 'Lightning', 'Micro USB'] },
-    { name: 'Cases & Covers' },
+    { 
+      name: 'Construction & Heavy Machinery', 
+      types: [
+        'Construction Material', 'Concrete Grinders', 'Drill Machines', 'Road Roller',
+        'Cranes', 'Construction Lifters', 'Pavers', 'Excavators', 'Concrete Cutters',
+        'Compactors', 'Water Pumps', 'Air Compressors', 'Domp Truck', 'Motor Granders',
+        'Other Heavy Equipment'
+      ] 
+    },
+    { 
+      name: 'Medical & Pharma', 
+      types: [
+        'Ultrasound Machines', 'Surgical Masks', 'patient Beds', 'Wheelchairs',
+        'Oxygen Cylinders', 'Pulse Oximeters', 'Hearing aid', 'Blood pressure Monitors',
+        'Themometers', 'Walkers', 'Nebulizer', 'Breast Pump', 'Surgical instrument',
+        'Microscopes', 'Other Medical Supplies'
+      ] 
+    },
+    { 
+      name: 'Trade & Industrial Machinery', 
+      types: [
+        'Woodworking Machines', 'Currency counting machine', 'Plastic & Rubber processing machine',
+        'Molding Machine', 'Packing Machine', 'Welding equipemnt', 'paper machine',
+        'Air compressors', 'Sealing Machine', 'Lathe Machines', 'Liquid Filling Machine',
+        'Marking Machine', 'Textile Machinery', 'Sewing Machine', 'Knithing Machine',
+        'Embroidery Machine', 'Printing Machine', 'Other bussiness & Industrial Machines'
+      ] 
+    },
+    { 
+      name: 'Food & Restaurant', 
+      types: [
+        'Baking equipment', 'Food display counters', 'Ovens & Tandoor', 'Fryers',
+        'Tables & Platform', 'Fruit & Vegetable Machine', 'Chillers', 'Food Stall',
+        'Delivery Bags', 'Crockery & Cutlery', 'Ic-Cream Machines', 'Other resturant equipment'
+      ] 
+    },
+    { 
+      name: 'Agriculture', 
+      types: [
+        'Farm Machinery and equipment', 'Seads', 'Crops', 'Pesticides & Fertilizer',
+        'Plant & Tree', 'Other agriculture Silage'
+      ] 
+    },
+    { name: 'Other Business & Industry' }
   ],
-  'smart-watches': [
-    { name: 'Apple Watch' },
-    { name: 'Samsung Watch' },
-    { name: 'Fitness Trackers' },
-  ],
-};
-
-const brandOptions: Record<string, Brand[]> = {
-  'Mobile Phones': [
-    { name: 'Apple iPhone', count: 73899, models: ['iPhone 13', 'iPhone 12', 'iPhone 11', 'iPhone SE'] },
-    { name: 'Samsung Mobile', count: 21646, models: ['Galaxy S21', 'Galaxy Note 20', 'Galaxy A52'] },
-    { name: 'Infinix', count: 12032, models: ['Note 10', 'Hot 11', 'Zero X Pro'] },
-    { name: 'Vivo', count: 11539, models: ['V21', 'Y51', 'X60 Pro'] },
-    { name: 'Google', count: 9400, models: ['Pixel 6', 'Pixel 5', 'Pixel 4a'] },
-    { name: 'Xiaomi', count: 9085, models: ['Redmi Note 10', 'Mi 11', 'Poco X3'] },
-  ],
-  'Tablets': [
-    { name: 'Apple iPad', count: 12345, models: ['iPad Pro', 'iPad Air', 'iPad Mini'] },
-    { name: 'Samsung Tablet', count: 9876, models: ['Galaxy Tab S7', 'Galaxy Tab A'] },
-  ],
-  'Accessories': [
-    { name: 'Apple Accessories', count: 5432, models: ['MagSafe Charger', 'Lightning Cable'] },
-    { name: 'Samsung Accessories', count: 4321, models: ['Wireless Charger', 'USB-C Cable'] },
-  ],
-  'Smart Watches': [
-    { name: 'Apple Watch', count: 7654, models: ['Series 7', 'Series 6', 'SE'] },
-    { name: 'Samsung Watch', count: 6543, models: ['Galaxy Watch 4', 'Galaxy Watch Active 2'] },
-  ]
 };
 
 const conditions = ['New', 'Used', 'Open Box', 'Refurbished', 'For Parts'];
@@ -142,117 +138,10 @@ const provinces: Province[] = [
   { name: 'Islamabad Capital Territory', cities: ['Islamabad'] },
 ];
 
-const typeOptions: Record<string, { label: string; count: number }[]> = {
-  'Accessories': [
-    { label: 'Mobile', count: 930 },
-    { label: 'Tablet', count: 46 },
-    { label: 'Smart Watch', count: 11 },
-  ]
-};
+// Utility function to convert name to slug
+const toSlug = (name: string) => name.toLowerCase().replace(/\s+/g, '-');
 
 // Components
-const DynamicBrandModelFilter: React.FC<{ category: string }> = ({ category }) => {
-  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
-  const [selectedModels, setSelectedModels] = useState<string[]>([]);
-
-  const handleBrandSelect = (brand: string) => {
-    setSelectedBrand(brand);
-    setSelectedModels([]);
-  };
-
-  const handleModelSelect = (model: string) => {
-    if (selectedModels.includes(model)) {
-      setSelectedModels((prev) => prev.filter((m) => m !== model));
-    } else {
-      setSelectedModels((prev) => [...prev, model]);
-    }
-  };
-
-  const clearSelection = () => {
-    setSelectedBrand(null);
-    setSelectedModels([]);
-  };
-
-  const brands = brandOptions[category] || [];
-
-  return (
-    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-      <h3 className="font-bold text-lg mb-2">Brand & Model</h3>
-      <select
-        className="w-full border rounded p-2 text-gray-700 text-sm mb-2"
-        value={selectedBrand || ''}
-        onChange={(e) => handleBrandSelect(e.target.value)}
-      >
-        <option value="" disabled>Select Brand</option>
-        {brands.map((brand) => (
-          <option key={brand.name} value={brand.name}>
-            {brand.name} ({brand.count})
-          </option>
-        ))}
-      </select>
-
-      {!selectedBrand && (
-        <div className="flex flex-wrap gap-2 mt-2">
-          {brands.slice(0, 5).map((brand) => (
-            <button
-              key={brand.name}
-              onClick={() => handleBrandSelect(brand.name)}
-              className="text-blue-600 text-sm px-2 py-1 border border-gray-300 rounded hover:bg-gray-100"
-            >
-              {brand.name} ({brand.count})
-            </button>
-          ))}
-        </div>
-      )}
-
-      {selectedBrand && (
-        <div className="mt-2">
-          <div className="text-gray-700 text-sm mb-1">Select Models:</div>
-          <div className="flex flex-wrap gap-2">
-            {brands
-              .find((brand) => brand.name === selectedBrand)
-              ?.models.map((model) => (
-                <div
-                  key={model}
-                  className={`px-2 py-1 rounded border cursor-pointer ${
-                    selectedModels.includes(model)
-                      ? 'bg-blue-100 text-blue-700 border-blue-300'
-                      : 'text-gray-700 border-gray-300 hover:bg-gray-100'
-                  } text-sm`}
-                  onClick={() => handleModelSelect(model)}
-                >
-                  {model}
-                </div>
-              ))}
-          </div>
-
-          {selectedModels.length > 0 && (
-            <div className="mt-3 flex items-center">
-              <span className="text-gray-700 text-sm">Selected Models: </span>
-              <div className="flex flex-wrap gap-1 ml-2">
-                {selectedModels.map((model) => (
-                  <span
-                    key={model}
-                    className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-sm"
-                  >
-                    {model}
-                  </span>
-                ))}
-              </div>
-              <button
-                onClick={clearSelection}
-                className="ml-2 text-blue-600 text-xs"
-              >
-                Clear
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
-
 const DynamicCategorySidebar: React.FC<{
   selectedCategory: string;
   selectedSubCategory: string | null;
@@ -268,69 +157,78 @@ const DynamicCategorySidebar: React.FC<{
   onSubCategorySelect,
   onTypeSelect,
 }) => {
+  const router = useRouter();
+  const [showMoreCategories, setShowMoreCategories] = useState<boolean>(false);
+
   const toggleCategory = (slug: string) => {
     onCategorySelect(slug);
     onSubCategorySelect(null);
     onTypeSelect(null);
+    router.push(`/${slug}`);
   };
 
   const toggleSubCategory = (name: string) => {
     if (selectedSubCategory === name) {
       onSubCategorySelect(null);
       onTypeSelect(null);
+      router.push(`/${selectedCategory}`);
     } else {
       onSubCategorySelect(name);
       onTypeSelect(null);
+      router.push(`/${selectedCategory}/${toSlug(name)}`);
     }
   };
 
   const toggleType = (type: string) => {
     if (selectedType === type) {
       onTypeSelect(null);
+      router.push(`/${selectedCategory}/${toSlug(selectedSubCategory!)}`);
     } else {
       onTypeSelect(type);
+      router.push(`/${selectedCategory}/${toSlug(selectedSubCategory!)}/${toSlug(type)}`);
     }
+  };
+
+  const toggleShowMoreCategories = () => {
+    setShowMoreCategories((prev) => !prev);
   };
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-      <h3 className="font-bold text-lg mb-2">Mobile Categories</h3>
+      <h3 className="font-bold text-lg mb-2">All Categories</h3>
       <div className="space-y-1">
-        {mobileCategories.map((category) => (
+        {(showMoreCategories ? categories : categories.slice(0, 4)).map((category) => (
           <div key={category.slug} className="cursor-pointer">
-            <Link 
-              href={`/${category.slug}`}
-              className={`py-1 px-2 hover:bg-gray-100 block ${selectedCategory === category.slug ? 'text-blue-600 font-medium' : 'text-gray-800'}`}
+            <div
+              className={`py-1 px-2 hover:bg-gray-100 ${selectedCategory === category.slug ? 'text-blue-600 font-medium' : 'text-gray-800'}`}
               onClick={() => toggleCategory(category.slug)}
               style={{ fontSize: '12px', lineHeight: '1.5' }}
             >
               {category.name}
-            </Link>
+            </div>
 
-            {selectedCategory === category.slug && mobileSubCategories[category.slug] && (
+            {selectedCategory === category.slug && subCategories[category.slug] && (
               <div className="ml-4 space-y-1">
-                {mobileSubCategories[category.slug].map((sub, index) => (
+                {subCategories[category.slug].map((sub, index) => (
                   <div key={index}>
-                    <Link
-                      href={`/${category.slug}/${sub.name.toLowerCase().replace(/\s+/g, '-')}`}
-                      className={`py-1 cursor-pointer hover:text-blue-600 block ${selectedSubCategory === sub.name ? 'text-blue-600 font-medium' : 'text-gray-700'}`}
+                    <div
+                      className={`py-1 cursor-pointer hover:text-blue-600 ${selectedSubCategory === sub.name ? 'text-blue-600 font-medium' : 'text-gray-700'}`}
                       onClick={() => toggleSubCategory(sub.name)}
                       style={{ fontSize: '12px', lineHeight: '1.5' }}
                     >
                       {sub.name}
-                    </Link>
+                    </div>
                     {sub.types && selectedSubCategory === sub.name && (
                       <div className="ml-4 space-y-1">
                         {sub.types.map((type, i) => (
-                          <Link
+                          <div
                             key={i}
-                            href={`/${category.slug}/${sub.name.toLowerCase().replace(/\s+/g, '-')}/${type.toLowerCase().replace(/\s+/g, '-')}_id`}
-                            className={`py-1 cursor-pointer hover:text-blue-600 block ${selectedType === type ? 'text-blue-600 font-medium' : 'text-gray-600'}`}
+                            className={`py-1 cursor-pointer hover:text-blue-600 ${selectedType === type ? 'text-blue-600 font-medium' : 'text-gray-600'}`}
                             style={{ fontSize: '12px', lineHeight: '1.5' }}
                             onClick={() => toggleType(type)}
                           >
                             - {type}
-                          </Link>
+                          </div>
                         ))}
                       </div>
                     )}
@@ -340,6 +238,14 @@ const DynamicCategorySidebar: React.FC<{
             )}
           </div>
         ))}
+        {categories.length > 4 && (
+          <button
+            onClick={toggleShowMoreCategories}
+            className="text-blue-600 text-sm mt-2"
+          >
+            {showMoreCategories ? 'Show Less' : 'Show More'}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -585,67 +491,15 @@ const PriceFilter: React.FC = () => {
   );
 };
 
-const DynamicTypeFilterBox: React.FC<{ category: string }> = ({ category }) => {
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-
-  const handleTypeChange = (type: string) => {
-    if (selectedTypes.includes(type)) {
-      setSelectedTypes((prev) => prev.filter((t) => t !== type));
-    } else {
-      setSelectedTypes((prev) => [...prev, type]);
-    }
-  };
-
-  const clearSelection = () => {
-    setSelectedTypes([]);
-  };
-
-  const types = typeOptions[category] || [];
-
-  return (
-    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-      <h3 className="font-bold text-lg mb-2">Type</h3>
-      {selectedTypes.length > 0 ? (
-        <div className="flex justify-between items-center bg-gray-100 p-2 rounded text-gray-700">
-          <span className="text-sm">{selectedTypes.join(', ')}</span>
-          <button
-            onClick={clearSelection}
-            className="text-blue-600 text-xs"
-          >
-            Change
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-1">
-          {types.map((type) => (
-            <label key={type.label} className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={selectedTypes.includes(type.label)}
-                onChange={() => handleTypeChange(type.label)}
-                className="h-4 w-4 text-blue-600 rounded"
-              />
-              <span className="text-gray-700 text-sm">
-                {type.label} ({type.count})
-              </span>
-            </label>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const MobileProductCard: React.FC<{
-  products: MobileProduct[];
+const ProductCard: React.FC<{
+  products: Product[];
   loading?: boolean;
 }> = ({
   products = [],
   loading = false
 }) => {
   const [likedProducts, setLikedProducts] = useState<Set<number>>(new Set());
- 
-  
+
   const toggleLike = useCallback((productId: number) => {
     setLikedProducts(prev => {
       const newSet = new Set(prev);
@@ -687,7 +541,6 @@ const MobileProductCard: React.FC<{
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {products.map((product) => {
         const isLiked = likedProducts.has(product.id);
-        const isPtaApproved = product.pta_status === 'PTA Approved';
         
         return (
           <article
@@ -697,7 +550,7 @@ const MobileProductCard: React.FC<{
             <div className="relative aspect-video bg-gray-100">
               <Image
                 src={product.images?.[0]?.url || '/images/placeholder.png'}
-                alt={`${product.brand} ${product.model}`}
+                alt={`${product.title || 'Product'}`}
                 fill
                 className="object-cover"
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
@@ -724,7 +577,7 @@ const MobileProductCard: React.FC<{
               </div>
 
               <h4 className="text-gray-700 font-medium text-sm line-clamp-2">
-                {product.title}
+                {product.title || `${product.brand} ${product.model}`}
               </h4>
 
               <div className="flex justify-between items-center text-gray-600 text-xs mt-2">
@@ -732,17 +585,6 @@ const MobileProductCard: React.FC<{
                   <LuTag />
                   <span>{product.condition}</span>
                 </div>
-                
-                {product.pta_status && product.pta_status !== 'N/A' && (
-                  <div className="flex items-center gap-1">
-                    {isPtaApproved ? (
-                      <LuWifi className="text-green-500" />
-                    ) : (
-                      <LuWifiOff className="text-red-500" />
-                    )}
-                    <span>{isPtaApproved ? 'PTA' : 'NON PTA'}</span>
-                  </div>
-                )}
               </div>
 
               <div className="flex flex-col items-start text-gray-500 text-xs mt-2">
@@ -762,9 +604,11 @@ const MobileProductCard: React.FC<{
   );
 };
 
-const MobileCategoryPage: React.FC = () => {
+const BusinessIndustrialPage: React.FC = () => {
+  const router = useRouter();
+  const pathname = usePathname();
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000000]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('mobile-phones');
+  const [selectedCategory, setSelectedCategory] = useState<string>('business-industrial-agriculture');
   const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedFilters, setSelectedFilters] = useState<FilterState>({
@@ -782,11 +626,35 @@ const MobileCategoryPage: React.FC = () => {
   });
   const [sortBy, setSortBy] = useState<string>('newest');
   const [selectedCondition, setSelectedCondition] = useState<string>('all');
-  const [products, setProducts] = useState<MobileProduct[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const pathname = usePathname();
+
+  // Parse URL to set initial state
+  useEffect(() => {
+    const pathSegments = pathname.split('/').filter(segment => segment);
+    if (pathSegments.length > 0) {
+      const categorySlug = pathSegments[0];
+      const category = categories.find(cat => cat.slug === categorySlug);
+      if (category) {
+        setSelectedCategory(category.slug);
+        if (pathSegments.length > 1) {
+          const subCategoryName = subCategories[category.slug]?.find(sub => toSlug(sub.name) === pathSegments[1])?.name;
+          if (subCategoryName) {
+            setSelectedSubCategory(subCategoryName);
+            if (pathSegments.length > 2) {
+              const type = subCategories[category.slug]
+                ?.find(sub => sub.name === subCategoryName)?.types
+                ?.find(t => toSlug(t) === pathSegments[2]);
+              if (type) {
+                setSelectedType(type);
+              }
+            }
+          }
+        }
+      }
+    }
+  }, [pathname]);
+
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({
       ...prev,
@@ -817,23 +685,23 @@ const MobileCategoryPage: React.FC = () => {
     });
     setSelectedSubCategory(null);
     setSelectedType(null);
+    router.push(`/${selectedCategory}`);
   };
 
   useEffect(() => {
-    const fetchMobileProducts = async () => {
+    const fetchProducts = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('http://127.0.0.1:8000/api/mobiles');
-        console.log(response.data);
+        const response = await axios.get('http://127.0.0.1:8000/api/business-industrial-agriculture');
         setProducts(response.data);
       } catch (error) {
-        console.error('Error fetching mobile products:', error);
+        console.error('Error fetching products:', error);
       } finally {
         setLoading(false);
       }
     };
     
-    fetchMobileProducts();
+    fetchProducts();
   }, []);
 
   return (
@@ -841,20 +709,9 @@ const MobileCategoryPage: React.FC = () => {
       <div className="bg-white py-2 px-4 border-b">
         <div className="container mx-auto">
           <div className="flex items-center text-sm text-gray-600">
-            <Link href="/" className="hover:text-blue-600">Home</Link>
+            <span>Home</span>
             <span className="mx-2">›</span>
-            <Link href="/mobiles_c1" className="hover:text-blue-600">Mobile Phones</Link>
-            {selectedSubCategory && (
-              <>
-                <span className="mx-2">›</span>
-                <Link 
-                  href={`/mobiles/${selectedSubCategory.toLowerCase().replace(/\s+/g, '-')}_id`} 
-                  className="hover:text-blue-600"
-                >
-                  {selectedSubCategory}
-                </Link>
-              </>
-            )}
+            <span>Business, Industrial & Agriculture</span>
           </div>
         </div>
       </div>
@@ -872,16 +729,12 @@ const MobileCategoryPage: React.FC = () => {
             />
             <LocationSidebar />
             <PriceFilter />
-            <DynamicBrandModelFilter category={selectedCategory} />
             <ConditionSelectBox />
-            {selectedCategory === 'accessories' && (
-              <DynamicTypeFilterBox category="Accessories" />
-            )}
           </div>
 
           <div className="w-full lg:w-3/4">
             <div className="md:hidden flex justify-between items-center mb-4">
-              <h1 className="text-xl font-bold">Mobile Products</h1>
+              <h1 className="text-xl font-bold">Business, Industrial & Agriculture</h1>
               <button 
                 onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
                 className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded"
@@ -892,7 +745,7 @@ const MobileCategoryPage: React.FC = () => {
 
             <div className="bg-white rounded-lg shadow-sm p-4 mb-4 flex justify-between items-center">
               <div className="text-sm text-gray-600">
-                Showing {selectedSubCategory || selectedCategory} products
+                Showing products for <span className="font-medium">{selectedType || selectedSubCategory || selectedCategory}</span>
               </div>
               
               <div className="flex items-center gap-4">
@@ -925,7 +778,7 @@ const MobileCategoryPage: React.FC = () => {
               </div>
             </div>
 
-            <MobileProductCard 
+            <ProductCard 
               products={products}
               loading={loading}
             />
@@ -1007,4 +860,4 @@ const MobileCategoryPage: React.FC = () => {
   );
 };
 
-export default MobileCategoryPage;
+export default BusinessIndustrialPage;

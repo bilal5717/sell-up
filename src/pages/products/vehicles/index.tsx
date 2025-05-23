@@ -1,12 +1,14 @@
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/router';
 import { 
   FiChevronDown, 
   FiChevronUp, 
   FiFilter, 
   FiX 
 } from 'react-icons/fi';
+
 import { 
   LuHeart, 
   LuTag, 
@@ -17,22 +19,29 @@ import {
 import axios from 'axios';
 
 // Interfaces
-interface BikeProduct {
+interface Product {
   id: number;
   post_id: number;
-  brand: string;
-  model: string;
-  condition: string;
+  brand?: string;
+  model?: string;
+  condition?: string;
   price: string;
   location: string;
   posted_at: string;
   images?: { url: string; is_featured: number; order: number }[];
-  type?: string;
   title?: string;
   category?: string;
   sub_category?: string;
-  engine_capacity?: string;
-  year?: string;
+  type?: string;
+  warranty?: string;
+  vehicle_details?: {
+    make: string;
+    model: string;
+    year: string;
+    fuel_type: string;
+    transmission: string;
+    kms_driven: string;
+  };
 }
 
 interface FilterState {
@@ -54,7 +63,6 @@ interface Category {
 
 interface SubCategory {
   name: string;
-  slug: string;
   types?: string[];
 }
 
@@ -69,23 +77,23 @@ interface Province {
 
 // Data
 const brandOptions: Record<string, Brand[]> = {
-  Bikes: [
-    { name: 'Honda', count: 12500, models: ['CBR', 'CG 125', 'CD 70', 'CB 150'] },
-    { name: 'Yamaha', count: 9800, models: ['YZF-R1', 'YZF-R15', 'FZS', 'YB125Z'] },
-    { name: 'Suzuki', count: 7500, models: ['GSX-R', 'GD 110', 'GS 150'] },
-    { name: 'Kawasaki', count: 4200, models: ['Ninja', 'Z900', 'Versys'] },
-    { name: 'United', count: 3800, models: ['US 100', 'US 125', 'US 70'] },
-    { name: 'Road Prince', count: 3200, models: ['RP 125', 'RP 70', 'RP 150'] },
+  'Vehicles': [
+    { name: 'Toyota', count: 7389, models: ['Corolla', 'Camry', 'Hilux', 'Land Cruiser'] },
+    { name: 'Honda', count: 5164, models: ['Civic', 'Accord', 'City', 'CR-V'] },
+    { name: 'Suzuki', count: 2032, models: ['Mehran', 'Cultus', 'Swift', 'Alto'] },
+    { name: 'Nissan', count: 1539, models: ['Sunny', 'March', 'Sentra'] },
+    { name: 'BMW', count: 940, models: ['3 Series', '5 Series', 'X5'] },
+    { name: 'Mercedes', count: 885, models: ['C-Class', 'E-Class', 'S-Class'] },
   ]
 };
 
 const categories: Category[] = [
-  { name: 'Bikes', slug: 'bikes' },
   { name: 'Mobiles', slug: 'mobiles' },
   { name: 'Vehicles', slug: 'vehicles' },
   { name: 'Property for Rent', slug: 'property-for-rent' },
   { name: 'Property for Sale', slug: 'property-for-sale' },
   { name: 'Electronics & Home Appliances', slug: 'electronics-home-appliances' },
+  { name: 'Bikes', slug: 'bikes' },
   { name: 'Business, Industrial & Agriculture', slug: 'business-industrial-agriculture' },
   { name: 'Services', slug: 'services' },
   { name: 'Jobs', slug: 'jobs' },
@@ -98,55 +106,44 @@ const categories: Category[] = [
 ];
 
 const subCategories: CategoryData = {
-  bikes: [
-    { 
-      name: 'MotorCycles', 
-      slug: 'motorcycles',
-      types: ['Standard', 'Sports & Heavy Bikes', 'Cruiser', 'Trail', 'Cafe Racers', 'Electric Bikes', 'Others']
-    },
-    { 
-      name: 'Spare Parts', 
-      slug: 'spare-parts-bike',
-      types: [
-        'Air filter', 'Carburelors', 'Bearing', 'Side Mirrors', 'Motorcycle Batteries', 
-        'Switches', 'Lighting', 'Cylinders', 'Clutches', 'Pistons', 'Chain,cover & sprockets',
-        'Brakes', 'Handle Bavs & Grips', 'Levers', 'Seats', 'Exhausts', 'Fuel Tanks',
-        'Horns', 'Speedometers', 'Plugs', 'Stands', 'Tyres & Tubes', 'Other spareparts',
-        'Body & Frume', 'Slincer', 'Steering', 'Suspension', 'Transmission'
-      ]
-    },
-    { 
-      name: 'Bike Accessories', 
-      slug: 'bike-accessories',
-      types: [
-        'Bicycle,Air pumps', 'Oil,Lubricants', 'Bike Covers', 'Bike Gloves', 'Helmets',
-        'Tail Boxes', 'Bike jackets', 'Bike locks', 'Safe Guards Other Bike-accessories',
-        'Chargers sticker & emblems'
-      ]
-    },
-    { 
-      name: 'Bicycle', 
-      slug: 'bicycle',
-      types: [
-        'Road Bikes', 'Mountain Bikes', 'Hybrid Bikes', 'BMX Bike', 'Electric Bicycle',
-        'Folding bikes', 'Other Bicycle'
-      ]
-    },
-    { 
-      name: 'ATV & Quads', 
-      slug: 'atv-quads',
-      types: ['Petrol', 'Electric', 'Other']
-    },
-    { 
-      name: 'Scooters', 
-      slug: 'scooters',
-      types: ['Standard', 'Electric', 'Others']
-    },
-    { 
-      name: 'Others', 
-      slug: 'others-bikes',
-      types: ['Vintage', 'Custom', 'Other']
-    },
+  'vehicles': [
+    { name: 'Cars', types: [
+      'Sedan', 'Hatchback', 'SUV', 'Crossover', 'Coupe', 'Convertible', 'Wagon', 'Van'
+    ]},
+    { name: 'Cars On Installments', types: [
+      'New Cars', 'Used Cars', 'Commercial Vehicles'
+    ]},
+    { name: 'Car Care', types: [
+      'Air Fresher', 'Cleaners', 'Compound Polishes', 'Covers', 
+      'Microfiber Clothes', 'Shampoos', 'Waxes', 'Other'
+    ]},
+    { name: 'Car Accessories', types: [
+      'Tools & Gadget', 'Safety & Security', 'Interior', 
+      'Exterior', 'Audio & Multimedia', 'Other'
+    ]},
+    { name: 'Spare Parts', types: [
+      'Engines', 'Fenders', 'Filters', 'Front Grills', 'Fuel Pump', 'Gasket & Seals',
+      'Horns', 'Ignition Coil', 'Lights', 'Mirrors', 'Oxygen Sensors', 'Power Steering',
+      'Radiators & Coolants', 'Spark Plugs', 'Tyres', 'Windscreens', 'Wipers',
+      'AC & Heating', 'Batteries', 'Brakes', 'Bumpers', 'Other'
+    ]},
+    { name: 'Oil & Lubricant', types: [
+      'Chain Lubes', 'Brake Oil', 'Engine Oil', 'Fuel Additives',
+      'Gear Oil', 'Multipurpose Grease', 'Coolants'
+    ]},
+    { name: 'Buses, Vans & Trucks', types: [
+      'Mini Bus', 'Coaster', 'Hiace', 'Trucks', 'Pickups', 'Other'
+    ]},
+    { name: 'Rikshaw & Chingchi', types: [
+      'Rikshaw', 'Chingchi', 'Other'
+    ]},
+    { name: 'Tractors & Trailers', types: [
+      'Tractor', 'Trailer', 'Other'
+    ]},
+    { name: 'Boats', types: [
+      'Fishing Boat', 'Speed Boat', 'Yacht', 'Other'
+    ]},
+    { name: 'Other Vehicles' }
   ],
 };
 
@@ -161,157 +158,110 @@ const provinces: Province[] = [
 ];
 
 const typeOptions: Record<string, { label: string; count: number }[]> = {
-  'Spare Parts': [
-    { label: 'Engine Parts', count: 930 },
-    { label: 'Electrical Parts', count: 460 },
-    { label: 'Body Parts', count: 320 },
+  'Cars': [
+    { label: 'Sedan', count: 930 },
+    { label: 'SUV', count: 860 },
+    { label: 'Hatchback', count: 410 },
   ],
-  'Accessories': [
-    { label: 'Safety Gear', count: 720 },
-    { label: 'Performance Parts', count: 310 },
+  'Car Care': [
+    { label: 'Air Fresher', count: 420 },
+    { label: 'Cleaners', count: 380 },
+    { label: 'Shampoos', count: 250 },
+  ],
+  'Spare Parts': [
+    { label: 'Engines', count: 320 },
+    { label: 'Batteries', count: 280 },
+    { label: 'Tyres', count: 510 },
   ]
 };
 
-// Components (Keep all the same filter components as before but update the DynamicCategorySidebar)
-const ConditionSelectBox: React.FC = () => {
-  const [selectedCondition, setSelectedCondition] = useState<string | null>(null);
+// Reuse all the same components from before, just updating the category-specific parts
+const LocationSidebar: React.FC = () => {
+  const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
+  const [selectedCity, setSelectedCity] = useState<string | null>(null);
+  const [showMoreCities, setShowMoreCities] = useState<boolean>(false);
+  const [isLocationSelected, setIsLocationSelected] = useState<boolean>(false);
 
-  const handleConditionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedCondition(e.target.value);
+  const toggleShowMoreCities = () => setShowMoreCities((prev) => !prev);
+
+  const handleProvinceSelect = (province: string) => {
+    setSelectedProvince(province);
+    setSelectedCity(null);
+    setIsLocationSelected(false);
   };
 
-  const clearCondition = () => {
-    setSelectedCondition(null);
-  };
-
-  return (
-    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-      <h3 className="font-bold text-lg mb-2">Condition</h3>
-      {selectedCondition ? (
-        <div className="flex justify-between items-center bg-gray-100 p-2 rounded text-gray-700">
-          <span className="text-sm">{selectedCondition}</span>
-          <button
-            onClick={clearCondition}
-            className="text-blue-600 text-xs"
-          >
-            Change
-          </button>
-        </div>
-      ) : (
-        <select
-          className="w-full border rounded p-2 text-gray-700 text-sm"
-          value={selectedCondition || ''}
-          onChange={handleConditionChange}
-        >
-          <option value="" disabled>Select Condition</option>
-          {conditions.map((condition) => (
-            <option key={condition} value={condition}>
-              {condition}
-            </option>
-          ))}
-        </select>
-      )}
-    </div>
-  );
-};
-const DynamicBrandModelFilter: React.FC<{ category: string }> = ({ category }) => {
-  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
-  const [selectedModels, setSelectedModels] = useState<string[]>([]);
-
-  const handleBrandSelect = (brand: string) => {
-    setSelectedBrand(brand);
-    setSelectedModels([]);
-  };
-
-  const handleModelSelect = (model: string) => {
-    if (selectedModels.includes(model)) {
-      setSelectedModels((prev) => prev.filter((m) => m !== model));
-    } else {
-      setSelectedModels((prev) => [...prev, model]);
-    }
+  const handleCitySelect = (city: string) => {
+    setSelectedCity(city);
+    setIsLocationSelected(true);
   };
 
   const clearSelection = () => {
-    setSelectedBrand(null);
-    setSelectedModels([]);
+    setSelectedProvince(null);
+    setSelectedCity(null);
+    setIsLocationSelected(false);
   };
 
-  const brands = brandOptions[category] || [];
-
   return (
-    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-      <h3 className="font-bold text-lg mb-2">Brand & Model</h3>
-      <select
-        className="w-full border rounded p-2 text-gray-700 text-sm mb-2"
-        value={selectedBrand || ''}
-        onChange={(e) => handleBrandSelect(e.target.value)}
-      >
-        <option value="" disabled>Select Brand</option>
-        {brands.map((brand) => (
-          <option key={brand.name} value={brand.name}>
-            {brand.name} ({brand.count})
-          </option>
-        ))}
-      </select>
-
-      {!selectedBrand && (
-        <div className="flex flex-wrap gap-2 mt-2">
-          {brands.slice(0, 5).map((brand) => (
+    <div className="bg-white rounded-lg shadow-sm p-4">
+      <h3 className="font-bold text-lg mb-2">Locations</h3>
+      <div className="space-y-2">
+        {isLocationSelected && selectedCity && (
+          <div className="flex justify-between items-center bg-gray-100 p-2 rounded text-gray-700">
+            <span className="text-sm">{selectedProvince} - {selectedCity}</span>
             <button
-              key={brand.name}
-              onClick={() => handleBrandSelect(brand.name)}
-              className="text-blue-600 text-sm px-2 py-1 border border-gray-300 rounded hover:bg-gray-100"
+              onClick={clearSelection}
+              className="text-blue-600 text-xs"
             >
-              {brand.name} ({brand.count})
+              Change
             </button>
-          ))}
-        </div>
-      )}
-
-      {selectedBrand && (
-        <div className="mt-2">
-          <div className="text-gray-700 text-sm mb-1">Select Models:</div>
-          <div className="flex flex-wrap gap-2">
-            {brands
-              .find((brand) => brand.name === selectedBrand)
-              ?.models.map((model) => (
-                <div
-                  key={model}
-                  className={`px-2 py-1 rounded border cursor-pointer ${
-                    selectedModels.includes(model)
-                      ? 'bg-blue-100 text-blue-700 border-blue-300'
-                      : 'text-gray-700 border-gray-300 hover:bg-gray-100'
-                  } text-sm`}
-                  onClick={() => handleModelSelect(model)}
-                >
-                  {model}
-                </div>
-              ))}
           </div>
+        )}
 
-          {selectedModels.length > 0 && (
-            <div className="mt-3 flex items-center">
-              <span className="text-gray-700 text-sm">Selected Models: </span>
-              <div className="flex flex-wrap gap-1 ml-2">
-                {selectedModels.map((model) => (
-                  <span
-                    key={model}
-                    className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-sm"
+        {!isLocationSelected && (
+          <>
+            <select
+              className="w-full border rounded p-2 text-gray-700 text-sm"
+              value={selectedProvince || ''}
+              onChange={(e) => handleProvinceSelect(e.target.value)}
+            >
+              <option value="" disabled>Select Province</option>
+              {provinces.map((province) => (
+                <option key={province.name} value={province.name}>
+                  {province.name}
+                </option>
+              ))}
+            </select>
+
+            {selectedProvince && (
+              <div className="mt-2 space-y-1">
+                {provinces
+                  .find((prov) => prov.name === selectedProvince)?.cities
+                  .slice(0, showMoreCities ? undefined : 5)
+                  .map((city, index) => (
+                    <div
+                      key={index}
+                      className={`py-1 px-2 text-gray-700 hover:bg-gray-100 cursor-pointer ${
+                        selectedCity === city ? 'bg-blue-100' : ''
+                      }`}
+                      style={{ fontSize: '12px', lineHeight: '1.5' }}
+                      onClick={() => handleCitySelect(city)}
+                    >
+                      {city}
+                    </div>
+                  ))}
+                {provinces.find((prov) => prov.name === selectedProvince)?.cities.length! > 5 && (
+                  <button
+                    onClick={toggleShowMoreCities}
+                    className="text-blue-600 text-sm mt-1"
                   >
-                    {model}
-                  </span>
-                ))}
+                    {showMoreCities ? 'Show Less' : 'Show More'}
+                  </button>
+                )}
               </div>
-              <button
-                onClick={clearSelection}
-                className="ml-2 text-blue-600 text-xs"
-              >
-                Clear
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 };
@@ -361,6 +311,47 @@ const DynamicTypeFilterBox: React.FC<{ category: string }> = ({ category }) => {
             </label>
           ))}
         </div>
+      )}
+    </div>
+  );
+};
+const ConditionSelectBox: React.FC = () => {
+  const [selectedCondition, setSelectedCondition] = useState<string | null>(null);
+
+  const handleConditionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedCondition(e.target.value);
+  };
+
+  const clearCondition = () => {
+    setSelectedCondition(null);
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+      <h3 className="font-bold text-lg mb-2">Condition</h3>
+      {selectedCondition ? (
+        <div className="flex justify-between items-center bg-gray-100 p-2 rounded text-gray-700">
+          <span className="text-sm">{selectedCondition}</span>
+          <button
+            onClick={clearCondition}
+            className="text-blue-600 text-xs"
+          >
+            Change
+          </button>
+        </div>
+      ) : (
+        <select
+          className="w-full border rounded p-2 text-gray-700 text-sm"
+          value={selectedCondition || ''}
+          onChange={handleConditionChange}
+        >
+          <option value="" disabled>Select Condition</option>
+          {conditions.map((condition) => (
+            <option key={condition} value={condition}>
+              {condition}
+            </option>
+          ))}
+        </select>
       )}
     </div>
   );
@@ -472,193 +463,92 @@ const PriceFilter: React.FC = () => {
     </div>
   );
 };
-const LocationSidebar: React.FC = () => {
-  const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
-  const [selectedCity, setSelectedCity] = useState<string | null>(null);
-  const [showMoreCities, setShowMoreCities] = useState<boolean>(false);
-  const [isLocationSelected, setIsLocationSelected] = useState<boolean>(false);
-
-  const toggleShowMoreCities = () => setShowMoreCities((prev) => !prev);
-
-  const handleProvinceSelect = (province: string) => {
-    setSelectedProvince(province);
-    setSelectedCity(null);
-    setIsLocationSelected(false);
-  };
-
-  const handleCitySelect = (city: string) => {
-    setSelectedCity(city);
-    setIsLocationSelected(true);
-  };
-
-  const clearSelection = () => {
-    setSelectedProvince(null);
-    setSelectedCity(null);
-    setIsLocationSelected(false);
-  };
-
-  return (
-    <div className="bg-white rounded-lg shadow-sm p-4">
-      <h3 className="font-bold text-lg mb-2">Locations</h3>
-      <div className="space-y-2">
-        {isLocationSelected && selectedCity && (
-          <div className="flex justify-between items-center bg-gray-100 p-2 rounded text-gray-700">
-            <span className="text-sm">{selectedProvince} - {selectedCity}</span>
-            <button
-              onClick={clearSelection}
-              className="text-blue-600 text-xs"
-            >
-              Change
-            </button>
-          </div>
-        )}
-
-        {!isLocationSelected && (
-          <>
-            <select
-              className="w-full border rounded p-2 text-gray-700 text-sm"
-              value={selectedProvince || ''}
-              onChange={(e) => handleProvinceSelect(e.target.value)}
-            >
-              <option value="" disabled>Select Province</option>
-              {provinces.map((province) => (
-                <option key={province.name} value={province.name}>
-                  {province.name}
-                </option>
-              ))}
-            </select>
-
-            {selectedProvince && (
-              <div className="mt-2 space-y-1">
-                {provinces
-                  .find((prov) => prov.name === selectedProvince)?.cities
-                  .slice(0, showMoreCities ? undefined : 5)
-                  .map((city, index) => (
-                    <div
-                      key={index}
-                      className={`py-1 px-2 text-gray-700 hover:bg-gray-100 cursor-pointer ${
-                        selectedCity === city ? 'bg-blue-100' : ''
-                      }`}
-                      style={{ fontSize: '12px', lineHeight: '1.5' }}
-                      onClick={() => handleCitySelect(city)}
-                    >
-                      {city}
-                    </div>
-                  ))}
-                {provinces.find((prov) => prov.name === selectedProvince)?.cities.length! > 5 && (
-                  <button
-                    onClick={toggleShowMoreCities}
-                    className="text-blue-600 text-sm mt-1"
-                  >
-                    {showMoreCities ? 'Show Less' : 'Show More'}
-                  </button>
-                )}
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </div>
-  );
-};
 const DynamicCategorySidebar: React.FC<{
-  selectedCategory: string;
   selectedSubCategory: string | null;
   selectedType: string | null;
-  onCategorySelect: (category: string) => void;
   onSubCategorySelect: (subCategory: string | null) => void;
   onTypeSelect: (type: string | null) => void;
 }> = ({
-  selectedCategory,
   selectedSubCategory,
   selectedType,
-  onCategorySelect,
   onSubCategorySelect,
   onTypeSelect,
 }) => {
-  const [showMoreCategories, setShowMoreCategories] = useState<boolean>(false);
+  const [showMoreSubCategories, setShowMoreSubCategories] = useState(false);
+  const router = useRouter();
 
-  const toggleCategory = (slug: string) => {
-    onCategorySelect(slug);
-    onSubCategorySelect(null);
-    onTypeSelect(null);
+  const vehicleSubCategories = subCategories['vehicles'] || [];
+
+  const slugify = (str: string) =>
+    str.toLowerCase().replace(/\s+/g, '-').replace(/[^\w\-]+/g, '');
+
+  const pushSlug = (subCategory?: string | null, type?: string | null) => {
+    const slug = type ? slugify(type) : subCategory ? slugify(subCategory) : '';
+    if (slug) router.push(`/${slug}`, undefined, { shallow: true });
+
   };
 
   const toggleSubCategory = (name: string) => {
     if (selectedSubCategory === name) {
       onSubCategorySelect(null);
       onTypeSelect(null);
+      pushSlug(null, null);
     } else {
       onSubCategorySelect(name);
       onTypeSelect(null);
+      pushSlug(name, null);
     }
   };
 
   const toggleType = (type: string) => {
     if (selectedType === type) {
       onTypeSelect(null);
+      pushSlug(selectedSubCategory, null);
     } else {
       onTypeSelect(type);
+      pushSlug(null, type);
     }
   };
 
-  const toggleShowMoreCategories = () => {
-    setShowMoreCategories((prev) => !prev);
-  };
-
-
-  
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-      <h3 className="font-bold text-lg mb-2">All Categories</h3>
+      <h3 className="font-bold text-lg mb-2">Vehicles</h3>
       <div className="space-y-1">
-        {(showMoreCategories ? categories : categories.slice(0, 4)).map((category) => (
-          <div key={category.slug} className="cursor-pointer">
+        {(showMoreSubCategories ? vehicleSubCategories : vehicleSubCategories.slice(0, 6)).map((sub, index) => (
+          <div key={index}>
             <div
-              className={`py-1 px-2 hover:bg-gray-100 ${selectedCategory === category.slug ? 'text-blue-600 font-medium' : 'text-gray-800'}`}
-              onClick={() => toggleCategory(category.slug)}
+              className={`py-1 px-2 cursor-pointer hover:text-blue-600 ${
+                selectedSubCategory === sub.name ? 'text-blue-600 font-medium' : 'text-gray-700'
+              }`}
               style={{ fontSize: '12px', lineHeight: '1.5' }}
+              onClick={() => toggleSubCategory(sub.name)}
             >
-              {category.name}
+              {sub.name}
             </div>
-
-            {selectedCategory === category.slug && subCategories[category.slug] && (
+            {sub.types && selectedSubCategory === sub.name && (
               <div className="ml-4 space-y-1">
-                {subCategories[category.slug].map((sub, index) => (
-                  <div key={index}>
-                    <div
-                      className={`py-1 cursor-pointer hover:text-blue-600 ${selectedSubCategory === sub.name ? 'text-blue-600 font-medium' : 'text-gray-700'}`}
-                      onClick={() => toggleSubCategory(sub.name)}
-                      style={{ fontSize: '12px', lineHeight: '1.5' }}
-                    >
-                      {sub.name}
-                    </div>
-                    {sub.types && selectedSubCategory === sub.name && (
-                      <div className="ml-4 space-y-1">
-                        {sub.types.map((type, i) => (
-                          <div
-                            key={i}
-                            className={`py-1 cursor-pointer hover:text-blue-600 ${selectedType === type ? 'text-blue-600 font-medium' : 'text-gray-600'}`}
-                            style={{ fontSize: '12px', lineHeight: '1.5' }}
-                            onClick={() => toggleType(type)}
-                          >
-                            - {type}
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                {sub.types.map((type, i) => (
+                  <div
+                    key={i}
+                    className={`py-1 cursor-pointer hover:text-blue-600 ${
+                      selectedType === type ? 'text-blue-600 font-medium' : 'text-gray-600'
+                    }`}
+                    style={{ fontSize: '12px', lineHeight: '1.5' }}
+                    onClick={() => toggleType(type)}
+                  >
+                    - {type}
                   </div>
                 ))}
               </div>
             )}
           </div>
         ))}
-        {categories.length > 4 && (
+        {vehicleSubCategories.length > 6 && (
           <button
-            onClick={toggleShowMoreCategories}
+            onClick={() => setShowMoreSubCategories(prev => !prev)}
             className="text-blue-600 text-sm mt-2"
           >
-            {showMoreCategories ? 'Show Less' : 'Show More'}
+            {showMoreSubCategories ? 'Show Less' : 'Show More'}
           </button>
         )}
       </div>
@@ -666,19 +556,15 @@ const DynamicCategorySidebar: React.FC<{
   );
 };
 
-// Keep all other filter components (ConditionSelectBox, LocationSidebar, PriceFilter, etc.) the same
 
-const BikeProductCard: React.FC<{
-  products: BikeProduct[];
-  loading?: boolean;
-}> = ({
+const VehiclesProductCard: React.FC<{ products: Product[]; loading?: boolean }> = ({
   products = [],
-  loading = false
+  loading = false,
 }) => {
   const [likedProducts, setLikedProducts] = useState<Set<number>>(new Set());
 
   const toggleLike = useCallback((productId: number) => {
-    setLikedProducts(prev => {
+    setLikedProducts((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(productId)) {
         newSet.delete(productId);
@@ -709,7 +595,7 @@ const BikeProductCard: React.FC<{
   if (products.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-500">No bikes found</p>
+        <p className="text-gray-500">No vehicles found</p>
       </div>
     );
   }
@@ -718,7 +604,6 @@ const BikeProductCard: React.FC<{
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {products.map((product) => {
         const isLiked = likedProducts.has(product.id);
-        
         return (
           <article
             key={`${product.id}-${product.post_id}`}
@@ -726,15 +611,17 @@ const BikeProductCard: React.FC<{
           >
             <div className="relative aspect-video bg-gray-100">
               <Image
-                src={product.images?.[0]?.url || '/images/bike-placeholder.png'}
-                alt={`${product.brand} ${product.model}`}
+                src={product.images?.[0]?.url || '/images/placeholder.png'}
+                alt={product.title || 'Vehicle'}
                 fill
                 className="object-cover"
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               />
-              <span className="absolute top-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
-                Featured
-              </span>
+              {product.images?.[0]?.is_featured && (
+                <span className="absolute top-2 right-2 bg-blue-600 text-white px-2 py-1 rounded text-xs">
+                  Featured
+                </span>
+              )}
             </div>
 
             <div className="p-4">
@@ -742,7 +629,7 @@ const BikeProductCard: React.FC<{
                 <h3 className="text-gray-800 font-bold">
                   Rs. {Number(product.price).toLocaleString()}
                 </h3>
-                <button 
+                <button
                   onClick={() => toggleLike(product.id)}
                   aria-label={isLiked ? "Remove from favorites" : "Add to favorites"}
                   className="p-1"
@@ -754,18 +641,22 @@ const BikeProductCard: React.FC<{
               </div>
 
               <h4 className="text-gray-700 font-medium text-sm line-clamp-2">
-                {product.brand} {product.model} {product.engine_capacity && `(${product.engine_capacity}cc)`}
+                {product.title || 'No Title'}
               </h4>
 
               <div className="flex justify-between items-center text-gray-600 text-xs mt-2">
                 <div className="flex items-center gap-1">
                   <LuTag />
-                  <span>{product.condition}</span>
+                  <span>{product.condition || 'Not Specified'}</span>
                 </div>
-                
-                {product.year && (
+                {product.vehicle_details?.make && (
                   <div className="flex items-center gap-1">
-                    <span>{product.year}</span>
+                    <span>{product.vehicle_details.make}</span>
+                  </div>
+                )}
+                {product.vehicle_details?.model && (
+                  <div className="flex items-center gap-1">
+                    <span>{product.vehicle_details.model}</span>
                   </div>
                 )}
               </div>
@@ -787,9 +678,9 @@ const BikeProductCard: React.FC<{
   );
 };
 
-const BikesCategoryPage: React.FC = () => {
+const VehiclesCategoryPage: React.FC = () => {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000000]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('bikes');
+  const [selectedCategory, setSelectedCategory] = useState<string>('vehicles');
   const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedFilters, setSelectedFilters] = useState<FilterState>({
@@ -807,7 +698,7 @@ const BikesCategoryPage: React.FC = () => {
   });
   const [sortBy, setSortBy] = useState<string>('newest');
   const [selectedCondition, setSelectedCondition] = useState<string>('all');
-  const [products, setProducts] = useState<BikeProduct[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
   const toggleSection = (section: string) => {
@@ -843,19 +734,20 @@ const BikesCategoryPage: React.FC = () => {
   };
 
   useEffect(() => {
-    const fetchBikeProducts = async () => {
+    const fetchProducts = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('http://127.0.0.1:8000/api/bikes');
+        const response = await axios.get('http://127.0.0.1:8000/api/vehicles');
+        console.log(response.data);
         setProducts(response.data);
       } catch (error) {
-        console.error('Error fetching bike products:', error);
+        console.error('Error fetching vehicles:', error);
       } finally {
         setLoading(false);
       }
     };
     
-    fetchBikeProducts();
+    fetchProducts();
   }, []);
 
   return (
@@ -865,7 +757,7 @@ const BikesCategoryPage: React.FC = () => {
           <div className="flex items-center text-sm text-gray-600">
             <span>Home</span>
             <span className="mx-2">›</span>
-            <span>Bikes</span>
+            <span>Vehicles</span>
           </div>
         </div>
       </div>
@@ -874,29 +766,23 @@ const BikesCategoryPage: React.FC = () => {
         <div className="flex flex-col lg:flex-row gap-4">
           <div className="w-full lg:w-1/4 space-y-4">
             <DynamicCategorySidebar
-              selectedCategory={selectedCategory}
-              selectedSubCategory={selectedSubCategory}
-              selectedType={selectedType}
-              onCategorySelect={setSelectedCategory}
-              onSubCategorySelect={setSelectedSubCategory}
-              onTypeSelect={setSelectedType}
-            />
-             <LocationSidebar />
-             <PriceFilter />
-             <DynamicBrandModelFilter category="Bikes" />
-                  
-           <ConditionSelectBox />
-           
-            
-       
-            {selectedSubCategory && (
+  selectedSubCategory={selectedSubCategory}
+  selectedType={selectedType}
+  onSubCategorySelect={setSelectedSubCategory}
+  onTypeSelect={setSelectedType}
+/>
+
+            <LocationSidebar />
+            <PriceFilter />
+            <ConditionSelectBox />
+            {selectedSubCategory && typeOptions[selectedSubCategory] && (
               <DynamicTypeFilterBox category={selectedSubCategory} />
             )}
           </div>
 
           <div className="w-full lg:w-3/4">
             <div className="md:hidden flex justify-between items-center mb-4">
-              <h1 className="text-xl font-bold">Bikes</h1>
+              <h1 className="text-xl font-bold">Vehicles</h1>
               <button 
                 onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
                 className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded"
@@ -907,7 +793,9 @@ const BikesCategoryPage: React.FC = () => {
 
             <div className="bg-white rounded-lg shadow-sm p-4 mb-4 flex justify-between items-center">
               <div className="text-sm text-gray-600">
-                Showing {selectedSubCategory || selectedCategory} products
+                {selectedSubCategory ? 
+                  `Showing ${selectedSubCategory} vehicles${selectedType ? ` (${selectedType})` : ''}` : 
+                  'Showing all vehicles'}
               </div>
               
               <div className="flex items-center gap-4">
@@ -940,7 +828,7 @@ const BikesCategoryPage: React.FC = () => {
               </div>
             </div>
 
-            <BikeProductCard 
+            <VehiclesProductCard 
               products={products}
               loading={loading}
             />
@@ -1022,4 +910,4 @@ const BikesCategoryPage: React.FC = () => {
   );
 };
 
-export default BikesCategoryPage;
+export default VehiclesCategoryPage;

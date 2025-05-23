@@ -309,7 +309,7 @@ const [uploadProgress, setUploadProgress] = useState({
     formData.append('price', postDetails.price);
   
     // Fashion & Beauty specific
-    formData.append('type', type);
+    formData.append('type', selectedType);
     formData.append('gender', gender);
     formData.append('fabric', fabric);
     formData.append('material', material);

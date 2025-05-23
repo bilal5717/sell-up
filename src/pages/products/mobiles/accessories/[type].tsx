@@ -3,21 +3,18 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import axios from 'axios';
+import { 
+  FiChevronDown, 
+  FiChevronUp, 
+  FiFilter, 
+  FiX 
+} from 'react-icons/fi';
 import { 
   LuHeart, 
-  LuMapPin, 
   LuTag, 
-  LuChevronLeft,
-  LuWifi,
-  LuWifiOff
+  LuMapPin
 } from 'react-icons/lu';
-import { 
-  FiFilter, 
-  FiX,
-  FiChevronDown,
-  FiChevronUp
-} from 'react-icons/fi';
+import axios from 'axios';
 
 interface AccessoryProduct {
   id: number;
@@ -31,9 +28,269 @@ interface AccessoryProduct {
   images?: { url: string; is_featured: number; order: number }[];
   compatibility?: string;
   title?: string;
-  type?: string;
+  category?: string;
   sub_category?: string;
+  type?: string;
+  size?: string;
 }
+
+interface Category {
+  name: string;
+  slug: string;
+}
+
+interface SubCategory {
+  name: string;
+  types?: string[];
+}
+
+interface CategoryData {
+  [key: string]: SubCategory[];
+}
+
+const accessoryCategories: Category[] = [
+  { name: 'Accessories', slug: 'accessories' },
+];
+
+const accessorySubCategories: CategoryData = {
+  'accessories': [
+    { name: 'Earphones' },
+    { name: 'Other Accessories' },
+    { name: 'Chargers' },
+    { name: 'Headphones' },
+    { name: 'Covers & Cases' },
+    { name: 'Power Banks' },
+    { name: 'Screens' },
+    { name: 'Charging Cables' },
+    { name: 'Mobile Stands' },
+    { name: 'Ring Lights' },
+    { name: 'Selfie Sticks' },
+    { name: 'External Memory' },
+    { name: 'Converters' },
+    { name: 'Screen Protectors' },
+  ],
+};
+
+const conditions = ['New', 'Used', 'Open Box', 'Refurbished', 'For Parts'];
+
+const provinces = [
+  { name: 'Punjab', cities: ['Lahore', 'Rawalpindi', 'Faisalabad', 'Multan', 'Gujranwala', 'Sialkot', 'Sargodha', 'Bahawalpur'] },
+  { name: 'Sindh', cities: ['Karachi', 'Hyderabad', 'Sukkur', 'Larkana', 'Nawabshah', 'Thatta'] },
+  { name: 'Khyber Pakhtunkhwa', cities: ['Peshawar', 'Mardan', 'Abbottabad', 'Swat', 'Kohat', 'Bannu'] },
+  { name: 'Balochistan', cities: ['Quetta', 'Gwadar', 'Turbat', 'Khuzdar', 'Sibi'] },
+  { name: 'Islamabad Capital Territory', cities: ['Islamabad'] },
+];
+
+const DynamicCategorySidebar: React.FC<{
+  selectedCategory: string;
+  selectedSubCategory: string | null;
+  onCategorySelect: (category: string) => void;
+  onSubCategorySelect: (subCategory: string | null) => void;
+}> = ({
+  selectedCategory,
+  selectedSubCategory,
+  onCategorySelect,
+  onSubCategorySelect,
+}) => {
+  const [showMore, setShowMore] = useState(false);
+
+  const toggleCategory = (slug: string) => {
+    if (selectedCategory !== slug) {
+      onCategorySelect(slug);
+      onSubCategorySelect(null);
+    }
+  };
+
+  const toggleSubCategory = (name: string) => {
+    if (selectedSubCategory === name) {
+      onSubCategorySelect(null);
+    } else {
+      onSubCategorySelect(name);
+    }
+  };
+
+  const displayedSubCategories = showMore
+    ? accessorySubCategories['accessories']
+    : accessorySubCategories['accessories'].slice(0, 8);
+
+  const toggleShowMore = () => setShowMore((prev) => !prev);
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+      <h3 className="font-bold text-lg mb-2">Accessory Categories</h3>
+      <div className="space-y-1">
+        {accessoryCategories.map((category) => (
+          <div key={category.slug} className="cursor-pointer">
+            <Link 
+              href={`/${category.slug}`}
+              className={`py-1 px-2 hover:bg-gray-100 block ${selectedCategory === category.slug ? 'text-blue-600 font-medium' : 'text-gray-800'}`}
+              onClick={() => toggleCategory(category.slug)}
+              style={{ fontSize: '12px', lineHeight: '1.5' }}
+            >
+              {category.name}
+            </Link>
+
+            {category.slug === 'accessories' && (
+              <div className="ml-4 space-y-1">
+                {displayedSubCategories.map((sub, index) => (
+                  <div key={index}>
+                    <Link
+                      href={`/${category.slug}/${sub.name.toLowerCase().replace(/\s+/g, '-')}`}
+                      className={`py-1 cursor-pointer hover:text-blue-600 block ${selectedSubCategory === sub.name ? 'text-blue-600 font-medium' : 'text-gray-700'}`}
+                      onClick={() => toggleSubCategory(sub.name)}
+                      style={{ fontSize: '12px', lineHeight: '1.5' }}
+                    >
+                      - {sub.name}
+                    </Link>
+                  </div>
+                ))}
+                {accessorySubCategories['accessories'].length > 8 && (
+                  <button
+                    onClick={toggleShowMore}
+                    className="text-blue-600 text-sm mt-1 hover:underline"
+                  >
+                    {showMore ? 'Show Less' : 'Show More'}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const ConditionSelectBox: React.FC<{
+  selectedCondition: string;
+  setSelectedCondition: (condition: string) => void;
+}> = ({ selectedCondition, setSelectedCondition }) => {
+  const handleConditionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedCondition(e.target.value);
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+      <h3 className="font-bold text-lg mb-2">Condition</h3>
+      <select
+        className="w-full border rounded p-2 text-gray-700 text-sm"
+        value={selectedCondition}
+        onChange={handleConditionChange}
+      >
+        <option value="all">All Conditions</option>
+        {conditions.map((condition) => (
+          <option key={condition} value={condition.toLowerCase()}>
+            {condition}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+};
+
+const LocationSidebar: React.FC = () => {
+  const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
+  const [selectedCity, setSelectedCity] = useState<string | null>(null);
+  const [showMoreCities, setShowMoreCities] = useState<boolean>(false);
+
+  const toggleShowMoreCities = () => setShowMoreCities((prev) => !prev);
+
+  const handleProvinceSelect = (province: string) => {
+    setSelectedProvince(province);
+    setSelectedCity(null);
+  };
+
+  const handleCitySelect = (city: string) => {
+    setSelectedCity(city);
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+      <h3 className="font-bold text-lg mb-2">Locations</h3>
+      <div className="space-y-2">
+        <select
+          className="w-full border rounded p-2 text-gray-700 text-sm"
+          value={selectedProvince || ''}
+          onChange={(e) => handleProvinceSelect(e.target.value)}
+        >
+          <option value="" disabled>Select Province</option>
+          {provinces.map((province) => (
+            <option key={province.name} value={province.name}>
+              {province.name}
+            </option>
+          ))}
+        </select>
+
+        {selectedProvince && (
+          <div className="mt-2 space-y-1">
+            {provinces
+              .find((prov) => prov.name === selectedProvince)?.cities
+              .slice(0, showMoreCities ? undefined : 5)
+              .map((city, index) => (
+                <div
+                  key={index}
+                  className={`py-1 px-2 text-gray-700 hover:bg-gray-100 cursor-pointer ${
+                    selectedCity === city ? 'bg-blue-100' : ''
+                  }`}
+                  style={{ fontSize: '12px', lineHeight: '1.5' }}
+                  onClick={() => handleCitySelect(city)}
+                >
+                  {city}
+                </div>
+              ))}
+            {provinces.find((prov) => prov.name === selectedProvince)?.cities.length! > 5 && (
+              <button
+                onClick={toggleShowMoreCities}
+                className="text-blue-600 text-sm mt-1"
+              >
+                {showMoreCities ? 'Show Less' : 'Show More'}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const PriceFilter: React.FC<{
+  priceRange: [number, number];
+  setPriceRange: (range: [number, number]) => void;
+}> = ({ priceRange, setPriceRange }) => {
+  const handleMinPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value);
+    setPriceRange([isNaN(value) ? 0 : value, priceRange[1]]);
+  };
+
+  const handleMaxPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value);
+    setPriceRange([priceRange[0], isNaN(value) ? 100000 : value]);
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+      <h3 className="font-bold text-lg mb-2">Price</h3>
+      <div className="flex gap-2">
+        <input
+          type="number"
+          placeholder="Min"
+          value={priceRange[0]}
+          onChange={handleMinPriceChange}
+          className="w-1/2 p-2 border rounded text-gray-700 text-sm"
+          min={0}
+        />
+        <input
+          type="number"
+          placeholder="Max"
+          value={priceRange[1]}
+          onChange={handleMaxPriceChange}
+          className="w-1/2 p-2 border rounded text-gray-700 text-sm"
+          min={0}
+        />
+      </div>
+    </div>
+  );
+};
 
 const AccessoryItemPage: React.FC = () => {
   const [products, setProducts] = useState<AccessoryProduct[]>([]);
@@ -42,6 +299,8 @@ const AccessoryItemPage: React.FC = () => {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000]);
   const [selectedCondition, setSelectedCondition] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('accessories');
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<string>('newest');
   const [likedProducts, setLikedProducts] = useState<Set<number>>(new Set());
   const router = useRouter();
@@ -49,7 +308,8 @@ const AccessoryItemPage: React.FC = () => {
   const [expandedSections, setExpandedSections] = useState({
     price: true,
     condition: true,
-    location: true
+    location: true,
+    category: true
   });
 
   useEffect(() => {
@@ -85,7 +345,7 @@ const AccessoryItemPage: React.FC = () => {
     });
   }, []);
 
-  const toggleSection = (section: string) => {
+  const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections(prev => ({
       ...prev,
       [section]: !prev[section],
@@ -95,6 +355,7 @@ const AccessoryItemPage: React.FC = () => {
   const clearFilters = () => {
     setPriceRange([0, 100000]);
     setSelectedCondition('all');
+    setSelectedSubCategory(null);
   };
 
   if (loading) {
@@ -130,63 +391,26 @@ const AccessoryItemPage: React.FC = () => {
 
       <div className="container mx-auto py-4 px-4">
         <div className="flex flex-col lg:flex-row gap-4">
-          {/* Sidebar Filters - Hidden on mobile */}
+          {/* Sidebar Filters */}
           <div className="hidden lg:block w-full lg:w-1/4 space-y-4">
-            <div className="bg-white rounded-lg shadow-sm p-4">
-              <div 
-                className="flex justify-between items-center cursor-pointer mb-2"
-                onClick={() => toggleSection('price')}
-              >
-                <h3 className="font-bold text-lg">Price</h3>
-                {expandedSections.price ? <FiChevronUp /> : <FiChevronDown />}
-              </div>
-              {expandedSections.price && (
-                <div className="space-y-2">
-                  <div className="flex gap-2">
-                    <input
-                      type="number"
-                      placeholder="Min"
-                      value={priceRange[0]}
-                      onChange={(e) => setPriceRange([Number(e.target.value), priceRange[1]])}
-                      className="w-1/2 p-2 border rounded text-gray-700 text-sm"
-                      min={0}
-                    />
-                    <input
-                      type="number"
-                      placeholder="Max"
-                      value={priceRange[1]}
-                      onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
-                      className="w-1/2 p-2 border rounded text-gray-700 text-sm"
-                      min={0}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="bg-white rounded-lg shadow-sm p-4">
-              <div 
-                className="flex justify-between items-center cursor-pointer mb-2"
-                onClick={() => toggleSection('condition')}
-              >
-                <h3 className="font-bold text-lg">Condition</h3>
-                {expandedSections.condition ? <FiChevronUp /> : <FiChevronDown />}
-              </div>
-              {expandedSections.condition && (
-                <div className="space-y-2">
-                  <select
-                    className="w-full border rounded p-2 text-gray-700 text-sm"
-                    value={selectedCondition}
-                    onChange={(e) => setSelectedCondition(e.target.value)}
-                  >
-                    <option value="all">All Conditions</option>
-                    <option value="new">New</option>
-                    <option value="used">Used</option>
-                    <option value="refurbished">Refurbished</option>
-                  </select>
-                </div>
-              )}
-            </div>
+            <DynamicCategorySidebar
+              selectedCategory={selectedCategory}
+              selectedSubCategory={selectedSubCategory}
+              onCategorySelect={setSelectedCategory}
+              onSubCategorySelect={setSelectedSubCategory}
+            />
+            
+            <PriceFilter 
+              priceRange={priceRange}
+              setPriceRange={setPriceRange}
+            />
+            
+            <ConditionSelectBox
+              selectedCondition={selectedCondition}
+              setSelectedCondition={setSelectedCondition}
+            />
+            
+            <LocationSidebar />
 
             <button
               onClick={clearFilters}

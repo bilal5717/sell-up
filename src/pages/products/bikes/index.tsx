@@ -1,8 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/router';
-import Link from 'next/link';
+import Image from 'next/image';
 import { 
   FiChevronDown, 
   FiChevronUp, 
@@ -12,15 +11,12 @@ import {
 import { 
   LuHeart, 
   LuTag, 
-  LuMapPin, 
-  LuWifi, 
-  LuWifiOff 
+  LuMapPin
 } from 'react-icons/lu';
 import axios from 'axios';
-import { usePathname, useSearchParams } from 'next/navigation';
 
 // Interfaces
-interface MobileProduct {
+interface BikeProduct {
   id: number;
   post_id: number;
   brand: string;
@@ -30,12 +26,12 @@ interface MobileProduct {
   location: string;
   posted_at: string;
   images?: { url: string; is_featured: number; order: number }[];
-  pta_status?: string;
+  type?: string;
   title?: string;
   category?: string;
   sub_category?: string;
-  type?: string;
-  size?: string;
+  engine_capacity?: string;
+  year?: string;
 }
 
 interface FilterState {
@@ -50,18 +46,10 @@ interface Brand {
   models: string[];
 }
 
-interface Category {
-  name: string;
-  slug: string;
-}
-
 interface SubCategory {
   name: string;
+  slug: string;
   types?: string[];
-}
-
-interface CategoryData {
-  [key: string]: SubCategory[];
 }
 
 interface Province {
@@ -69,69 +57,7 @@ interface Province {
   cities: string[];
 }
 
-// Mobile-specific Data
-const mobileCategories: Category[] = [
-  { name: 'Mobile Phones', slug: 'mobile-phones' },
-  { name: 'Tablets', slug: 'tablets' },
-  { name: 'Accessories', slug: 'accessories' },
-  { name: 'Smart Watches', slug: 'smart-watches' },
-];
-
-const mobileSubCategories: CategoryData = {
-  'accessories': [
-    { 
-      name: 'Accessory', 
-      types: [
-        'Charging Cables', 
-        'Converters', 
-        'Chargers', 
-        'Screens', 
-        'Screen Protector',
-        'Mobile Stands', 
-        'Ring Lights', 
-        'Selfie Sticks', 
-        'Power Banks', 
-        'Headphones',
-        'EarPhones', 
-        'Covers & Cases', 
-        'External Memory', 
-        'Other'
-      ] 
-    },
-    { name: 'Chargers', types: ['Wireless Chargers', 'Fast Chargers'] },
-    { name: 'Cables', types: ['USB-C', 'Lightning', 'Micro USB'] },
-    { name: 'Cases & Covers' },
-  ],
-  'smart-watches': [
-    { name: 'Apple Watch' },
-    { name: 'Samsung Watch' },
-    { name: 'Fitness Trackers' },
-  ],
-};
-
-const brandOptions: Record<string, Brand[]> = {
-  'Mobile Phones': [
-    { name: 'Apple iPhone', count: 73899, models: ['iPhone 13', 'iPhone 12', 'iPhone 11', 'iPhone SE'] },
-    { name: 'Samsung Mobile', count: 21646, models: ['Galaxy S21', 'Galaxy Note 20', 'Galaxy A52'] },
-    { name: 'Infinix', count: 12032, models: ['Note 10', 'Hot 11', 'Zero X Pro'] },
-    { name: 'Vivo', count: 11539, models: ['V21', 'Y51', 'X60 Pro'] },
-    { name: 'Google', count: 9400, models: ['Pixel 6', 'Pixel 5', 'Pixel 4a'] },
-    { name: 'Xiaomi', count: 9085, models: ['Redmi Note 10', 'Mi 11', 'Poco X3'] },
-  ],
-  'Tablets': [
-    { name: 'Apple iPad', count: 12345, models: ['iPad Pro', 'iPad Air', 'iPad Mini'] },
-    { name: 'Samsung Tablet', count: 9876, models: ['Galaxy Tab S7', 'Galaxy Tab A'] },
-  ],
-  'Accessories': [
-    { name: 'Apple Accessories', count: 5432, models: ['MagSafe Charger', 'Lightning Cable'] },
-    { name: 'Samsung Accessories', count: 4321, models: ['Wireless Charger', 'USB-C Cable'] },
-  ],
-  'Smart Watches': [
-    { name: 'Apple Watch', count: 7654, models: ['Series 7', 'Series 6', 'SE'] },
-    { name: 'Samsung Watch', count: 6543, models: ['Galaxy Watch 4', 'Galaxy Watch Active 2'] },
-  ]
-};
-
+// Data
 const conditions = ['New', 'Used', 'Open Box', 'Refurbished', 'For Parts'];
 
 const provinces: Province[] = [
@@ -142,209 +68,65 @@ const provinces: Province[] = [
   { name: 'Islamabad Capital Territory', cities: ['Islamabad'] },
 ];
 
-const typeOptions: Record<string, { label: string; count: number }[]> = {
-  'Accessories': [
-    { label: 'Mobile', count: 930 },
-    { label: 'Tablet', count: 46 },
-    { label: 'Smart Watch', count: 11 },
-  ]
-};
+const bikeSubCategories: SubCategory[] = [
+  { 
+    name: 'MotorCycles', 
+    slug: 'motorcycles',
+    types: ['Standard', 'Sports & Heavy Bikes', 'Cruiser', 'Trail', 'Cafe Racers', 'Electric Bikes', 'Others']
+  },
+  { 
+    name: 'Spare Parts', 
+    slug: 'spare-parts',
+    types: [
+      'Air filter', 'Carburelors', 'Bearing', 'Side Mirrors', 'Motorcycle Batteries', 
+      'Switches', 'Lighting', 'Cylinders', 'Clutches', 'Pistons', 'Chain,cover & sprockets',
+      'Brakes', 'Handle Bavs & Grips', 'Levers', 'Seats', 'Exhausts', 'Fuel Tanks',
+      'Horns', 'Speedometers', 'Plugs', 'Stands', 'Tyres & Tubes', 'Other spareparts',
+      'Body & Frume', 'Slincer', 'Steering', 'Suspension', 'Transmission'
+    ]
+  },
+  { 
+    name: 'Bike Accessories', 
+    slug: 'bike-accessories',
+    types: [
+      'Bicycle,Air pumps', 'Oil,Lubricants', 'Bike Covers', 'Bike Gloves', 'Helmets',
+      'Tail Boxes', 'Bike jackets', 'Bike locks', 'Safe Guards Other Bike-accessories',
+      'Chargers sticker & emblems'
+    ]
+  },
+  { 
+    name: 'Bicycle', 
+    slug: 'bicycle',
+    types: [
+      'Road Bikes', 'Mountain Bikes', 'Hybrid Bikes', 'BMX Bike', 'Electric Bicycle',
+      'Folding bikes', 'Other Bicycle'
+    ]
+  },
+  { 
+    name: 'ATV & Quads', 
+    slug: 'atv-quads',
+    types: ['Petrol', 'Electric', 'Other']
+  },
+  { 
+    name: 'Scooters', 
+    slug: 'scooters',
+    types: ['Standard', 'Electric', 'Others']
+  },
+  { 
+    name: 'Others', 
+    slug: 'others',
+    types: ['Vintage', 'Custom', 'Other']
+  },
+];
 
-// Components
-const DynamicBrandModelFilter: React.FC<{ category: string }> = ({ category }) => {
-  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
-  const [selectedModels, setSelectedModels] = useState<string[]>([]);
-
-  const handleBrandSelect = (brand: string) => {
-    setSelectedBrand(brand);
-    setSelectedModels([]);
-  };
-
-  const handleModelSelect = (model: string) => {
-    if (selectedModels.includes(model)) {
-      setSelectedModels((prev) => prev.filter((m) => m !== model));
-    } else {
-      setSelectedModels((prev) => [...prev, model]);
-    }
-  };
-
-  const clearSelection = () => {
-    setSelectedBrand(null);
-    setSelectedModels([]);
-  };
-
-  const brands = brandOptions[category] || [];
-
-  return (
-    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-      <h3 className="font-bold text-lg mb-2">Brand & Model</h3>
-      <select
-        className="w-full border rounded p-2 text-gray-700 text-sm mb-2"
-        value={selectedBrand || ''}
-        onChange={(e) => handleBrandSelect(e.target.value)}
-      >
-        <option value="" disabled>Select Brand</option>
-        {brands.map((brand) => (
-          <option key={brand.name} value={brand.name}>
-            {brand.name} ({brand.count})
-          </option>
-        ))}
-      </select>
-
-      {!selectedBrand && (
-        <div className="flex flex-wrap gap-2 mt-2">
-          {brands.slice(0, 5).map((brand) => (
-            <button
-              key={brand.name}
-              onClick={() => handleBrandSelect(brand.name)}
-              className="text-blue-600 text-sm px-2 py-1 border border-gray-300 rounded hover:bg-gray-100"
-            >
-              {brand.name} ({brand.count})
-            </button>
-          ))}
-        </div>
-      )}
-
-      {selectedBrand && (
-        <div className="mt-2">
-          <div className="text-gray-700 text-sm mb-1">Select Models:</div>
-          <div className="flex flex-wrap gap-2">
-            {brands
-              .find((brand) => brand.name === selectedBrand)
-              ?.models.map((model) => (
-                <div
-                  key={model}
-                  className={`px-2 py-1 rounded border cursor-pointer ${
-                    selectedModels.includes(model)
-                      ? 'bg-blue-100 text-blue-700 border-blue-300'
-                      : 'text-gray-700 border-gray-300 hover:bg-gray-100'
-                  } text-sm`}
-                  onClick={() => handleModelSelect(model)}
-                >
-                  {model}
-                </div>
-              ))}
-          </div>
-
-          {selectedModels.length > 0 && (
-            <div className="mt-3 flex items-center">
-              <span className="text-gray-700 text-sm">Selected Models: </span>
-              <div className="flex flex-wrap gap-1 ml-2">
-                {selectedModels.map((model) => (
-                  <span
-                    key={model}
-                    className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-sm"
-                  >
-                    {model}
-                  </span>
-                ))}
-              </div>
-              <button
-                onClick={clearSelection}
-                className="ml-2 text-blue-600 text-xs"
-              >
-                Clear
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const DynamicCategorySidebar: React.FC<{
-  selectedCategory: string;
-  selectedSubCategory: string | null;
-  selectedType: string | null;
-  onCategorySelect: (category: string) => void;
-  onSubCategorySelect: (subCategory: string | null) => void;
-  onTypeSelect: (type: string | null) => void;
-}> = ({
-  selectedCategory,
-  selectedSubCategory,
-  selectedType,
-  onCategorySelect,
-  onSubCategorySelect,
-  onTypeSelect,
-}) => {
-  const toggleCategory = (slug: string) => {
-    onCategorySelect(slug);
-    onSubCategorySelect(null);
-    onTypeSelect(null);
-  };
-
-  const toggleSubCategory = (name: string) => {
-    if (selectedSubCategory === name) {
-      onSubCategorySelect(null);
-      onTypeSelect(null);
-    } else {
-      onSubCategorySelect(name);
-      onTypeSelect(null);
-    }
-  };
-
-  const toggleType = (type: string) => {
-    if (selectedType === type) {
-      onTypeSelect(null);
-    } else {
-      onTypeSelect(type);
-    }
-  };
-
-  return (
-    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-      <h3 className="font-bold text-lg mb-2">Mobile Categories</h3>
-      <div className="space-y-1">
-        {mobileCategories.map((category) => (
-          <div key={category.slug} className="cursor-pointer">
-            <Link 
-              href={`/${category.slug}`}
-              className={`py-1 px-2 hover:bg-gray-100 block ${selectedCategory === category.slug ? 'text-blue-600 font-medium' : 'text-gray-800'}`}
-              onClick={() => toggleCategory(category.slug)}
-              style={{ fontSize: '12px', lineHeight: '1.5' }}
-            >
-              {category.name}
-            </Link>
-
-            {selectedCategory === category.slug && mobileSubCategories[category.slug] && (
-              <div className="ml-4 space-y-1">
-                {mobileSubCategories[category.slug].map((sub, index) => (
-                  <div key={index}>
-                    <Link
-                      href={`/${category.slug}/${sub.name.toLowerCase().replace(/\s+/g, '-')}`}
-                      className={`py-1 cursor-pointer hover:text-blue-600 block ${selectedSubCategory === sub.name ? 'text-blue-600 font-medium' : 'text-gray-700'}`}
-                      onClick={() => toggleSubCategory(sub.name)}
-                      style={{ fontSize: '12px', lineHeight: '1.5' }}
-                    >
-                      {sub.name}
-                    </Link>
-                    {sub.types && selectedSubCategory === sub.name && (
-                      <div className="ml-4 space-y-1">
-                        {sub.types.map((type, i) => (
-                          <Link
-                            key={i}
-                            href={`/${category.slug}/${sub.name.toLowerCase().replace(/\s+/g, '-')}/${type.toLowerCase().replace(/\s+/g, '-')}_id`}
-                            className={`py-1 cursor-pointer hover:text-blue-600 block ${selectedType === type ? 'text-blue-600 font-medium' : 'text-gray-600'}`}
-                            style={{ fontSize: '12px', lineHeight: '1.5' }}
-                            onClick={() => toggleType(type)}
-                          >
-                            - {type}
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
+const brandOptions: Brand[] = [
+  { name: 'Honda', count: 12500, models: ['CBR', 'CG 125', 'CD 70', 'CB 150'] },
+  { name: 'Yamaha', count: 9800, models: ['YZF-R1', 'YZF-R15', 'FZS', 'YB125Z'] },
+  { name: 'Suzuki', count: 7500, models: ['GSX-R', 'GD 110', 'GS 150'] },
+  { name: 'Kawasaki', count: 4200, models: ['Ninja', 'Z900', 'Versys'] },
+  { name: 'United', count: 3800, models: ['US 100', 'US 125', 'US 70'] },
+  { name: 'Road Prince', count: 3200, models: ['RP 125', 'RP 70', 'RP 150'] },
+];
 const ConditionSelectBox: React.FC = () => {
   const [selectedCondition, setSelectedCondition] = useState<string | null>(null);
 
@@ -585,67 +367,130 @@ const PriceFilter: React.FC = () => {
   );
 };
 
-const DynamicTypeFilterBox: React.FC<{ category: string }> = ({ category }) => {
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+// Components
+const DynamicCategorySidebar: React.FC<{
+  selectedSubCategory: string | null;
+  selectedType: string | null;
+  onSubCategorySelect: (slug: string) => void;
+  onTypeSelect: (slug: string) => void;
+}> = ({ selectedSubCategory, selectedType, onSubCategorySelect, onTypeSelect }) => {
+  const [showMoreSubCategories, setShowMoreSubCategories] = useState(false);
+  const [expandedSubCategories, setExpandedSubCategories] = useState<Record<string, boolean>>({});
+  const router = useRouter();
 
-  const handleTypeChange = (type: string) => {
-    if (selectedTypes.includes(type)) {
-      setSelectedTypes((prev) => prev.filter((t) => t !== type));
+  const toggleSubCategory = (slug: string) => {
+    if (selectedSubCategory === slug) {
+      onSubCategorySelect('');
+      onTypeSelect('');
+      router.push('/bikes', undefined, { shallow: true });
     } else {
-      setSelectedTypes((prev) => [...prev, type]);
+      onSubCategorySelect(slug);
+      onTypeSelect('');
+      router.push(`/bikes/${slug}`, undefined, { shallow: true });
     }
   };
 
-  const clearSelection = () => {
-    setSelectedTypes([]);
+  const toggleType = (type: string) => {
+    if (selectedType === type) {
+      onTypeSelect('');
+      router.push(`/bikes/`, undefined, { shallow: true });
+    } else {
+      onTypeSelect(type);
+      router.push(`/bikes/${type.toLowerCase().replace(/\s+/g, '-')}`, undefined, { shallow: true });
+    }
   };
 
-  const types = typeOptions[category] || [];
+  const toggleSubCategoryExpansion = (slug: string) => {
+    setExpandedSubCategories(prev => ({
+      ...prev,
+      [slug]: !prev[slug]
+    }));
+  };
+
+  // Show only the selected subcategory with its types when a subcategory is selected
+  const displaySubCategories = selectedSubCategory 
+    ? bikeSubCategories.filter(sc => sc.slug === selectedSubCategory)
+    : (showMoreSubCategories ? bikeSubCategories : bikeSubCategories.slice(0, 5));
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-      <h3 className="font-bold text-lg mb-2">Type</h3>
-      {selectedTypes.length > 0 ? (
-        <div className="flex justify-between items-center bg-gray-100 p-2 rounded text-gray-700">
-          <span className="text-sm">{selectedTypes.join(', ')}</span>
+      <h3 className="font-bold text-lg mb-2">Bikes Categories</h3>
+      <div className="space-y-1">
+        {displaySubCategories.map((subCategory) => (
+          <div key={subCategory.slug}>
+            <div 
+              className="flex justify-between items-center cursor-pointer"
+              onClick={() => toggleSubCategoryExpansion(subCategory.slug)}
+            >
+              <div
+                className={`py-1 px-2 hover:text-blue-600 ${
+                  selectedSubCategory === subCategory.slug ? 'text-blue-600 font-medium' : 'text-gray-700'
+                }`}
+                style={{ fontSize: '12px', lineHeight: '1.5' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleSubCategory(subCategory.slug);
+                }}
+              >
+                {subCategory.name}
+              </div>
+              {subCategory.types && (
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleSubCategoryExpansion(subCategory.slug);
+                  }}
+                  className="p-1"
+                >
+                  {expandedSubCategories[subCategory.slug] ? (
+                    <FiChevronUp className="text-gray-500" />
+                  ) : (
+                    <FiChevronDown className="text-gray-500" />
+                  )}
+                </button>
+              )}
+            </div>
+            
+            {subCategory.types && (expandedSubCategories[subCategory.slug] || selectedSubCategory === subCategory.slug) && (
+              <div className="ml-4 space-y-1">
+                {subCategory.types.map((type) => (
+                  <div
+                    key={type}
+                    className={`py-1 px-2 cursor-pointer hover:text-blue-600 ${
+                      selectedType === type ? 'text-blue-600 font-medium' : 'text-gray-600'
+                    }`}
+                    style={{ fontSize: '12px', lineHeight: '1.5' }}
+                    onClick={() => toggleType(type)}
+                  >
+                    - {type}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+        {!selectedSubCategory && bikeSubCategories.length > 5 && (
           <button
-            onClick={clearSelection}
-            className="text-blue-600 text-xs"
+            onClick={() => setShowMoreSubCategories(prev => !prev)}
+            className="text-blue-600 text-sm mt-2"
           >
-            Change
+            {showMoreSubCategories ? 'Show Less' : 'Show More'}
           </button>
-        </div>
-      ) : (
-        <div className="space-y-1">
-          {types.map((type) => (
-            <label key={type.label} className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={selectedTypes.includes(type.label)}
-                onChange={() => handleTypeChange(type.label)}
-                className="h-4 w-4 text-blue-600 rounded"
-              />
-              <span className="text-gray-700 text-sm">
-                {type.label} ({type.count})
-              </span>
-            </label>
-          ))}
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
 
-const MobileProductCard: React.FC<{
-  products: MobileProduct[];
+const BikeProductCard: React.FC<{
+  products: BikeProduct[];
   loading?: boolean;
 }> = ({
   products = [],
   loading = false
 }) => {
   const [likedProducts, setLikedProducts] = useState<Set<number>>(new Set());
- 
-  
+
   const toggleLike = useCallback((productId: number) => {
     setLikedProducts(prev => {
       const newSet = new Set(prev);
@@ -678,7 +523,7 @@ const MobileProductCard: React.FC<{
   if (products.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-500">No products found</p>
+        <p className="text-gray-500">No bikes found</p>
       </div>
     );
   }
@@ -687,7 +532,6 @@ const MobileProductCard: React.FC<{
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {products.map((product) => {
         const isLiked = likedProducts.has(product.id);
-        const isPtaApproved = product.pta_status === 'PTA Approved';
         
         return (
           <article
@@ -696,15 +540,17 @@ const MobileProductCard: React.FC<{
           >
             <div className="relative aspect-video bg-gray-100">
               <Image
-                src={product.images?.[0]?.url || '/images/placeholder.png'}
+                src={product.images?.[0]?.url || '/images/bike-placeholder.png'}
                 alt={`${product.brand} ${product.model}`}
                 fill
                 className="object-cover"
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               />
-              <span className="absolute top-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
-                Featured
-              </span>
+              {product.images?.[0]?.is_featured && (
+                <span className="absolute top-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
+                  Featured
+                </span>
+              )}
             </div>
 
             <div className="p-4">
@@ -724,7 +570,7 @@ const MobileProductCard: React.FC<{
               </div>
 
               <h4 className="text-gray-700 font-medium text-sm line-clamp-2">
-                {product.title}
+                {product.brand} {product.model} {product.engine_capacity && `(${product.engine_capacity}cc)`}
               </h4>
 
               <div className="flex justify-between items-center text-gray-600 text-xs mt-2">
@@ -733,14 +579,9 @@ const MobileProductCard: React.FC<{
                   <span>{product.condition}</span>
                 </div>
                 
-                {product.pta_status && product.pta_status !== 'N/A' && (
+                {product.year && (
                   <div className="flex items-center gap-1">
-                    {isPtaApproved ? (
-                      <LuWifi className="text-green-500" />
-                    ) : (
-                      <LuWifiOff className="text-red-500" />
-                    )}
-                    <span>{isPtaApproved ? 'PTA' : 'NON PTA'}</span>
+                    <span>{product.year}</span>
                   </div>
                 )}
               </div>
@@ -762,9 +603,10 @@ const MobileProductCard: React.FC<{
   );
 };
 
-const MobileCategoryPage: React.FC = () => {
+const BikesCategoryPage: React.FC = () => {
+  const router = useRouter();
+  const { slug } = router.query;
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000000]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('mobile-phones');
   const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedFilters, setSelectedFilters] = useState<FilterState>({
@@ -774,7 +616,6 @@ const MobileCategoryPage: React.FC = () => {
   });
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState<boolean>(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    category: true,
     price: true,
     condition: true,
     location: true,
@@ -782,30 +623,78 @@ const MobileCategoryPage: React.FC = () => {
   });
   const [sortBy, setSortBy] = useState<string>('newest');
   const [selectedCondition, setSelectedCondition] = useState<string>('all');
-  const [products, setProducts] = useState<MobileProduct[]>([]);
+  const [products, setProducts] = useState<BikeProduct[]>([]);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const pathname = usePathname();
+
+  // Parse the URL to set initial state
+  useEffect(() => {
+    if (!router.isReady) return;
+    
+    if (Array.isArray(slug)) {
+      if (slug.length >= 1) {
+        const subCategory = bikeSubCategories.find(sc => sc.slug === slug[0]);
+        if (subCategory) {
+          setSelectedSubCategory(subCategory.slug);
+        }
+      }
+      if (slug.length >= 2) {
+        // Find the type by matching the slugified version
+        const subCategory = bikeSubCategories.find(sc => sc.slug === slug[0]);
+        if (subCategory?.types) {
+          const type = subCategory.types.find(t => 
+            t.toLowerCase().replace(/\s+/g, '-') === slug[1]
+          );
+          if (type) {
+            setSelectedType(type);
+          }
+        }
+      }
+    }
+  }, [router.isReady, slug]);
+
+  const fetchProducts = useCallback(async () => {
+    try {
+      setLoading(true);
+      
+      const params: Record<string, any> = {
+        sort: sortBy,
+        condition: selectedCondition === 'all' ? undefined : selectedCondition,
+      };
+
+      if (selectedSubCategory) {
+        params.sub_category = selectedSubCategory;
+      }
+
+      if (selectedType) {
+        params.type = selectedType;
+      }
+
+      if (priceRange[0] > 0 || priceRange[1] < 1000000) {
+        params.min_price = priceRange[0];
+        params.max_price = priceRange[1];
+      }
+
+      const response = await axios.get('http://127.0.0.1:8000/api/bikes', {
+        params,
+      });
+      
+      setProducts(response.data);
+    } catch (error) {
+      console.error('Error fetching bike products:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedSubCategory, selectedType, sortBy, selectedCondition, priceRange]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({
       ...prev,
       [section]: !prev[section],
     }));
-  };
-
-  const handleFilterSelect = (filterType: keyof FilterState, value: string) => {
-    setSelectedFilters(prev => {
-      const currentValues = prev[filterType];
-      const newValues = currentValues.includes(value)
-        ? currentValues.filter(v => v !== value)
-        : [...currentValues, value];
-
-      return {
-        ...prev,
-        [filterType]: newValues,
-      };
-    });
   };
 
   const clearFilters = () => {
@@ -815,44 +704,38 @@ const MobileCategoryPage: React.FC = () => {
       location: [],
       type: [],
     });
-    setSelectedSubCategory(null);
-    setSelectedType(null);
+    setSelectedCondition('all');
   };
 
-  useEffect(() => {
-    const fetchMobileProducts = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get('http://127.0.0.1:8000/api/mobiles');
-        console.log(response.data);
-        setProducts(response.data);
-      } catch (error) {
-        console.error('Error fetching mobile products:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchMobileProducts();
-  }, []);
+  const getCurrentCategoryName = () => {
+    if (selectedType) {
+      return selectedType;
+    }
+    if (selectedSubCategory) {
+      const subCat = bikeSubCategories.find(sc => sc.slug === selectedSubCategory);
+      return subCat?.name || 'Bikes';
+    }
+    return 'All Bikes';
+  };
 
   return (
     <div className="bg-gray-50 min-h-screen">
       <div className="bg-white py-2 px-4 border-b">
         <div className="container mx-auto">
           <div className="flex items-center text-sm text-gray-600">
-            <Link href="/" className="hover:text-blue-600">Home</Link>
+            <span>Home</span>
             <span className="mx-2">›</span>
-            <Link href="/mobiles_c1" className="hover:text-blue-600">Mobile Phones</Link>
+            <span>Bikes</span>
             {selectedSubCategory && (
               <>
                 <span className="mx-2">›</span>
-                <Link 
-                  href={`/mobiles/${selectedSubCategory.toLowerCase().replace(/\s+/g, '-')}_id`} 
-                  className="hover:text-blue-600"
-                >
-                  {selectedSubCategory}
-                </Link>
+                <span>{bikeSubCategories.find(sc => sc.slug === selectedSubCategory)?.name}</span>
+              </>
+            )}
+            {selectedType && (
+              <>
+                <span className="mx-2">›</span>
+                <span>{selectedType}</span>
               </>
             )}
           </div>
@@ -863,25 +746,21 @@ const MobileCategoryPage: React.FC = () => {
         <div className="flex flex-col lg:flex-row gap-4">
           <div className="w-full lg:w-1/4 space-y-4">
             <DynamicCategorySidebar
-              selectedCategory={selectedCategory}
               selectedSubCategory={selectedSubCategory}
               selectedType={selectedType}
-              onCategorySelect={setSelectedCategory}
               onSubCategorySelect={setSelectedSubCategory}
               onTypeSelect={setSelectedType}
             />
             <LocationSidebar />
             <PriceFilter />
-            <DynamicBrandModelFilter category={selectedCategory} />
             <ConditionSelectBox />
-            {selectedCategory === 'accessories' && (
-              <DynamicTypeFilterBox category="Accessories" />
-            )}
           </div>
 
           <div className="w-full lg:w-3/4">
             <div className="md:hidden flex justify-between items-center mb-4">
-              <h1 className="text-xl font-bold">Mobile Products</h1>
+              <h1 className="text-xl font-bold capitalize">
+                {getCurrentCategoryName()}
+              </h1>
               <button 
                 onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
                 className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded"
@@ -890,18 +769,19 @@ const MobileCategoryPage: React.FC = () => {
               </button>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm p-4 mb-4 flex justify-between items-center">
+            <div className="bg-white rounded-lg shadow-sm p-4 mb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div className="text-sm text-gray-600">
-                Showing {selectedSubCategory || selectedCategory} products
+                Showing {getCurrentCategoryName().toLowerCase()}
+                <span className="ml-2 text-gray-500">({products.length} results)</span>
               </div>
               
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full md:w-auto">
+                <div className="flex items-center gap-2 w-full md:w-auto">
                   <span className="text-sm text-gray-600">Condition:</span>
                   <select
                     value={selectedCondition}
                     onChange={(e) => setSelectedCondition(e.target.value)}
-                    className="border rounded p-2 text-sm"
+                    className="border rounded p-2 text-sm w-full md:w-auto"
                   >
                     <option value="all">All</option>
                     <option value="new">New</option>
@@ -909,12 +789,12 @@ const MobileCategoryPage: React.FC = () => {
                   </select>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full md:w-auto">
                   <span className="text-sm text-gray-600">Sort by:</span>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="border rounded p-2 text-sm"
+                    className="border rounded p-2 text-sm w-full md:w-auto"
                   >
                     <option value="newest">Newest First</option>
                     <option value="price-low">Price: Low to High</option>
@@ -925,19 +805,22 @@ const MobileCategoryPage: React.FC = () => {
               </div>
             </div>
 
-            <MobileProductCard 
+            <BikeProductCard 
               products={products}
               loading={loading}
             />
-            <div className="mt-6 flex justify-center">
-              <nav className="flex items-center gap-1">
-                <button className="px-3 py-1 rounded border text-sm">Previous</button>
-                <button className="px-3 py-1 rounded border bg-blue-600 text-white text-sm">1</button>
-                <button className="px-3 py-1 rounded border text-sm">2</button>
-                <button className="px-3 py-1 rounded border text-sm">3</button>
-                <button className="px-3 py-1 rounded border text-sm">Next</button>
-              </nav>
-            </div>
+            
+            {products.length > 0 && (
+              <div className="mt-6 flex justify-center">
+                <nav className="flex items-center gap-1">
+                  <button className="px-3 py-1 rounded border text-sm">Previous</button>
+                  <button className="px-3 py-1 rounded border bg-blue-600 text-white text-sm">1</button>
+                  <button className="px-3 py-1 rounded border text-sm">2</button>
+                  <button className="px-3 py-1 rounded border text-sm">3</button>
+                  <button className="px-3 py-1 rounded border text-sm">Next</button>
+                </nav>
+              </div>
+            )}
           </div>
         </div>
 
@@ -994,7 +877,10 @@ const MobileCategoryPage: React.FC = () => {
                 Clear all
               </button>
               <button 
-                onClick={() => setMobileFiltersOpen(false)}
+                onClick={() => {
+                  setMobileFiltersOpen(false);
+                  fetchProducts();
+                }}
                 className="flex-1 py-2 bg-blue-600 rounded text-white font-medium"
               >
                 Show results
@@ -1007,4 +893,4 @@ const MobileCategoryPage: React.FC = () => {
   );
 };
 
-export default MobileCategoryPage;
+export default BikesCategoryPage;

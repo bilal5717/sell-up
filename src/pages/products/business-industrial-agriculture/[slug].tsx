@@ -1,13 +1,13 @@
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { 
   FiChevronDown, 
   FiChevronUp, 
   FiFilter, 
   FiX 
 } from 'react-icons/fi';
-
 import { 
   LuHeart, 
   LuTag, 
@@ -67,21 +67,7 @@ interface Province {
 
 // Data
 const categories: Category[] = [
-  { name: 'Mobiles', slug: 'mobiles' },
-  { name: 'Vehicles', slug: 'vehicles' },
-  { name: 'Property for Rent', slug: 'property-for-rent' },
-  { name: 'Property for Sale', slug: 'property-for-sale' },
-  { name: 'Electronics & Home Appliances', slug: 'electronics-home-appliances' },
-  { name: 'Bikes', slug: 'bikes' },
   { name: 'Business, Industrial & Agriculture', slug: 'business-industrial-agriculture' },
-  { name: 'Services', slug: 'services' },
-  { name: 'Jobs', slug: 'jobs' },
-  { name: 'Animals', slug: 'animals' },
-  { name: 'Books, Sports & Hobbies', slug: 'books-sports-hobbies' },
-  { name: 'Furniture & Home Decor', slug: 'furniture-home-decor' },
-  { name: 'Fashion & Beauty', slug: 'fashion-beauty' },
-  { name: 'Kids', slug: 'kids' },
-  { name: 'Others', slug: 'others' },
 ];
 
 const subCategories: CategoryData = {
@@ -152,6 +138,9 @@ const provinces: Province[] = [
   { name: 'Islamabad Capital Territory', cities: ['Islamabad'] },
 ];
 
+// Utility function to convert name to slug
+const toSlug = (name: string) => name.toLowerCase().replace(/\s+/g, '-');
+
 // Components
 const DynamicCategorySidebar: React.FC<{
   selectedCategory: string;
@@ -168,29 +157,35 @@ const DynamicCategorySidebar: React.FC<{
   onSubCategorySelect,
   onTypeSelect,
 }) => {
+  const router = useRouter();
   const [showMoreCategories, setShowMoreCategories] = useState<boolean>(false);
 
   const toggleCategory = (slug: string) => {
     onCategorySelect(slug);
     onSubCategorySelect(null);
     onTypeSelect(null);
+    router.push(`/${slug}`);
   };
 
   const toggleSubCategory = (name: string) => {
     if (selectedSubCategory === name) {
       onSubCategorySelect(null);
       onTypeSelect(null);
+      router.push(`/${selectedCategory}`);
     } else {
       onSubCategorySelect(name);
       onTypeSelect(null);
+      router.push(`/${selectedCategory}/${toSlug(name)}`);
     }
   };
 
   const toggleType = (type: string) => {
     if (selectedType === type) {
       onTypeSelect(null);
+      router.push(`/${selectedCategory}/${toSlug(selectedSubCategory!)}`);
     } else {
       onTypeSelect(type);
+      router.push(`/${selectedCategory}/${toSlug(selectedSubCategory!)}?type=${toSlug(type)}`);
     }
   };
 
@@ -609,7 +604,10 @@ const ProductCard: React.FC<{
   );
 };
 
-const BusinessIndustrialPage: React.FC = () => {
+const BusinessIndustrialSlugPage: React.FC = () => {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000000]);
   const [selectedCategory, setSelectedCategory] = useState<string>('business-industrial-agriculture');
   const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
@@ -631,6 +629,33 @@ const BusinessIndustrialPage: React.FC = () => {
   const [selectedCondition, setSelectedCondition] = useState<string>('all');
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Parse URL to set initial state
+  useEffect(() => {
+    const pathSegments = pathname.split('/').filter(segment => segment);
+    if (pathSegments.length > 0) {
+      const categorySlug = pathSegments[0];
+      const category = categories.find(cat => cat.slug === categorySlug);
+      if (category) {
+        setSelectedCategory(category.slug);
+        if (pathSegments.length > 1) {
+          const subCategoryName = subCategories[category.slug]?.find(sub => toSlug(sub.name) === pathSegments[1])?.name;
+          if (subCategoryName) {
+            setSelectedSubCategory(subCategoryName);
+            const typeSlug = searchParams.get('type');
+            if (typeSlug) {
+              const type = subCategories[category.slug]
+                ?.find(sub => sub.name === subCategoryName)?.types
+                ?.find(t => toSlug(t) === typeSlug);
+              if (type) {
+                setSelectedType(type);
+              }
+            }
+          }
+        }
+      }
+    }
+  }, [pathname, searchParams]);
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({
@@ -662,23 +687,25 @@ const BusinessIndustrialPage: React.FC = () => {
     });
     setSelectedSubCategory(null);
     setSelectedType(null);
+    router.push(`/${selectedCategory}`);
   };
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get('http://127.0.0.1:8000/api/business-industrial-agriculture');
-        setProducts(response.data);
-      } catch (error) {
-        console.error('Error fetching products:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchProducts();
-  }, []);
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const url = `http://127.0.0.1:8000/api/business-industrial-agriculture${selectedSubCategory ? '/' + toSlug(selectedSubCategory) : ''}${selectedType ? '?type=' + toSlug(selectedType) : ''}`;
+      const response = await axios.get(url);
+      setProducts(response.data);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  fetchProducts();
+}, [selectedCategory, selectedSubCategory, selectedType]);
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -721,7 +748,7 @@ const BusinessIndustrialPage: React.FC = () => {
 
             <div className="bg-white rounded-lg shadow-sm p-4 mb-4 flex justify-between items-center">
               <div className="text-sm text-gray-600">
-                Showing {selectedSubCategory || selectedCategory} products
+                Showing products for <span className="font-medium">{selectedType || selectedSubCategory || selectedCategory}</span>
               </div>
               
               <div className="flex items-center gap-4">
@@ -836,4 +863,4 @@ const BusinessIndustrialPage: React.FC = () => {
   );
 };
 
-export default BusinessIndustrialPage;
+export default BusinessIndustrialSlugPage;
