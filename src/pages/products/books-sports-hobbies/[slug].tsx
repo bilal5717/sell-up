@@ -1,13 +1,14 @@
+
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   FiChevronDown, 
   FiChevronUp, 
   FiFilter, 
   FiX 
 } from 'react-icons/fi';
-
 import { 
   LuHeart, 
   LuTag, 
@@ -41,7 +42,6 @@ interface Product {
   };
 }
 
-
 interface FilterState {
   condition: string[];
   location: string[];
@@ -61,7 +61,8 @@ interface Category {
 
 interface SubCategory {
   name: string;
-  types?: string[];
+  slug: string; // Added slug for subcategories
+  types?: { name: string; slug: string }[]; // Added slug for types
 }
 
 interface CategoryData {
@@ -86,41 +87,67 @@ const brandOptions: Record<string, Brand[]> = {
 };
 
 const categories: Category[] = [
-  { name: 'Mobiles', slug: 'mobiles' },
-  { name: 'Vehicles', slug: 'vehicles' },
-  { name: 'Property for Rent', slug: 'property-for-rent' },
-  { name: 'Property for Sale', slug: 'property-for-sale' },
-  { name: 'Electronics & Home Appliances', slug: 'electronics-home-appliances' },
-  { name: 'Bikes', slug: 'bikes' },
-  { name: 'Business, Industrial & Agriculture', slug: 'business-industrial-agriculture' },
-  { name: 'Services', slug: 'services' },
-  { name: 'Jobs', slug: 'jobs' },
-  { name: 'Animals', slug: 'animals' },
   { name: 'Books, Sports & Hobbies', slug: 'books-sports-hobbies' },
-  { name: 'Furniture & Home Decor', slug: 'furniture-home-decor' },
-  { name: 'Fashion & Beauty', slug: 'fashion-beauty' },
-  { name: 'Kids', slug: 'kids' },
-  { name: 'Others', slug: 'others' },
 ];
 
 const subCategories: CategoryData = {
   'books-sports-hobbies': [
-    { name: 'Sports Equipment', types: [
-      'Football', 'Cricket', 'Tennis', 'Basketball', 'Badminton', 
-      'Table Tennis', 'Volleyball', 'Golf', 'Hockey', 'Other Sports'
-    ]},
-    { name: 'Musical Instruments', types: [
-      'Guitars', 'Keyboards', 'Drums', 'Violins', 'Flutes', 
-      'Trumpets', 'Saxophones', 'Amplifiers', 'Other Instruments'
-    ]},
-    { name: 'Gym & Fitness', types: [
-      'Treadmills', 'Exercise Bikes', 'Dumbbells', 'Weight Benches', 
-      'Yoga Mats', 'Resistance Bands', 'Other Gym Equipment'
-    ]},
-    { name: 'Books & Magazines', types: [
-      'Books', 'Magazines', 'Dictionaries', 'Stationary Items', 'Calculators'
-    ]},
-    { name: 'Others' }
+    { 
+      name: 'Sports Equipment', 
+      slug: 'sports-equipment',
+      types: [
+        { name: 'Football', slug: 'football' },
+        { name: 'Cricket', slug: 'cricket' },
+        { name: 'Tennis', slug: 'tennis' },
+        { name: 'Basketball', slug: 'basketball' },
+        { name: 'Badminton', slug: 'badminton' },
+        { name: 'Table Tennis', slug: 'table-tennis' },
+        { name: 'Volleyball', slug: 'volleyball' },
+        { name: 'Golf', slug: 'golf' },
+        { name: 'Hockey', slug: 'hockey' },
+        { name: 'Other Sports', slug: 'other-sports' }
+      ]
+    },
+    { 
+      name: 'Musical Instruments', 
+      slug: 'musical-instruments',
+      types: [
+        { name: 'Guitars', slug: 'guitars' },
+        { name: 'Keyboards', slug: 'keyboards' },
+        { name: 'Drums', slug: 'drums' },
+        { name: 'Violins', slug: 'violins' },
+        { name: 'Flutes', slug: 'flutes' },
+        { name: 'Trumpets', slug: 'trumpets' },
+        { name: 'Saxophones', slug: 'saxophones' },
+        { name: 'Amplifiers', slug: 'amplifiers' },
+        { name: 'Other Instruments', slug: 'other-instruments' }
+      ]
+    },
+    { 
+      name: 'Gym & Fitness', 
+      slug: 'gym-fitness',
+      types: [
+        { name: 'Treadmills', slug: 'treadmills' },
+        { name: 'Exercise Bikes', slug: 'exercise-bikes' },
+        { name: 'Dumbbells', slug: 'dumbbells' },
+        { name: 'Weight Benches', slug: 'weight-benches' },
+        { name: 'Yoga Mats', slug: 'yoga-mats' },
+        { name: 'Resistance Bands', slug: 'resistance-bands' },
+        { name: 'Other Gym Equipment', slug: 'other-gym-equipment' }
+      ]
+    },
+    { 
+      name: 'Books & Magazines', 
+      slug: 'books-magazines',
+      types: [
+        { name: 'Books', slug: 'books' },
+        { name: 'Magazines', slug: 'magazines' },
+        { name: 'Dictionaries', slug: 'dictionaries' },
+        { name: 'Stationary Items', slug: 'stationary-items' },
+        { name: 'Calculators', slug: 'calculators' }
+      ]
+    },
+    { name: 'Others', slug: 'others' }
   ],
 };
 
@@ -135,74 +162,101 @@ const provinces: Province[] = [
 ];
 
 const typeOptions: Record<string, { label: string; count: number }[]> = {
-  'Sports Equipment': [
+  'sports-equipment': [
     { label: 'Football', count: 930 },
     { label: 'Cricket', count: 860 },
     { label: 'Tennis', count: 410 },
   ],
-  'Books & Magazines': [
+  'books-magazines': [
     { label: 'Books', count: 1420 },
     { label: 'Magazines', count: 380 },
     { label: 'Dictionaries', count: 250 },
   ],
-  'Musical Instruments': [
+  'musical-instruments': [
     { label: 'Guitars', count: 720 },
     { label: 'Keyboards', count: 380 },
     { label: 'Drums', count: 210 },
   ]
 };
 
-// Reuse all the same components from before, just updating the category-specific parts
+// DynamicCategorySidebar Component
 const DynamicCategorySidebar: React.FC<{
   selectedCategory: string;
   selectedSubCategory: string | null;
   selectedType: string | null;
   onCategorySelect: (category: string) => void;
-  onSubCategorySelect: (subCategory: string | null) => void;
-  onTypeSelect: (type: string | null) => void;
-  }> = ({
-    selectedCategory,
-    selectedSubCategory,
-    selectedType,
-    onCategorySelect,
-    onSubCategorySelect,
-    onTypeSelect,
-  }) => {
-  const [showMoreCategories, setShowMoreCategories] = useState<boolean>(false);
+  onSubCategorySelect: (subCategory: string | null, slug: string | null) => void;
+  onTypeSelect: (type: string | null, slug: string | null) => void;
+}> = ({
+  selectedCategory,
+  selectedSubCategory,
+  selectedType,
+  onCategorySelect,
+  onSubCategorySelect,
+  onTypeSelect,
+}) => {
+  const router = useRouter();
+  const [showMoreSubCategories, setShowMoreSubCategories] = useState<boolean>(false);
+  const [showMoreTypes, setShowMoreTypes] = useState<boolean>(false);
 
   const toggleCategory = (slug: string) => {
     onCategorySelect(slug);
-    onSubCategorySelect(null);
-    onTypeSelect(null);
+    onSubCategorySelect(null, null);
+    onTypeSelect(null, null);
+    setShowMoreSubCategories(false);
+    setShowMoreTypes(false);
+    router.push(`/category/${slug}`);
   };
 
-  const toggleSubCategory = (name: string) => {
+  const toggleSubCategory = (name: string, slug: string) => {
     if (selectedSubCategory === name) {
-      onSubCategorySelect(null);
-      onTypeSelect(null);
+      onSubCategorySelect(null, null);
+      onTypeSelect(null, null);
+      setShowMoreTypes(false);
+      router.push(`/${selectedCategory}`);
     } else {
-      onSubCategorySelect(name);
-      onTypeSelect(null);
+      onSubCategorySelect(name, slug);
+      onTypeSelect(null, null);
+      setShowMoreTypes(false);
+      router.push(`/${selectedCategory}/${slug}`);
     }
   };
 
-  const toggleType = (type: string) => {
+  const toggleType = (type: string, slug: string) => {
     if (selectedType === type) {
-      onTypeSelect(null);
+      onTypeSelect(null, null);
+      router.push(`/${selectedCategory}/${subCategories[selectedCategory].find(sub => sub.name === selectedSubCategory)?.slug}`);
     } else {
-      onTypeSelect(type);
+      onTypeSelect(type, slug);
+      router.push(`/${selectedCategory}/${slug}`);
     }
   };
 
-  const toggleShowMoreCategories = () => {
-    setShowMoreCategories((prev) => !prev);
+  const toggleShowMoreSubCategories = () => {
+    setShowMoreSubCategories((prev) => !prev);
+  };
+
+  const toggleShowMoreTypes = () => {
+    setShowMoreTypes((prev) => !prev);
+  };
+
+  const visibleSubCategories = showMoreSubCategories
+    ? subCategories[selectedCategory]?.slice(0, 14) || []
+    : subCategories[selectedCategory]?.slice(0, 7) || [];
+
+  const getVisibleTypes = (subCategory: string) => {
+    const subCategoryData = subCategories[selectedCategory]?.find(sub => sub.name === subCategory);
+    if (!subCategoryData?.types) return [];
+    return showMoreTypes
+      ? subCategoryData.types.slice(0, 14)
+      : subCategoryData.types.slice(0, 7);
   };
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
       <h3 className="font-bold text-lg mb-2">All Categories</h3>
       <div className="space-y-1">
-        {(showMoreCategories ? categories : categories.slice(0, 4)).map((category) => (
+        {categories.map((category) => (
           <div key={category.slug} className="cursor-pointer">
             <div
               className={`py-1 px-2 hover:bg-gray-100 ${selectedCategory === category.slug ? 'text-blue-600 font-medium' : 'text-gray-800'}`}
@@ -214,47 +268,57 @@ const DynamicCategorySidebar: React.FC<{
 
             {selectedCategory === category.slug && subCategories[category.slug] && (
               <div className="ml-4 space-y-1">
-                {subCategories[category.slug].map((sub, index) => (
+                {visibleSubCategories.map((sub, index) => (
                   <div key={index}>
                     <div
                       className={`py-1 cursor-pointer hover:text-blue-600 ${selectedSubCategory === sub.name ? 'text-blue-600 font-medium' : 'text-gray-700'}`}
-                      onClick={() => toggleSubCategory(sub.name)}
+                      onClick={() => toggleSubCategory(sub.name, sub.slug)}
                       style={{ fontSize: '12px', lineHeight: '1.5' }}
                     >
                       {sub.name}
                     </div>
                     {sub.types && selectedSubCategory === sub.name && (
                       <div className="ml-4 space-y-1">
-                        {sub.types.map((type, i) => (
+                        {getVisibleTypes(sub.name).map((type, i) => (
                           <div
                             key={i}
-                            className={`py-1 cursor-pointer hover:text-blue-600 ${selectedType === type ? 'text-blue-600 font-medium' : 'text-gray-600'}`}
+                            className={`py-1 cursor-pointer hover:text-blue-600 ${selectedType === type.name ? 'text-blue-600 font-medium' : 'text-gray-600'}`}
                             style={{ fontSize: '12px', lineHeight: '1.5' }}
-                            onClick={() => toggleType(type)}
+                            onClick={() => toggleType(type.name, type.slug)}
                           >
-                            - {type}
+                            - {type.name}
                           </div>
                         ))}
+                        {sub.types.length > 7 && (
+                          <button
+                            onClick={toggleShowMoreTypes}
+                            className="text-blue-600 text-sm mt-1"
+                          >
+                            {showMoreTypes ? 'Show Less' : 'Show More'}
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
                 ))}
+                {subCategories[category.slug].length > 7 && (
+                  <button
+                    onClick={toggleShowMoreSubCategories}
+                    className="text-blue-600 text-sm mt-1"
+                  >
+                    {showMoreSubCategories ? 'Show Less' : 'Show More'}
+                  </button>
+                )}
               </div>
             )}
           </div>
         ))}
-        {categories.length > 4 && (
-          <button
-            onClick={toggleShowMoreCategories}
-            className="text-blue-600 text-sm mt-2"
-          >
-            {showMoreCategories ? 'Show Less' : 'Show More'}
-          </button>
-        )}
       </div>
     </div>
   );
 };
+
+// LocationSidebar Component
 const LocationSidebar: React.FC = () => {
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
@@ -344,6 +408,8 @@ const LocationSidebar: React.FC = () => {
     </div>
   );
 };
+
+// DynamicTypeFilterBox Component
 const DynamicTypeFilterBox: React.FC<{ category: string }> = ({ category }) => {
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
 
@@ -394,6 +460,8 @@ const DynamicTypeFilterBox: React.FC<{ category: string }> = ({ category }) => {
     </div>
   );
 };
+
+// ConditionSelectBox Component
 const ConditionSelectBox: React.FC = () => {
   const [selectedCondition, setSelectedCondition] = useState<string | null>(null);
 
@@ -435,6 +503,8 @@ const ConditionSelectBox: React.FC = () => {
     </div>
   );
 };
+
+// PriceFilter Component
 const PriceFilter: React.FC = () => {
   const [minPrice, setMinPrice] = useState<number | ''>('');
   const [maxPrice, setMaxPrice] = useState<number | ''>('');
@@ -543,6 +613,7 @@ const PriceFilter: React.FC = () => {
   );
 };
 
+// BooksHobbiesProductCard Component
 const BooksHobbiesProductCard: React.FC<{ products: Product[]; loading?: boolean }> = ({
   products = [],
   loading = false,
@@ -631,22 +702,21 @@ const BooksHobbiesProductCard: React.FC<{ products: Product[]; loading?: boolean
               </h4>
 
               <div className="flex justify-between items-center text-gray-600 text-xs mt-2">
-  <div className="flex items-center gap-1">
-    <LuTag />
-    <span>{product.books_details?.condition || 'Not Specified'}</span>
-  </div>
-  {product.books_details?.language && (
-    <div className="flex items-center gap-1">
-      <span>Language: {product.books_details.language}</span>
-    </div>
-  )}
-  {product.warranty && (
-    <div className="flex items-center gap-1">
-      <span>Warranty: {product.warranty}</span>
-    </div>
-  )}
-</div>
-
+                <div className="flex items-center gap-1">
+                  <LuTag />
+                  <span>{product.books_details?.condition || 'Not Specified'}</span>
+                </div>
+                {product.books_details?.language && (
+                  <div className="flex items-center gap-1">
+                    <span>Language: {product.books_details.language}</span>
+                  </div>
+                )}
+                {product.warranty && (
+                  <div className="flex items-center gap-1">
+                    <span>Warranty: {product.warranty}</span>
+                  </div>
+                )}
+              </div>
 
               <div className="flex flex-col items-start text-gray-500 text-xs mt-2">
                 <div className="flex items-center gap-1">
@@ -665,11 +735,16 @@ const BooksHobbiesProductCard: React.FC<{ products: Product[]; loading?: boolean
   );
 };
 
+// BooksHobbiesCategoryPage Component
 const BooksHobbiesCategoryPage: React.FC = () => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000000]);
   const [selectedCategory, setSelectedCategory] = useState<string>('books-sports-hobbies');
   const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
+  const [selectedSubCategorySlug, setSelectedSubCategorySlug] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [selectedTypeSlug, setSelectedTypeSlug] = useState<string | null>(null);
   const [selectedFilters, setSelectedFilters] = useState<FilterState>({
     condition: [],
     location: [],
@@ -687,6 +762,27 @@ const BooksHobbiesCategoryPage: React.FC = () => {
   const [selectedCondition, setSelectedCondition] = useState<string>('all');
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Initialize state from URL parameters
+  useEffect(() => {
+    const subCategorySlug = searchParams.get('subCategory');
+    const typeSlug = searchParams.get('type');
+    
+    if (subCategorySlug) {
+      const subCategory = subCategories['books-sports-hobbies'].find(sub => sub.slug === subCategorySlug);
+      if (subCategory) {
+        setSelectedSubCategory(subCategory.name);
+        setSelectedSubCategorySlug(subCategorySlug);
+        if (typeSlug) {
+          const type = subCategory.types?.find(t => t.slug === typeSlug);
+          if (type) {
+            setSelectedType(type.name);
+            setSelectedTypeSlug(typeSlug);
+          }
+        }
+      }
+    }
+  }, [searchParams]);
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({
@@ -717,15 +813,27 @@ const BooksHobbiesCategoryPage: React.FC = () => {
       type: [],
     });
     setSelectedSubCategory(null);
+    setSelectedSubCategorySlug(null);
     setSelectedType(null);
+    setSelectedTypeSlug(null);
+    router.push(`/${selectedCategory}`);
   };
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('http://127.0.0.1:8000/api/books-sports-hobbies');
-        console.log(response.data);
+        let url = 'http://127.0.0.1:8000/api/books-sports-hobbies';
+        const params: { subCategory?: string; type?: string } = {};
+
+        if (selectedSubCategorySlug) {
+          params.subCategory = selectedSubCategorySlug;
+          if (selectedTypeSlug) {
+            params.type = selectedTypeSlug;
+          }
+        }
+
+        const response = await axios.get(url, { params });
         setProducts(response.data);
       } catch (error) {
         console.error('Error fetching books & hobbies products:', error);
@@ -735,7 +843,7 @@ const BooksHobbiesCategoryPage: React.FC = () => {
     };
     
     fetchProducts();
-  }, []);
+  }, [selectedSubCategorySlug, selectedTypeSlug]);
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -745,6 +853,18 @@ const BooksHobbiesCategoryPage: React.FC = () => {
             <span>Home</span>
             <span className="mx-2">›</span>
             <span>Books, Sports & Hobbies</span>
+            {selectedSubCategory && (
+              <>
+                <span className="mx-2">›</span>
+                <span>{selectedSubCategory}</span>
+              </>
+            )}
+            {selectedType && (
+              <>
+                <span className="mx-2">›</span>
+                <span>{selectedType}</span>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -757,14 +877,20 @@ const BooksHobbiesCategoryPage: React.FC = () => {
               selectedSubCategory={selectedSubCategory}
               selectedType={selectedType}
               onCategorySelect={setSelectedCategory}
-              onSubCategorySelect={setSelectedSubCategory}
-              onTypeSelect={setSelectedType}
+              onSubCategorySelect={(name, slug) => {
+                setSelectedSubCategory(name);
+                setSelectedSubCategorySlug(slug);
+              }}
+              onTypeSelect={(type, slug) => {
+                setSelectedType(type);
+                setSelectedTypeSlug(slug);
+              }}
             />
             <LocationSidebar />
             <PriceFilter />
             <ConditionSelectBox />
-            {selectedSubCategory && typeOptions[selectedSubCategory] && (
-              <DynamicTypeFilterBox category={selectedSubCategory} />
+            {selectedSubCategorySlug && typeOptions[selectedSubCategorySlug] && (
+              <DynamicTypeFilterBox category={selectedSubCategorySlug} />
             )}
           </div>
 

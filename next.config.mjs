@@ -7,13 +7,6 @@ const nextConfig = {
   images: {
     domains: ['flagcdn.com', 'media.sellup.pk', 'via.placeholder.com'],
   },
-  remotePatterns: [
-    {
-      protocol: 'https',
-      hostname: 'via.placeholder.com',
-      pathname: '/**',
-    },
-  ],
   async rewrites() {
     return [
       // Specific mobile-related routes
@@ -92,6 +85,46 @@ const nextConfig = {
       {
         source: '/business-industrial-agriculture/:slug',
         destination: '/products/business-industrial-agriculture/:slug',
+      },
+      {
+        source: '/services',
+        destination: '/products/services',
+      },
+      {
+        source: '/services/:slug',
+        destination: '/products/services/:slug',
+      },
+      {
+        source: '/jobs',
+        destination: '/products/jobs',
+      },
+      {
+        source: '/jobs/:slug',
+        destination: '/products/jobs/:slug',
+      },
+      {
+        source: '/electronics-home-appliances',
+        destination: '/products/electronics-home-appliances',
+      },
+      {
+        source: '/electronics-home-appliances/:slug',
+        destination: '/products/electronics-home-appliances/:slug',
+      },
+      {
+        source: '/animals',
+        destination: '/products/animals',
+      },
+      {
+        source: '/animals/:slug',
+        destination: '/products/animals/:slug',
+      },
+      {
+        source: '/books-sports-hobbies',
+        destination: '/products/books-sports-hobbies',
+      },
+      {
+        source: '/books-sports-hobbies/:slug',
+        destination: '/products/books-sports-hobbies/:slug',
       },
       {
         source: '/:slug',

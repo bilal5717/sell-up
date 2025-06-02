@@ -147,6 +147,26 @@ const DynamicCategorySidebar: React.FC<{
   const router = useRouter();
   const pathname = usePathname();
   const [showMoreCategories, setShowMoreCategories] = useState<boolean>(false);
+  const [expandedSubCategories, setExpandedSubCategories] = useState<Record<string, boolean>>({});
+  const [expandedTypes, setExpandedTypes] = useState<Record<string, boolean>>({});
+
+  // Initialize expanded states
+  useEffect(() => {
+    const initialSubCategories: Record<string, boolean> = {};
+    const initialTypes: Record<string, boolean> = {};
+    
+    subCategories['services'].forEach(sub => {
+      initialSubCategories[sub.name] = false;
+      if (sub.types) {
+        sub.types.forEach(type => {
+          initialTypes[type] = false;
+        });
+      }
+    });
+    
+    setExpandedSubCategories(initialSubCategories);
+    setExpandedTypes(initialTypes);
+  }, []);
 
   const toggleCategory = (slug: string) => {
     router.push(`/products/${slug}`);
@@ -155,39 +175,63 @@ const DynamicCategorySidebar: React.FC<{
     onTypeSelect(null);
   };
 
- const toggleSubCategory = (name: string) => {
-  const subCategorySlug = subCategories['services'].find(sub => sub.name === name)?.slug || '';
-  
-  if (selectedSubCategory === name) {
-    router.push(`/products/${selectedCategory}`);
-    onSubCategorySelect(null);
-    onTypeSelect(null);
-  } else {
-    router.push(`/products/${selectedCategory}/${subCategorySlug}`);
-    onSubCategorySelect(name);
-    onTypeSelect(null);
-  }
-};
-
- const toggleType = (type: string) => {
-  const typeSlug = type.toLowerCase().replace(/\s+/g, '-');
-  
-  if (selectedType === type) {
-    if (selectedSubCategory) {
-      const subCategorySlug = subCategories['services'].find(sub => sub.name === selectedSubCategory)?.slug || '';
-      router.push(`/products/${selectedCategory}/${subCategorySlug}`);
-    } else {
+  const toggleSubCategory = (name: string) => {
+    const subCategorySlug = subCategories['services'].find(sub => sub.name === name)?.slug || '';
+    
+    if (selectedSubCategory === name) {
       router.push(`/products/${selectedCategory}`);
+      onSubCategorySelect(null);
+      onTypeSelect(null);
+    } else {
+      router.push(`/products/${selectedCategory}/${subCategorySlug}`);
+      onSubCategorySelect(name);
+      onTypeSelect(null);
     }
-    onTypeSelect(null);
-  } else {
-    router.push(`/products/${selectedCategory}/${typeSlug}`);
-    onTypeSelect(type);
-  }
-};
+  };
+
+  const toggleType = (type: string) => {
+    const typeSlug = type.toLowerCase().replace(/\s+/g, '-');
+    
+    if (selectedType === type) {
+      if (selectedSubCategory) {
+        const subCategorySlug = subCategories['services'].find(sub => sub.name === selectedSubCategory)?.slug || '';
+        router.push(`/products/${selectedCategory}/${subCategorySlug}`);
+      } else {
+        router.push(`/products/${selectedCategory}`);
+      }
+      onTypeSelect(null);
+    } else {
+      router.push(`/products/${selectedCategory}/${typeSlug}`);
+      onTypeSelect(type);
+    }
+  };
 
   const toggleShowMoreCategories = () => {
     setShowMoreCategories((prev) => !prev);
+  };
+
+  const toggleSubCategoryExpansion = (subCategoryName: string) => {
+    setExpandedSubCategories(prev => ({
+      ...prev,
+      [subCategoryName]: !prev[subCategoryName]
+    }));
+  };
+
+  const toggleTypesExpansion = (subCategoryName: string) => {
+    const subCategory = subCategories['services'].find(sub => sub.name === subCategoryName);
+    if (!subCategory?.types) return;
+    
+    const newExpandedTypes = { ...expandedTypes };
+    subCategory.types.forEach(type => {
+      newExpandedTypes[type] = !expandedTypes[type];
+    });
+    setExpandedTypes(newExpandedTypes);
+  };
+
+  // Determine if we should show "Show More" for subcategories
+  const shouldShowMoreSubCategories = (subCategoryName: string) => {
+    const subCategory = subCategories['services'].find(sub => sub.name === subCategoryName);
+    return subCategory?.types && subCategory.types.length > 3;
   };
 
   return (
@@ -208,25 +252,45 @@ const DynamicCategorySidebar: React.FC<{
               <div className="ml-4 space-y-1">
                 {subCategories[category.slug].map((sub, index) => (
                   <div key={index}>
-                    <div
-                      className={`py-1 cursor-pointer hover:text-blue-600 ${selectedSubCategory === sub.name ? 'text-blue-600 font-medium' : 'text-gray-700'}`}
-                      onClick={() => toggleSubCategory(sub.name)}
-                      style={{ fontSize: '12px', lineHeight: '1.5' }}
-                    >
-                      {sub.name}
+                    <div className="flex items-center justify-between">
+                      <div
+                        className={`py-1 cursor-pointer hover:text-blue-600 ${selectedSubCategory === sub.name ? 'text-blue-600 font-medium' : 'text-gray-700'}`}
+                        onClick={() => toggleSubCategory(sub.name)}
+                        style={{ fontSize: '12px', lineHeight: '1.5' }}
+                      >
+                        {sub.name}
+                      </div>
+                      {sub.types && sub.types.length > 0 && (
+                        <button
+                          onClick={() => toggleSubCategoryExpansion(sub.name)}
+                          className="text-blue-500 text-xs ml-2"
+                        >
+                          {expandedSubCategories[sub.name] ? '▲' : '▼'}
+                        </button>
+                      )}
                     </div>
+                    
                     {sub.types && selectedSubCategory === sub.name && (
                       <div className="ml-4 space-y-1">
-                        {sub.types.map((type, i) => (
-                          <div
-                            key={i}
-                            className={`py-1 cursor-pointer hover:text-blue-600 ${selectedType === type ? 'text-blue-600 font-medium' : 'text-gray-600'}`}
-                            style={{ fontSize: '12px', lineHeight: '1.5' }}
-                            onClick={() => toggleType(type)}
-                          >
-                            - {type}
+                        {(expandedSubCategories[sub.name] ? sub.types : sub.types.slice(0, 3)).map((type, i) => (
+                          <div key={i} className="flex items-center justify-between">
+                            <div
+                              className={`py-1 cursor-pointer hover:text-blue-600 ${selectedType === type ? 'text-blue-600 font-medium' : 'text-gray-600'}`}
+                              style={{ fontSize: '12px', lineHeight: '1.5' }}
+                              onClick={() => toggleType(type)}
+                            >
+                              - {type}
+                            </div>
                           </div>
                         ))}
+                        {shouldShowMoreSubCategories(sub.name) && (
+                          <button
+                            onClick={() => toggleSubCategoryExpansion(sub.name)}
+                            className="text-blue-500 text-xs mt-1"
+                          >
+                            {expandedSubCategories[sub.name] ? 'Show Less' : 'Show More'}
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -248,45 +312,46 @@ const DynamicCategorySidebar: React.FC<{
   );
 };
 
+// ... (ConditionSelectBox, LocationSidebar, PriceFilter components remain exactly the same)
 const ConditionSelectBox: React.FC = () => {
   const [selectedCondition, setSelectedCondition] = useState<string | null>(null);
 
   const handleConditionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedCondition(e.target.value);
+	setSelectedCondition(e.target.value);
   };
 
   const clearCondition = () => {
-    setSelectedCondition(null);
+	setSelectedCondition(null);
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-      <h3 className="font-bold text-lg mb-2">Condition</h3>
-      {selectedCondition ? (
-        <div className="flex justify-between items-center bg-gray-100 p-2 rounded text-gray-700">
-          <span className="text-sm">{selectedCondition}</span>
-          <button
-            onClick={clearCondition}
-            className="text-blue-600 text-xs"
-          >
-            Change
-          </button>
-        </div>
-      ) : (
-        <select
-          className="w-full border rounded p-2 text-gray-700 text-sm"
-          value={selectedCondition || ''}
-          onChange={handleConditionChange}
-        >
-          <option value="" disabled>Select Condition</option>
-          {conditions.map((condition) => (
-            <option key={condition} value={condition}>
-              {condition}
-            </option>
-          ))}
-        </select>
-      )}
-    </div>
+	<div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+	  <h3 className="font-bold text-lg mb-2">Condition</h3>
+	  {selectedCondition ? (
+		<div className="flex justify-between items-center bg-gray-100 p-2 rounded text-gray-700">
+		  <span className="text-sm">{selectedCondition}</span>
+		  <button
+			onClick={clearCondition}
+			className="text-blue-600 text-xs"
+		  >
+			Change
+		  </button>
+		</div>
+	  ) : (
+		<select
+		  className="w-full border rounded p-2 text-gray-700 text-sm"
+		  value={selectedCondition || ''}
+		  onChange={handleConditionChange}
+		>
+		  <option value="" disabled>Select Condition</option>
+		  {conditions.map((condition) => (
+			<option key={condition} value={condition}>
+			  {condition}
+			</option>
+		  ))}
+		</select>
+	  )}
+	</div>
   );
 };
 
@@ -299,84 +364,84 @@ const LocationSidebar: React.FC = () => {
   const toggleShowMoreCities = () => setShowMoreCities((prev) => !prev);
 
   const handleProvinceSelect = (province: string) => {
-    setSelectedProvince(province);
-    setSelectedCity(null);
-    setIsLocationSelected(false);
+	setSelectedProvince(province);
+	setSelectedCity(null);
+	setIsLocationSelected(false);
   };
 
   const handleCitySelect = (city: string) => {
-    setSelectedCity(city);
-    setIsLocationSelected(true);
+	setSelectedCity(city);
+	setIsLocationSelected(true);
   };
 
   const clearSelection = () => {
-    setSelectedProvince(null);
-    setSelectedCity(null);
-    setIsLocationSelected(false);
+	setSelectedProvince(null);
+	setSelectedCity(null);
+	setIsLocationSelected(false);
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-4">
-      <h3 className="font-bold text-lg mb-2">Locations</h3>
-      <div className="space-y-2">
-        {isLocationSelected && selectedCity && (
-          <div className="flex justify-between items-center bg-gray-100 p-2 rounded text-gray-700">
-            <span className="text-sm">{selectedProvince} - {selectedCity}</span>
-            <button
-              onClick={clearSelection}
-              className="text-blue-600 text-xs"
-            >
-              Change
-            </button>
-          </div>
-        )}
+	<div className="bg-white rounded-lg shadow-sm p-4">
+	  <h3 className="font-bold text-lg mb-2">Locations</h3>
+	  <div className="space-y-2">
+		{isLocationSelected && selectedCity && (
+		  <div className="flex justify-between items-center bg-gray-100 p-2 rounded text-gray-700">
+			<span className="text-sm">{selectedProvince} - {selectedCity}</span>
+			<button
+			  onClick={clearSelection}
+			  className="text-blue-600 text-xs"
+			>
+			  Change
+			</button>
+		  </div>
+		)}
 
-        {!isLocationSelected && (
-          <>
-            <select
-              className="w-full border rounded p-2 text-gray-700 text-sm"
-              value={selectedProvince || ''}
-              onChange={(e) => handleProvinceSelect(e.target.value)}
-            >
-              <option value="" disabled>Select Province</option>
-              {provinces.map((province) => (
-                <option key={province.name} value={province.name}>
-                  {province.name}
-                </option>
-              ))}
-            </select>
+		{!isLocationSelected && (
+		  <>
+			<select
+			  className="w-full border rounded p-2 text-gray-700 text-sm"
+			  value={selectedProvince || ''}
+			  onChange={(e) => handleProvinceSelect(e.target.value)}
+			>
+			  <option value="" disabled>Select Province</option>
+			  {provinces.map((province) => (
+				<option key={province.name} value={province.name}>
+				  {province.name}
+				</option>
+			  ))}
+			</select>
 
-            {selectedProvince && (
-              <div className="mt-2 space-y-1">
-                {provinces
-                  .find((prov) => prov.name === selectedProvince)?.cities
-                  .slice(0, showMoreCities ? undefined : 5)
-                  .map((city, index) => (
-                    <div
-                      key={index}
-                      className={`py-1 px-2 text-gray-700 hover:bg-gray-100 cursor-pointer ${
-                        selectedCity === city ? 'bg-blue-100' : ''
-                      }`}
-                      style={{ fontSize: '12px', lineHeight: '1.5' }}
-                      onClick={() => handleCitySelect(city)}
-                    >
-                      {city}
-                    </div>
-                  ))}
-                {provinces.find((prov) => prov.name === selectedProvince)?.cities.length! > 5 && (
-                  <button
-                    onClick={toggleShowMoreCities}
-                    className="text-blue-600 text-sm mt-1"
-                  >
-                    {showMoreCities ? 'Show Less' : 'Show More'}
-                  </button>
-                )}
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </div>
+			{selectedProvince && (
+			  <div className="mt-2 space-y-1">
+				{provinces
+				  .find((prov) => prov.name === selectedProvince)?.cities
+				  .slice(0, showMoreCities ? undefined : 5)
+				  .map((city, index) => (
+					<div
+					  key={index}
+					  className={`py-1 px-2 text-gray-700 hover:bg-gray-100 cursor-pointer ${
+						selectedCity === city ? 'bg-blue-100' : ''
+					  }`}
+					  style={{ fontSize: '12px', lineHeight: '1.5' }}
+					  onClick={() => handleCitySelect(city)}
+					>
+					  {city}
+					</div>
+				  ))}
+				{provinces.find((prov) => prov.name === selectedProvince)?.cities.length! > 5 && (
+				  <button
+					onClick={toggleShowMoreCities}
+					className="text-blue-600 text-sm mt-1"
+				  >
+					{showMoreCities ? 'Show Less' : 'Show More'}
+				  </button>
+				)}
+			  </div>
+			)}
+		  </>
+		)}
+	  </div>
+	</div>
   );
 };
 
@@ -387,107 +452,106 @@ const PriceFilter: React.FC = () => {
   const [isDeliverable, setIsDeliverable] = useState<boolean>(false);
 
   const handleMinPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value);
-    setMinPrice(isNaN(value) ? '' : value);
-    setIsPriceSet(false);
+	const value = parseInt(e.target.value);
+	setMinPrice(isNaN(value) ? '' : value);
+	setIsPriceSet(false);
   };
 
   const handleMaxPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value);
-    setMaxPrice(isNaN(value) ? '' : value);
-    setIsPriceSet(false);
+	const value = parseInt(e.target.value);
+	setMaxPrice(isNaN(value) ? '' : value);
+	setIsPriceSet(false);
   };
 
   const applyPriceFilter = () => {
-    setIsPriceSet(true);
+	setIsPriceSet(true);
   };
 
   const clearPriceFilter = () => {
-    setMinPrice('');
-    setMaxPrice('');
-    setIsPriceSet(false);
+	setMinPrice('');
+	setMaxPrice('');
+	setIsPriceSet(false);
   };
 
   const toggleIsDeliverable = () => {
-    setIsDeliverable((prev) => !prev);
+	setIsDeliverable((prev) => !prev);
   };
 
   const clearAllFilters = () => {
-    clearPriceFilter();
-    setIsDeliverable(false);
+	clearPriceFilter();
+	setIsDeliverable(false);
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-      <h3 className="font-bold text-lg mb-2">Price</h3>
-      <div className="space-y-2">
-        {isPriceSet ? (
-          <div className="flex justify-between items-center bg-gray-100 p-2 rounded text-gray-700">
-            <span className="text-sm">
-              {minPrice || maxPrice ? `Rs ${minPrice || '0'} - Rs ${maxPrice || 'Any'}` : 'Any'}
-            </span>
-            <button
-              onClick={clearPriceFilter}
-              className="text-blue-600 text-xs"
-            >
-              Change
-            </button>
-          </div>
-        ) : (
-          <div className="flex gap-2">
-            <input
-              type="number"
-              placeholder="Min"
-              value={minPrice}
-              onChange={handleMinPriceChange}
-              className="w-1/2 p-2 border rounded text-gray-700 text-sm"
-              min={0}
-            />
-            <input
-              type="number"
-              placeholder="Max"
-              value={maxPrice}
-              onChange={handleMaxPriceChange}
-              className="w-1/2 p-2 border rounded text-gray-700 text-sm"
-              min={0}
-            />
-            <button
-              onClick={applyPriceFilter}
-              className="text-blue-600 text-sm px-2 py-1 border rounded"
-            >
-              Apply
-            </button>
-          </div>
-        )}
-      </div>
+	<div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+	  <h3 className="font-bold text-lg mb-2">Price</h3>
+	  <div className="space-y-2">
+		{isPriceSet ? (
+		  <div className="flex justify-between items-center bg-gray-100 p-2 rounded text-gray-700">
+			<span className="text-sm">
+			  {minPrice || maxPrice ? `Rs ${minPrice || '0'} - Rs ${maxPrice || 'Any'}` : 'Any'}
+			</span>
+			<button
+			  onClick={clearPriceFilter}
+			  className="text-blue-600 text-xs"
+			>
+			  Change
+			</button>
+		  </div>
+		) : (
+		  <div className="flex gap-2">
+			<input
+			  type="number"
+			  placeholder="Min"
+			  value={minPrice}
+			  onChange={handleMinPriceChange}
+			  className="w-1/2 p-2 border rounded text-gray-700 text-sm"
+			  min={0}
+			/>
+			<input
+			  type="number"
+			  placeholder="Max"
+			  value={maxPrice}
+			  onChange={handleMaxPriceChange}
+			  className="w-1/2 p-2 border rounded text-gray-700 text-sm"
+			  min={0}
+			/>
+			<button
+			  onClick={applyPriceFilter}
+			  className="text-blue-600 text-sm px-2 py-1 border rounded"
+			>
+			  Apply
+			</button>
+		  </div>
+		)}
+	  </div>
 
-      <div className="mt-4 flex items-center">
-        <input
-          type="checkbox"
-          id="isDeliverable"
-          checked={isDeliverable}
-          onChange={toggleIsDeliverable}
-          className="mr-2 h-4 w-4 text-blue-600 rounded"
-        />
-        <label htmlFor="isDeliverable" className="text-gray-700 text-sm">Is Deliverable</label>
-      </div>
+	  <div className="mt-4 flex items-center">
+		<input
+		  type="checkbox"
+		  id="isDeliverable"
+		  checked={isDeliverable}
+		  onChange={toggleIsDeliverable}
+		  className="mr-2 h-4 w-4 text-blue-600 rounded"
+		/>
+		<label htmlFor="isDeliverable" className="text-gray-700 text-sm">Is Deliverable</label>
+	  </div>
 
-      {isDeliverable && (
-        <div className="mt-2 text-gray-600 text-sm">
-          Deliverable: Yes
-        </div>
-      )}
+	  {isDeliverable && (
+		<div className="mt-2 text-gray-600 text-sm">
+		  Deliverable: Yes
+		</div>
+	  )}
 
-      <button
-        onClick={clearAllFilters}
-        className="text-blue-600 text-sm mt-3"
-      >
-        Clear All
-      </button>
-    </div>
+	  <button
+		onClick={clearAllFilters}
+		className="text-blue-600 text-sm mt-3"
+	  >
+		Clear All
+	  </button>
+	</div>
   );
 };
-
 const ServiceCard: React.FC<{
   services: Service[];
   loading?: boolean;
@@ -607,24 +671,15 @@ const ServiceCard: React.FC<{
   );
 };
 
-const ServicesSlugPage: React.FC = () => {
+const ServicesPage: React.FC = () => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   
-  // Parse URL segments safely
-  const [segments, setSegments] = useState<string[]>([]);
-  const [categorySegment, setCategorySegment] = useState('services');
-  const [filterSegment, setFilterSegment] = useState('');
-
-  useEffect(() => {
-    if (pathname) {
-      const pathSegments = pathname.split('/').filter(Boolean);
-      setSegments(pathSegments);
-      setCategorySegment(pathSegments[1] || 'services');
-      setFilterSegment(pathSegments[2] || '');
-    }
-  }, [pathname]);
+  // Parse URL segments
+  const segments = pathname.split('/').filter(Boolean);
+  const categorySegment = segments[1] || 'services';
+  const filterSegment = segments[2] || '';
 
   // Initialize state
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000000]);
@@ -677,7 +732,7 @@ const ServicesSlugPage: React.FC = () => {
       setSelectedSubCategory(null);
       setSelectedType(null);
     }
-  }, [pathname, categorySegment, filterSegment]);
+  }, [pathname]);
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({
@@ -712,37 +767,31 @@ const ServicesSlugPage: React.FC = () => {
     router.push('/services');
   };
 
-useEffect(() => {
-  const fetchServices = async () => {
-    try {
-      setLoading(true);
-      
-      // Build query params based on URL segments
-      const params = new URLSearchParams();
-      
-      if (selectedSubCategory) {
-        // Find the slug for the selected subcategory name
-        const subCategorySlug = subCategories['services'].find(
-          sub => sub.name === selectedSubCategory
-        )?.slug || '';
-        params.set('subcategory', subCategorySlug);
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        setLoading(true);
+        
+        // Build query params based on URL segments
+        const params = new URLSearchParams();
+        
+        if (selectedSubCategory) {
+          params.set('subcategory', selectedSubCategory);
+        } else if (selectedType) {
+          params.set('type', selectedType);
+        }
+        
+        const response = await axios.get(`http://127.0.0.1:8000/api/services?${params.toString()}`);
+        setServices(response.data);
+      } catch (error) {
+        console.error('Error fetching services:', error);
+      } finally {
+        setLoading(false);
       }
-      
-      if (selectedType) {
-        params.set('type', selectedType);
-      }
-      
-      const response = await axios.get(`http://127.0.0.1:8000/api/services?${params.toString()}`);
-      setServices(response.data);
-    } catch (error) {
-      console.error('Error fetching services:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  fetchServices();
-}, [selectedCategory, selectedSubCategory, selectedType]);
+    };
+    
+    fetchServices();
+  }, [selectedCategory, selectedSubCategory, selectedType]);
 
   // Update document title based on filters
   useEffect(() => {
@@ -893,4 +942,4 @@ useEffect(() => {
   );
 };
 
-export default ServicesSlugPage;
+export default ServicesPage;

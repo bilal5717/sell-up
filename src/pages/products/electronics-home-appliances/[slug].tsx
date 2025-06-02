@@ -1,13 +1,13 @@
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
+import { useRouter, usePathname } from 'next/navigation';
 import { 
   FiChevronDown, 
   FiChevronUp, 
   FiFilter, 
   FiX 
 } from 'react-icons/fi';
-
 import { 
   LuHeart, 
   LuTag, 
@@ -54,7 +54,8 @@ interface Category {
 
 interface SubCategory {
   name: string;
-  types?: string[];
+  slug: string;
+  types?: { name: string; slug: string }[];
 }
 
 interface CategoryData {
@@ -79,74 +80,177 @@ const brandOptions: Record<string, Brand[]> = {
 };
 
 const categories: Category[] = [
-  { name: 'Mobiles', slug: 'mobiles' },
-  { name: 'Vehicles', slug: 'vehicles' },
-  { name: 'Property for Rent', slug: 'property-for-rent' },
-  { name: 'Property for Sale', slug: 'property-for-sale' },
   { name: 'Electronics & Home Appliances', slug: 'electronics-home-appliances' },
-  { name: 'Bikes', slug: 'bikes' },
-  { name: 'Business, Industrial & Agriculture', slug: 'business-industrial-agriculture' },
-  { name: 'Services', slug: 'services' },
-  { name: 'Jobs', slug: 'jobs' },
-  { name: 'Animals', slug: 'animals' },
-  { name: 'Books, Sports & Hobbies', slug: 'books-sports-hobbies' },
-  { name: 'Furniture & Home Decor', slug: 'furniture-home-decor' },
-  { name: 'Fashion & Beauty', slug: 'fashion-beauty' },
-  { name: 'Kids', slug: 'kids' },
-  { name: 'Others', slug: 'others' },
 ];
 
 const subCategories: CategoryData = {
   'electronics-home-appliances': [
-    { name: 'Computer & Accessories', types: [
-      'Desktops', 'Workstations', 'Gaming Pcs', 'Laptops', 'Computer & Laptop Accessories', 
-      'Computer components', 'Servers', 'Softwares', 'Networking', 'Printers & photocopier', 'Inks & Toners'
-    ]},
-    { name: 'Games & Entertainment', types: [
-      'Gaming console', 'Video Games', 'Controllers', 'Gaming Accessories', 'Other'
-    ]},
-    { name: 'Cameras & Accessories', types: [
-      'Digital Camera', 'CCTV Camera', 'Drones', 'Binowlars', 'Video Cameras', 'Camera lenses', 
-      'Flash Guns', 'Bags & cases', 'Tripods & Stands', 'Camera Batteries', 'Professional Microphone', 
-      'Video Lights', 'Gimbles & Stablizers', 'Other Cameras Accessories'
-    ]},
-    { name: 'Videos & Audios', types: [
-      'Radios', 'Microphone', 'Home Theater system', 'Amplifiers', 'Sound Bars', 'Speaker', 
-      'Audio interface', 'Digital Recorders', 'Audio Mixer', 'Walkie Talkie', 'CD DVD Player', 
-      'Turntable & Accessories', 'Cassette Player & Recorders', 'Mp3 Player', 'Car Audio Video', 
-      'Other Video-audios'
-    ]},
-    { name: 'AC & Coolers', types: [
-      'Air Conditions', 'Air Coolers', 'AC & Cooler Accessories', 'Other'
-    ]},
-    { name: 'Fans' },
-    { name: 'Heaters And Gysers', types: [
-      'Heaters', 'Geysers', 'Heating Rods', 'Other'
-    ]},
-    { name: 'Washing Machines & dryers', types: [
-      'Washer', 'Spin Dryer', 'Washer&Dryer'
-    ]},
-    { name: 'Irons & Steamers' },
-    { name: 'Sewing Machines' },
-    { name: 'Generators,UPS And Power Solutions', types: [
-      'Generators', 'UPS', 'Solar Panels', 'Solar Inverters', 'Solar Accessories', 'Batteries', 'Other'
-    ]},
-    { name: 'Refrigerator & Freezers', types: [
-      'Refigerators', 'Freezers', 'Mini'
-    ]},
-    { name: 'Air Purifier & Humidfier' },
-    { name: 'water dispensers' },
-    { name: 'Microwave & Ovens', types: [
-      'Ovens', 'Microwaves'
-    ]},
-    { name: 'Kitchen Appliances', types: [
-      'juicers', 'Food Factory', 'Stover', 'Blenders', 'Air Fryers', 'Choppers', 'Grilss', 
-      'Water pori frers', 'Mixers', 'Electric Kettles', 'Toasters', 'Cookers', 'Hot Plates', 
-      'Coffee & TeaMachines', 'Hobs', 'Dinner Seats', 'Sandwich Makers', 'Vegetable slicers', 
-      'Hoods', 'Meat Grinders', 'Dishwashers', 'Roti Maker', 'Sinks', 'Food Steamers', 
-      'Other Kitchen appliances'
-    ]},
-    { name: 'Other Electronics' }
+    { 
+      name: 'Computer & Accessories', 
+      slug: 'computer-accessories',
+      types: [
+        { name: 'Desktops', slug: 'desktops' },
+        { name: 'Workstations', slug: 'workstations' },
+        { name: 'Gaming Pcs', slug: 'gaming-pcs' },
+        { name: 'Laptops', slug: 'laptops' },
+        { name: 'Computer & Laptop Accessories', slug: 'computer-laptop-accessories' },
+        { name: 'Computer components', slug: 'computer-components' },
+        { name: 'Servers', slug: 'servers' },
+        { name: 'Softwares', slug: 'softwares' },
+        { name: 'Networking', slug: 'networking' },
+        { name: 'Printers & photocopier', slug: 'printers-photocopier' },
+        { name: 'Inks & Toners', slug: 'inks-toners' }
+      ]
+    },
+    { 
+      name: 'Games & Entertainment', 
+      slug: 'games-entertainment',
+      types: [
+        { name: 'Gaming console', slug: 'gaming-console' },
+        { name: 'Video Games', slug: 'video-games' },
+        { name: 'Controllers', slug: 'controllers' },
+        { name: 'Gaming Accessories', slug: 'gaming-accessories' },
+        { name: 'Other', slug: 'other-games' }
+      ]
+    },
+    { 
+      name: 'Cameras & Accessories', 
+      slug: 'cameras-accessories',
+      types: [
+        { name: 'Digital Camera', slug: 'digital-camera' },
+        { name: 'CCTV Camera', slug: 'cctv-camera' },
+        { name: 'Drones', slug: 'drones' },
+        { name: 'Binowlars', slug: 'binowlars' },
+        { name: 'Video Cameras', slug: 'video-cameras' },
+        { name: 'Camera lenses', slug: 'camera-lenses' },
+        { name: 'Flash Guns', slug: 'flash-guns' },
+        { name: 'Bags & cases', slug: 'bags-cases' },
+        { name: 'Tripods & Stands', slug: 'tripods-stands' },
+        { name: 'Camera Batteries', slug: 'camera-batteries' },
+        { name: 'Professional Microphone', slug: 'professional-microphone' },
+        { name: 'Video Lights', slug: 'video-lights' },
+        { name: 'Gimbles & Stablizers', slug: 'gimbles-stablizers' },
+        { name: 'Other Cameras Accessories', slug: 'other-cameras-accessories' }
+      ]
+    },
+    { 
+      name: 'Videos & Audios', 
+      slug: 'videos-audios',
+      types: [
+        { name: 'Radios', slug: 'radios' },
+        { name: 'Microphone', slug: 'microphone' },
+        { name: 'Home Theater system', slug: 'home-theater-system' },
+        { name: 'Amplifiers', slug: 'amplifiers' },
+        { name: 'Sound Bars', slug: 'sound-bars' },
+        { name: 'Speaker', slug: 'speaker' },
+        { name: 'Audio interface', slug: 'audio-interface' },
+        { name: 'Digital Recorders', slug: 'digital-recorders' },
+        { name: 'Audio Mixer', slug: 'audio-mixer' },
+        { name: 'Walkie Talkie', slug: 'walkie-talkie' },
+        { name: 'CD DVD Player', slug: 'cd-dvd-player' },
+        { name: 'Turntable & Accessories', slug: 'turntable-accessories' },
+        { name: 'Cassette Player & Recorders', slug: 'cassette-player-recorders' },
+        { name: 'Mp3 Player', slug: 'mp3-player' },
+        { name: 'Car Audio Video', slug: 'car-audio-video' },
+        { name: 'Other Video-audios', slug: 'other-video-audios' }
+      ]
+    },
+    { 
+      name: 'AC & Coolers', 
+      slug: 'ac-coolers',
+      types: [
+        { name: 'Air Conditions', slug: 'air-conditions' },
+        { name: 'Air Coolers', slug: 'air-coolers' },
+        { name: 'AC & Cooler Accessories', slug: 'ac-cooler-accessories' },
+        { name: 'Other', slug: 'other-ac' }
+      ]
+    },
+    { name: 'Fans', slug: 'fans' },
+    { 
+      name: 'Heaters And Gysers', 
+      slug: 'heaters-gysers',
+      types: [
+        { name: 'Heaters', slug: 'heaters' },
+        { name: 'Geysers', slug: 'geysers' },
+        { name: 'Heating Rods', slug: 'heating-rods' },
+        { name: 'Other', slug: 'other-heaters' }
+      ]
+    },
+    { 
+      name: 'Washing Machines & dryers', 
+      slug: 'washing-machines-dryers',
+      types: [
+        { name: 'Washer', slug: 'washer' },
+        { name: 'Spin Dryer', slug: 'spin-dryer' },
+        { name: 'Washer&Dryer', slug: 'washer-dryer' }
+      ]
+    },
+    { name: 'Irons & Steamers', slug: 'irons-steamers' },
+    { name: 'Sewing Machines', slug: 'sewing-machines' },
+    { 
+      name: 'Generators,UPS And Power Solutions', 
+      slug: 'generators-ups-power-solutions',
+      types: [
+        { name: 'Generators', slug: 'generators' },
+        { name: 'UPS', slug: 'ups' },
+        { name: 'Solar Panels', slug: 'solar-panels' },
+        { name: 'Solar Inverters', slug: 'solar-inverters' },
+        { name: 'Solar Accessories', slug: 'solar-accessories' },
+        { name: 'Batteries', slug: 'batteries' },
+        { name: 'Other', slug: 'other-power' }
+      ]
+    },
+    { 
+      name: 'Refrigerator & Freezers', 
+      slug: 'refrigerator-freezers',
+      types: [
+        { name: 'Refigerators', slug: 'refrigerators' },
+        { name: 'Freezers', slug: 'freezers' },
+        { name: 'Mini', slug: 'mini' }
+      ]
+    },
+    { name: 'Air Purifier & Humidfier', slug: 'air-purifier-humidifier' },
+    { name: 'water dispensers', slug: 'water-dispensers' },
+    { 
+      name: 'Microwave & Ovens', 
+      slug: 'microwave-ovens',
+      types: [
+        { name: 'Ovens', slug: 'ovens' },
+        { name: 'Microwaves', slug: 'microwaves' }
+      ]
+    },
+    { 
+      name: 'Kitchen Appliances', 
+      slug: 'kitchen-appliances',
+      types: [
+        { name: 'juicers', slug: 'juicers' },
+        { name: 'Food Factory', slug: 'food-factory' },
+        { name: 'Stover', slug: 'stover' },
+        { name: 'Blenders', slug: 'blenders' },
+        { name: 'Air Fryers', slug: 'air-fryers' },
+        { name: 'Choppers', slug: 'choppers' },
+        { name: 'Grilss', slug: 'grills' },
+        { name: 'Water pori frers', slug: 'water-purifiers' },
+        { name: 'Mixers', slug: 'mixers' },
+        { name: 'Electric Kettles', slug: 'electric-kettles' },
+        { name: 'Toasters', slug: 'toasters' },
+        { name: 'Cookers', slug: 'cookers' },
+        { name: 'Hot Plates', slug: 'hot-plates' },
+        { name: 'Coffee & TeaMachines', slug: 'coffee-tea-machines' },
+        { name: 'Hobs', slug: 'hobs' },
+        { name: 'Dinner Seats', slug: 'dinner-seats' },
+        { name: 'Sandwich Makers', slug: 'sandwich-makers' },
+        { name: 'Vegetable slicers', slug: 'vegetable-slicers' },
+        { name: 'Hoods', slug: 'hoods' },
+        { name: 'Meat Grinders', slug: 'meat-grinders' },
+        { name: 'Dishwashers', slug: 'dishwashers' },
+        { name: 'Roti Maker', slug: 'roti-maker' },
+        { name: 'Sinks', slug: 'sinks' },
+        { name: 'Food Steamers', slug: 'food-steamers' },
+        { name: 'Other Kitchen appliances', slug: 'other-kitchen-appliances' }
+      ]
+    },
+    { name: 'Other Electronics', slug: 'other-electronics' }
   ],
 };
 
@@ -173,7 +277,7 @@ const typeOptions: Record<string, { label: string; count: number }[]> = {
   ]
 };
 
-// Components (keep all the same components as before, just updating the names where needed)
+// Components
 const DynamicCategorySidebar: React.FC<{
   selectedCategory: string;
   selectedSubCategory: string | null;
@@ -181,49 +285,110 @@ const DynamicCategorySidebar: React.FC<{
   onCategorySelect: (category: string) => void;
   onSubCategorySelect: (subCategory: string | null) => void;
   onTypeSelect: (type: string | null) => void;
-  }> = ({
-    selectedCategory,
-    selectedSubCategory,
-    selectedType,
-    onCategorySelect,
-    onSubCategorySelect,
-    onTypeSelect,
-  }) => {
-  const [showMoreCategories, setShowMoreCategories] = useState<boolean>(false);
+}> = ({
+  selectedCategory,
+  selectedSubCategory,
+  selectedType,
+  onCategorySelect,
+  onSubCategorySelect,
+  onTypeSelect,
+}) => {
+  const router = useRouter();
+  const [visibleSubCategoryPage, setVisibleSubCategoryPage] = useState<number>(1);
+  const [visibleTypePages, setVisibleTypePages] = useState<Record<string, number>>({});
+  const subCategoriesPerPage = 7;
+  const typesPerPage = 7;
 
   const toggleCategory = (slug: string) => {
     onCategorySelect(slug);
     onSubCategorySelect(null);
     onTypeSelect(null);
+    setVisibleSubCategoryPage(1);
+    setVisibleTypePages({});
+    router.push(`/${slug}`);
   };
 
-  const toggleSubCategory = (name: string) => {
+  const toggleSubCategory = (name: string, slug: string) => {
     if (selectedSubCategory === name) {
       onSubCategorySelect(null);
       onTypeSelect(null);
+      setVisibleTypePages({});
+      router.push(`/${selectedCategory}`);
     } else {
       onSubCategorySelect(name);
       onTypeSelect(null);
+      setVisibleTypePages({ ...visibleTypePages, [name]: 1 });
+      router.push(`/${selectedCategory}/${slug}`);
     }
   };
 
-  const toggleType = (type: string) => {
+  const toggleType = (type: string, slug: string) => {
     if (selectedType === type) {
       onTypeSelect(null);
+      router.push(`/${selectedCategory}/${subCategories[selectedCategory].find(sub => sub.name === selectedSubCategory)?.slug}`);
     } else {
       onTypeSelect(type);
+      router.push(`/${selectedCategory}/${slug}`);
     }
   };
 
-  const toggleShowMoreCategories = () => {
-    setShowMoreCategories((prev) => !prev);
+  const handleShowMoreSubCategories = () => {
+    setVisibleSubCategoryPage((prev) => prev + 1);
   };
+
+  const handleShowLessSubCategories = () => {
+    setVisibleSubCategoryPage((prev) => Math.max(prev - 1, 1));
+  };
+
+  const handleShowMoreTypes = (subCategory: string) => {
+    setVisibleTypePages((prev) => ({
+      ...prev,
+      [subCategory]: (prev[subCategory] || 1) + 1,
+    }));
+  };
+
+  const handleShowLessTypes = (subCategory: string) => {
+    setVisibleTypePages((prev) => ({
+      ...prev,
+      [subCategory]: Math.max((prev[subCategory] || 1) - 1, 1),
+    }));
+  };
+
+  const getVisibleSubCategories = () => {
+    const subCategoryList = subCategories[selectedCategory] || [];
+    const startIndex = 0;
+    const endIndex = visibleSubCategoryPage * subCategoriesPerPage;
+    return subCategoryList.slice(0, endIndex);
+  };
+
+  const getVisibleTypes = (subCategory: string) => {
+    const subCategoryData = subCategories[selectedCategory]?.find((sub) => sub.name === subCategory);
+    const typeList = subCategoryData?.types || [];
+    const page = visibleTypePages[subCategory] || 1;
+    const startIndex = 0;
+    const endIndex = page * typesPerPage;
+    return typeList.slice(0, endIndex);
+  };
+
+  const hasMoreSubCategories = () => {
+    const subCategoryList = subCategories[selectedCategory] || [];
+    return visibleSubCategoryPage * subCategoriesPerPage < subCategoryList.length;
+  };
+
+  const hasMoreTypes = (subCategory: string) => {
+    const subCategoryData = subCategories[selectedCategory]?.find((sub) => sub.name === subCategory);
+    const typeList = subCategoryData?.types || [];
+    const page = visibleTypePages[subCategory] || 1;
+    return page * typesPerPage < typeList.length;
+  };
+
+  const hasPreviousSubCategories = () => visibleSubCategoryPage > 1;
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
       <h3 className="font-bold text-lg mb-2">All Categories</h3>
       <div className="space-y-1">
-        {(showMoreCategories ? categories : categories.slice(0, 4)).map((category) => (
+        {categories.map((category) => (
           <div key={category.slug} className="cursor-pointer">
             <div
               className={`py-1 px-2 hover:bg-gray-100 ${selectedCategory === category.slug ? 'text-blue-600 font-medium' : 'text-gray-800'}`}
@@ -235,43 +400,75 @@ const DynamicCategorySidebar: React.FC<{
 
             {selectedCategory === category.slug && subCategories[category.slug] && (
               <div className="ml-4 space-y-1">
-                {subCategories[category.slug].map((sub, index) => (
+                {getVisibleSubCategories().map((sub, index) => (
                   <div key={index}>
                     <div
                       className={`py-1 cursor-pointer hover:text-blue-600 ${selectedSubCategory === sub.name ? 'text-blue-600 font-medium' : 'text-gray-700'}`}
-                      onClick={() => toggleSubCategory(sub.name)}
+                      onClick={() => toggleSubCategory(sub.name, sub.slug)}
                       style={{ fontSize: '12px', lineHeight: '1.5' }}
                     >
                       {sub.name}
                     </div>
                     {sub.types && selectedSubCategory === sub.name && (
                       <div className="ml-4 space-y-1">
-                        {sub.types.map((type, i) => (
+                        {getVisibleTypes(sub.name).map((type, i) => (
                           <div
                             key={i}
-                            className={`py-1 cursor-pointer hover:text-blue-600 ${selectedType === type ? 'text-blue-600 font-medium' : 'text-gray-600'}`}
+                            className={`py-1 cursor-pointer hover:text-blue-600 ${selectedType === type.name ? 'text-blue-600 font-medium' : 'text-gray-600'}`}
                             style={{ fontSize: '12px', lineHeight: '1.5' }}
-                            onClick={() => toggleType(type)}
+                            onClick={() => toggleType(type.name, type.slug)}
                           >
-                            - {type}
+                            - {type.name}
                           </div>
                         ))}
+                        {sub.types.length > typesPerPage && (
+                          <div className="flex gap-2">
+                            {hasMoreTypes(sub.name) && (
+                              <button
+                                onClick={() => handleShowMoreTypes(sub.name)}
+                                className="text-blue-600 text-sm mt-1"
+                              >
+                                Show More
+                              </button>
+                            )}
+                            {(visibleTypePages[sub.name] || 1) > 1 && (
+                              <button
+                                onClick={() => handleShowLessTypes(sub.name)}
+                                className="text-blue-600 text-sm mt-1"
+                              >
+                                Show Less
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
                 ))}
+                {subCategories[category.slug].length > subCategoriesPerPage && (
+                  <div className="flex gap-2">
+                    {hasMoreSubCategories() && (
+                      <button
+                        onClick={handleShowMoreSubCategories}
+                        className="text-blue-600 text-sm mt-2"
+                      >
+                        Show More
+                      </button>
+                    )}
+                    {hasPreviousSubCategories() && (
+                      <button
+                        onClick={handleShowLessSubCategories}
+                        className="text-blue-600 text-sm mt-2"
+                      >
+                        Show Less
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
         ))}
-        {categories.length > 4 && (
-          <button
-            onClick={toggleShowMoreCategories}
-            className="text-blue-600 text-sm mt-2"
-          >
-            {showMoreCategories ? 'Show Less' : 'Show More'}
-          </button>
-        )}
       </div>
     </div>
   );
@@ -366,6 +563,7 @@ const LocationSidebar: React.FC = () => {
     </div>
   );
 };
+
 const DynamicTypeFilterBox: React.FC<{ category: string }> = ({ category }) => {
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
 
@@ -416,6 +614,7 @@ const DynamicTypeFilterBox: React.FC<{ category: string }> = ({ category }) => {
     </div>
   );
 };
+
 const ConditionSelectBox: React.FC = () => {
   const [selectedCondition, setSelectedCondition] = useState<string | null>(null);
 
@@ -457,6 +656,7 @@ const ConditionSelectBox: React.FC = () => {
     </div>
   );
 };
+
 const DynamicBrandModelFilter: React.FC<{ category: string }> = ({ category }) => {
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
@@ -558,6 +758,7 @@ const DynamicBrandModelFilter: React.FC<{ category: string }> = ({ category }) =
     </div>
   );
 };
+
 const PriceFilter: React.FC = () => {
   const [minPrice, setMinPrice] = useState<number | ''>('');
   const [maxPrice, setMaxPrice] = useState<number | ''>('');
@@ -783,9 +984,9 @@ const ElectronicsProductCard: React.FC<{ products: Product[]; loading?: boolean 
   );
 };
 
-
-
 const ElectronicsCategoryPage: React.FC = () => {
+  const router = useRouter();
+  const pathname = usePathname();
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000000]);
   const [selectedCategory, setSelectedCategory] = useState<string>('electronics-home-appliances');
   const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
@@ -803,10 +1004,78 @@ const ElectronicsCategoryPage: React.FC = () => {
     location: true,
     type: true,
   });
+  const [products, setProducts] = useState<Product[]>([]); // Initialize as empty array
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1); // Track current page
+  const [lastPage, setLastPage] = useState(1); // Track total pages
   const [sortBy, setSortBy] = useState<string>('newest');
   const [selectedCondition, setSelectedCondition] = useState<string>('all');
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+ 
+  // Initialize state based on URL
+  useEffect(() => {
+    const segments = pathname.split('/').filter(segment => segment);
+    const categorySlug = segments[0];
+    const subCategoryOrTypeSlug = segments[1];
+
+    if (categorySlug) {
+      const category = categories.find(cat => cat.slug === categorySlug);
+      if (category) {
+        setSelectedCategory(category.slug);
+        if (subCategoryOrTypeSlug) {
+          const subCategory = subCategories[category.slug]?.find(sub => sub.slug === subCategoryOrTypeSlug);
+          if (subCategory) {
+            setSelectedSubCategory(subCategory.name);
+            setSelectedType(null);
+          } else {
+            const subCategoryWithType = subCategories[category.slug]?.find(sub => 
+              sub.types?.some(type => type.slug === subCategoryOrTypeSlug)
+            );
+            if (subCategoryWithType) {
+              const type = subCategoryWithType.types?.find(t => t.slug === subCategoryOrTypeSlug);
+              setSelectedSubCategory(subCategoryWithType.name);
+              setSelectedType(type?.name || null);
+            }
+          }
+        } else {
+          setSelectedSubCategory(null);
+          setSelectedType(null);
+        }
+      }
+    }
+  }, [pathname]);
+
+  // Fetch products based on selected slugs
+    useEffect(() => {
+    const fetchProducts = async (page: number = 1) => {
+      try {
+        setLoading(true);
+        const params = new URLSearchParams();
+        if (selectedSubCategory) {
+          const subCatSlug = subCategories[selectedCategory].find(sub => sub.name === selectedSubCategory)?.slug;
+          if (selectedType) {
+            const typeSlug = subCategories[selectedCategory]
+              .find(sub => sub.name === selectedSubCategory)
+              ?.types?.find(type => type.name === selectedType)?.slug;
+            if (typeSlug) params.append('slug', typeSlug);
+          } else if (subCatSlug) {
+            params.append('slug', subCatSlug);
+          }
+        }
+        params.append('page', page.toString());
+        const response = await axios.get(`http://127.0.0.1:8000/api/electronics?${params.toString()}`);
+        setProducts(response.data.data); // Use response.data.data for product array
+        setCurrentPage(response.data.current_page);
+        setLastPage(response.data.last_page);
+      } catch (error) {
+        console.error('Error fetching electronics products:', error);
+        setProducts([]); // Set empty array on error to prevent map errors
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts(currentPage);
+  }, [selectedCategory, selectedSubCategory, selectedType, currentPage]);
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({
@@ -814,7 +1083,11 @@ const ElectronicsCategoryPage: React.FC = () => {
       [section]: !prev[section],
     }));
   };
-
+ const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= lastPage) {
+      setCurrentPage(page);
+    }
+  };
   const handleFilterSelect = (filterType: keyof FilterState, value: string) => {
     setSelectedFilters(prev => {
       const currentValues = prev[filterType];
@@ -838,24 +1111,8 @@ const ElectronicsCategoryPage: React.FC = () => {
     });
     setSelectedSubCategory(null);
     setSelectedType(null);
+    router.push(`/${selectedCategory}`);
   };
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get('http://127.0.0.1:8000/api/electronics');
-        console.log(response.data);
-        setProducts(response.data);
-      } catch (error) {
-        console.error('Error fetching electronics products:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchProducts();
-  }, []);
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -865,6 +1122,18 @@ const ElectronicsCategoryPage: React.FC = () => {
             <span>Home</span>
             <span className="mx-2">›</span>
             <span>Electronics & Home Appliances</span>
+            {selectedSubCategory && (
+              <>
+                <span className="mx-2">›</span>
+                <span>{selectedSubCategory}</span>
+              </>
+            )}
+            {selectedType && (
+              <>
+                <span className="mx-2">›</span>
+                <span>{selectedType}</span>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -942,21 +1211,41 @@ const ElectronicsCategoryPage: React.FC = () => {
               loading={loading}
             />
             <div className="mt-6 flex justify-center">
-              <nav className="flex items-center gap-1">
-                <button className="px-3 py-1 rounded border text-sm">Previous</button>
-                <button className="px-3 py-1 rounded border bg-blue-600 text-white text-sm">1</button>
-                <button className="px-3 py-1 rounded border text-sm">2</button>
-                <button className="px-3 py-1 rounded border text-sm">3</button>
-                <button className="px-3 py-1 rounded border text-sm">Next</button>
-              </nav>
-            </div>
+        <nav className="flex items-center gap-1">
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="px-3 py-1 rounded border text-sm disabled:opacity-50"
+          >
+            Previous
+          </button>
+          {[...Array(lastPage)].map((_, i) => (
+            <button
+              key={i + 1}
+              onClick={() => handlePageChange(i + 1)}
+              className={`px-3 py-1 rounded border text-sm ${
+                currentPage === i + 1 ? 'bg-blue-100 text-blue-600' : ''
+              }`}
+            >
+              {i + 1}
+            </button>
+          ))}
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === lastPage}
+            className="px-3 py-1 rounded border text-sm disabled:opacity-50"
+          >
+            Next
+          </button>
+        </nav>
+      </div>
           </div>
         </div>
 
         {mobileFiltersOpen && (
           <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-100 p-4">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold">Filters</h3>
+              <h3 className="text-xl font-bold">Products</h3>
               <button 
                 onClick={() => setMobileFiltersOpen(false)}
                 className="text-gray-500"

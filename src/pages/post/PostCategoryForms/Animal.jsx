@@ -5,6 +5,7 @@ import Switch from '@/components/common/Tooglebtn';
 import Image from 'next/image';
 import axios from 'axios';
 const CreateAnimalPost = ({selectedSubCat, selectedType}) => {
+ 
   // State Management
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('Animals');
@@ -272,7 +273,7 @@ const [uploadProgress, setUploadProgress] = useState({
     
     // Animal-specific fields
     formData.append('animalType', selectedAnimalType);
-    formData.append('subAnimalType', selectedSubAnimalType);
+    formData.append('subAnimalType', selectedType);
     formData.append('breed', breed);
     formData.append('gender', gender);
     formData.append('age', age);
@@ -388,7 +389,7 @@ const [uploadProgress, setUploadProgress] = useState({
                 
 
                 {/* Animal Details Fields */}
-                {showAnimalDetailsFields && selectedSubAnimalType !== 'Select Sub-Type' && (
+                {showAnimalDetailsFields && selectedType !== 'Select Sub-Type' && (
                   <>
                     {/* Breed Field */}
                     <div className="mb-3 d-flex align-items-center p-0">
@@ -404,7 +405,7 @@ const [uploadProgress, setUploadProgress] = useState({
                             required
                           >
                             <option value="">Select Breed</option>
-                            {breedOptions[selectedSubAnimalType]?.map((breedOption, index) => (
+                            {breedOptions[selectedType]?.map((breedOption, index) => (
                               <option key={index} value={breedOption}>{breedOption}</option>
                             ))}
                           </select>

@@ -1,5 +1,4 @@
-'use client';
-
+"use client";
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useRouter, useParams } from 'next/navigation';
@@ -11,6 +10,7 @@ import {
 } from 'react-icons/fi';
 import { 
   LuHeart, 
+  LuTag, 
   LuMapPin,
   LuBriefcase,
   LuDollarSign
@@ -90,6 +90,7 @@ const subCategories: CategoryData = {
   ],
 };
 
+// Job types for specific subcategories
 export const JOBS_TYPES: { [key: string]: string[] } = {
   'Domestic Help': ['Maids', 'Babysitters', 'Cooks', 'Nursing Staff', 'Other Domestic Help'],
   'Driver & Taxi': ['Drivers', 'Pick & drop', 'CarPool'],
@@ -146,10 +147,17 @@ const DynamicCategorySidebar: React.FC<{
   };
 
   const toggleSubCategory = (name: string, slug: string | undefined) => {
-    onSubCategorySelect(name, slug || null);
-    onJobTypeSelect(null);
-    setShowMoreJobTypes(false);
-    router.push(slug ? `/jobs/${slug}` : '/jobs');
+    if (selectedSubCategory === name) {
+      onSubCategorySelect(null, null);
+      onJobTypeSelect(null);
+      setShowMoreJobTypes(false);
+      router.push('/jobs');
+    } else {
+      onSubCategorySelect(name, slug || null);
+      onJobTypeSelect(null);
+      setShowMoreJobTypes(false);
+      router.push(`/jobs/${slug}`);
+    }
   };
 
   const toggleJobType = (type: string) => {
@@ -172,6 +180,7 @@ const DynamicCategorySidebar: React.FC<{
     setShowMoreJobTypes((prev) => !prev);
   };
 
+  // Map 'Domestic Staff' to 'Domestic Help' for JOBS_TYPES
   const jobTypeKey = selectedSubCategory === 'Domestic Staff' ? 'Domestic Help' : selectedSubCategory || '';
   const jobTypes = JOBS_TYPES[jobTypeKey] || [];
 
@@ -449,11 +458,9 @@ const SalaryRangeFilter: React.FC = () => {
 const JobCard: React.FC<{
   jobs: Job[];
   loading?: boolean;
-  error?: string | null;
 }> = ({
   jobs = [],
-  loading = false,
-  error = null,
+  loading = false
 }) => {
   const [savedJobs, setSavedJobs] = useState<Set<number>>(new Set());
 
@@ -486,18 +493,10 @@ const JobCard: React.FC<{
     );
   }
 
-  if (error) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-red-500">{error}</p>
-      </div>
-    );
-  }
-
   if (jobs.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-500">No jobs found for this category.</p>
+        <p className="text-gray-500">No jobs found</p>
       </div>
     );
   }
@@ -580,7 +579,7 @@ const JobCard: React.FC<{
   );
 };
 
-const JobsSlugPage: React.FC = () => {
+const JobsPage: React.FC = () => {
   const router = useRouter();
   const params = useParams();
   const [selectedCategory, setSelectedCategory] = useState<string>('jobs');
@@ -601,24 +600,25 @@ const JobsSlugPage: React.FC = () => {
   });
   const [sortBy, setSortBy] = useState<string>('newest');
   const [jobs, setJobs] = useState<Job[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   // Initialize selected category and subcategory from URL
   useEffect(() => {
     const subcategorySlug = params?.subcategory as string | undefined;
+    
+    if (subcategorySlug === 'types') {
+      // Redirect /jobs/types to /jobs
+      router.replace('/jobs');
+      return;
+    }
 
     if (subcategorySlug) {
       const subCategoryObj = subCategories['jobs'].find(sub => sub.slug === subcategorySlug);
       if (subCategoryObj) {
-        setSelectedCategory('jobs');
         setSelectedSubCategory(subCategoryObj.name);
         setSelectedSubCategorySlug(subcategorySlug);
       } else {
-        // Handle invalid subcategory
-        setError('Invalid subcategory');
-        setSelectedSubCategory(null);
-        setSelectedSubCategorySlug(null);
+        // If subcategory slug is invalid, redirect to /jobs
         router.replace('/jobs');
       }
     } else {
@@ -657,7 +657,6 @@ const JobsSlugPage: React.FC = () => {
     setSelectedSubCategory(null);
     setSelectedSubCategorySlug(null);
     setSelectedJobType(null);
-    setError(null);
     router.push('/jobs');
   };
 
@@ -665,36 +664,21 @@ const JobsSlugPage: React.FC = () => {
     const fetchJobs = async () => {
       try {
         setLoading(true);
-        setError(null);
-        const params = new URLSearchParams();
-        if (selectedSubCategorySlug) {
-          params.append('subcategory', selectedSubCategorySlug);
-        }
-        if (selectedJobType) {
-          params.append('job_type', selectedJobType);
-        }
-        if (selectedFilters.employment_type.length > 0) {
-          params.append('employment_type', selectedFilters.employment_type.join(','));
-        }
-        if (selectedFilters.location.length > 0) {
-          params.append('location', selectedFilters.location.join(','));
-        }
-        if (selectedFilters.salary_range.length > 0) {
-          params.append('salary_range', selectedFilters.salary_range.join(','));
-        }
-
-        const response = await axios.get(`http://127.0.0.1:8000/api/jobsProducts?${params.toString()}`);
+        // Pass subcategory slug to the API if available
+        const url = selectedSubCategorySlug 
+          ? `http://127.0.0.1:8000/api/jobsProducts?subcategory=${selectedSubCategorySlug}`
+          : 'http://127.0.0.1:8000/api/jobsProducts';
+        const response = await axios.get(url);
         setJobs(response.data);
       } catch (error) {
         console.error('Error fetching jobs:', error);
-        setError('Failed to fetch jobs. Please try again later.');
       } finally {
         setLoading(false);
       }
     };
     
     fetchJobs();
-  }, [selectedSubCategorySlug, selectedJobType, selectedFilters]);
+  }, [selectedSubCategorySlug]);
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -707,13 +691,7 @@ const JobsSlugPage: React.FC = () => {
             {selectedSubCategory && (
               <>
                 <span className="mx-2">›</span>
-                <span className="capitalize">{selectedSubCategory.toLowerCase()}</span>
-              </>
-            )}
-            {selectedJobType && (
-              <>
-                <span className="mx-2">›</span>
-                <span className="capitalize">{selectedJobType.toLowerCase()}</span>
+                <span>{selectedSubCategory}</span>
               </>
             )}
           </div>
@@ -731,8 +709,6 @@ const JobsSlugPage: React.FC = () => {
               onSubCategorySelect={(name, slug) => {
                 setSelectedSubCategory(name);
                 setSelectedSubCategorySlug(slug);
-                setError(null);
-                router.push(slug ? `/jobs/${slug}` : '/jobs');
               }}
               onJobTypeSelect={setSelectedJobType}
             />
@@ -777,7 +753,6 @@ const JobsSlugPage: React.FC = () => {
             <JobCard 
               jobs={jobs}
               loading={loading}
-              error={error}
             />
             <div className="mt-6 flex justify-center">
               <nav className="flex items-center gap-1">
@@ -880,4 +855,4 @@ const JobsSlugPage: React.FC = () => {
   );
 };
 
-export default JobsSlugPage;
+export default JobsPage;

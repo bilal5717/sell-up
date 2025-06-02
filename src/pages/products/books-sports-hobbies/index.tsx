@@ -1,7 +1,8 @@
+
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   FiChevronDown, 
   FiChevronUp, 
@@ -11,32 +12,46 @@ import {
 import { 
   LuHeart, 
   LuTag, 
-  LuMapPin,
-  LuPawPrint
+  LuMapPin, 
+  LuWifi, 
+  LuWifiOff 
 } from 'react-icons/lu';
 import axios from 'axios';
 
 // Interfaces
-interface Animal {
+interface Product {
   id: number;
   post_id: number;
-  title: string;
-  description: string;
+  brand?: string;
+  model?: string;
+  condition?: string;
   price: string;
   location: string;
   posted_at: string;
-  breed?: string;
-  age?: string;
   images?: { url: string; is_featured: number; order: number }[];
+  title?: string;
   category?: string;
   sub_category?: string;
   type?: string;
+  warranty?: string;
+  books_details?: {
+    sub_type: string;
+    condition: string;
+    language: string;
+    author: string;
+  };
 }
 
 interface FilterState {
-  type: string[];
+  condition: string[];
   location: string[];
-  price_range: string[];
+  type: string[];
+}
+
+interface Brand {
+  name: string;
+  count: number;
+  models: string[];
 }
 
 interface Category {
@@ -46,8 +61,8 @@ interface Category {
 
 interface SubCategory {
   name: string;
-  slug: string;
-  types?: { name: string; slug: string }[];
+  slug: string; // Added slug for subcategories
+  types?: { name: string; slug: string }[]; // Added slug for types
 }
 
 interface CategoryData {
@@ -60,71 +75,83 @@ interface Province {
 }
 
 // Data
+const brandOptions: Record<string, Brand[]> = {
+  'Books, Sports & Hobbies': [
+    { name: 'Nike', count: 7389, models: ['Running Shoes', 'Football', 'Basketball', 'Tennis'] },
+    { name: 'Adidas', count: 5164, models: ['Football Boots', 'Tracksuits', 'Backpacks', 'Training Gear'] },
+    { name: 'Wilson', count: 2032, models: ['Tennis Rackets', 'Basketballs', 'Volleyballs'] },
+    { name: 'Yamaha', count: 1539, models: ['Guitars', 'Keyboards', 'Drums', 'Violins'] },
+    { name: 'Oxford', count: 940, models: ['Dictionaries', 'Textbooks', 'Novels', 'Stationery'] },
+    { name: 'Casio', count: 885, models: ['Calculators', 'Watches', 'Keyboards'] },
+  ]
+};
+
 const categories: Category[] = [
-  { name: 'Animals', slug: 'animals' },
+  { name: 'Books, Sports & Hobbies', slug: 'books-sports-hobbies' },
 ];
 
 const subCategories: CategoryData = {
-  'animals': [
+  'books-sports-hobbies': [
     { 
-      name: 'Pets', 
-      slug: 'pets',
+      name: 'Sports Equipment', 
+      slug: 'sports-equipment',
       types: [
-        { name: 'Dogs', slug: 'dogs' },
-        { name: 'Cats', slug: 'cats' },
-        { name: 'Rabbits', slug: 'rabbits' },
-        { name: 'Hamsters', slug: 'hamsters' }
+        { name: 'Football', slug: 'football' },
+        { name: 'Cricket', slug: 'cricket' },
+        { name: 'Tennis', slug: 'tennis' },
+        { name: 'Basketball', slug: 'basketball' },
+        { name: 'Badminton', slug: 'badminton' },
+        { name: 'Table Tennis', slug: 'table-tennis' },
+        { name: 'Volleyball', slug: 'volleyball' },
+        { name: 'Golf', slug: 'golf' },
+        { name: 'Hockey', slug: 'hockey' },
+        { name: 'Other Sports', slug: 'other-sports' }
       ]
     },
     { 
-      name: 'Livestock', 
-      slug: 'livestock',
+      name: 'Musical Instruments', 
+      slug: 'musical-instruments',
       types: [
-        { name: 'Cows', slug: 'cows' },
-        { name: 'Goats', slug: 'goats' },
-        { name: 'Sheep', slug: 'sheep' },
-        { name: 'Horses', slug: 'horses' }
+        { name: 'Guitars', slug: 'guitars' },
+        { name: 'Keyboards', slug: 'keyboards' },
+        { name: 'Drums', slug: 'drums' },
+        { name: 'Violins', slug: 'violins' },
+        { name: 'Flutes', slug: 'flutes' },
+        { name: 'Trumpets', slug: 'trumpets' },
+        { name: 'Saxophones', slug: 'saxophones' },
+        { name: 'Amplifiers', slug: 'amplifiers' },
+        { name: 'Other Instruments', slug: 'other-instruments' }
       ]
     },
     { 
-      name: 'Aquarium', 
-      slug: 'aquarium',
+      name: 'Gym & Fitness', 
+      slug: 'gym-fitness',
       types: [
-        { name: 'Tropical Fish', slug: 'tropical-fish' },
-        { name: 'Goldfish', slug: 'goldfish' },
-        { name: 'Shrimp', slug: 'shrimp' },
-        { name: 'Snails', slug: 'snails' }
+        { name: 'Treadmills', slug: 'treadmills' },
+        { name: 'Exercise Bikes', slug: 'exercise-bikes' },
+        { name: 'Dumbbells', slug: 'dumbbells' },
+        { name: 'Weight Benches', slug: 'weight-benches' },
+        { name: 'Yoga Mats', slug: 'yoga-mats' },
+        { name: 'Resistance Bands', slug: 'resistance-bands' },
+        { name: 'Other Gym Equipment', slug: 'other-gym-equipment' }
       ]
     },
     { 
-      name: 'Birds', 
-      slug: 'birds',
+      name: 'Books & Magazines', 
+      slug: 'books-magazines',
       types: [
-        { name: 'Parrots', slug: 'parrots' },
-        { name: 'Canaries', slug: 'canaries' },
-        { name: 'Pigeons', slug: 'pigeons' }
-      ]
-    },
-    { 
-      name: 'Animal Supplies', 
-      slug: 'animal-supplies',
-      types: [
-        { name: 'Food & Accessories', slug: 'food-accessories' },
-        { name: 'Medicine', slug: 'medicine' },
-        { name: 'Others', slug: 'others' }
+        { name: 'Books', slug: 'books' },
+        { name: 'Magazines', slug: 'magazines' },
+        { name: 'Dictionaries', slug: 'dictionaries' },
+        { name: 'Stationary Items', slug: 'stationary-items' },
+        { name: 'Calculators', slug: 'calculators' }
       ]
     },
     { name: 'Others', slug: 'others' }
   ],
 };
 
-const priceRanges = [
-  'Under Rs. 1,000',
-  'Rs. 1,000 - Rs. 5,000',
-  'Rs. 5,000 - Rs. 10,000',
-  'Rs. 10,000 - Rs. 50,000',
-  'Over Rs. 50,000'
-];
+const conditions = ['New', 'Used', 'Open Box', 'Refurbished', 'For Parts'];
 
 const provinces: Province[] = [
   { name: 'Punjab', cities: ['Lahore', 'Rawalpindi', 'Faisalabad', 'Multan', 'Gujranwala', 'Sialkot', 'Sargodha', 'Bahawalpur'] },
@@ -134,14 +161,32 @@ const provinces: Province[] = [
   { name: 'Islamabad Capital Territory', cities: ['Islamabad'] },
 ];
 
-// Components
+const typeOptions: Record<string, { label: string; count: number }[]> = {
+  'sports-equipment': [
+    { label: 'Football', count: 930 },
+    { label: 'Cricket', count: 860 },
+    { label: 'Tennis', count: 410 },
+  ],
+  'books-magazines': [
+    { label: 'Books', count: 1420 },
+    { label: 'Magazines', count: 380 },
+    { label: 'Dictionaries', count: 250 },
+  ],
+  'musical-instruments': [
+    { label: 'Guitars', count: 720 },
+    { label: 'Keyboards', count: 380 },
+    { label: 'Drums', count: 210 },
+  ]
+};
+
+// DynamicCategorySidebar Component
 const DynamicCategorySidebar: React.FC<{
   selectedCategory: string;
   selectedSubCategory: string | null;
   selectedType: string | null;
   onCategorySelect: (category: string) => void;
-  onSubCategorySelect: (subCategory: string | null) => void;
-  onTypeSelect: (type: string | null) => void;
+  onSubCategorySelect: (subCategory: string | null, slug: string | null) => void;
+  onTypeSelect: (type: string | null, slug: string | null) => void;
 }> = ({
   selectedCategory,
   selectedSubCategory,
@@ -151,95 +196,61 @@ const DynamicCategorySidebar: React.FC<{
   onTypeSelect,
 }) => {
   const router = useRouter();
-  const [visibleSubCategoryPage, setVisibleSubCategoryPage] = useState<number>(1);
-  const [visibleTypePages, setVisibleTypePages] = useState<Record<string, number>>({});
-  const subCategoriesPerPage = 7;
-  const typesPerPage = 7;
+  const [showMoreSubCategories, setShowMoreSubCategories] = useState<boolean>(false);
+  const [showMoreTypes, setShowMoreTypes] = useState<boolean>(false);
 
   const toggleCategory = (slug: string) => {
     onCategorySelect(slug);
-    onSubCategorySelect(null);
-    onTypeSelect(null);
-    setVisibleSubCategoryPage(1);
-    setVisibleTypePages({});
-    router.push(`/${slug}`);
+    onSubCategorySelect(null, null);
+    onTypeSelect(null, null);
+    setShowMoreSubCategories(false);
+    setShowMoreTypes(false);
+    router.push(`/category/${slug}`);
   };
 
   const toggleSubCategory = (name: string, slug: string) => {
     if (selectedSubCategory === name) {
-      onSubCategorySelect(null);
-      onTypeSelect(null);
-      setVisibleTypePages({});
+      onSubCategorySelect(null, null);
+      onTypeSelect(null, null);
+      setShowMoreTypes(false);
       router.push(`/${selectedCategory}`);
     } else {
-      onSubCategorySelect(name);
-      onTypeSelect(null);
-      setVisibleTypePages({ ...visibleTypePages, [name]: 1 });
+      onSubCategorySelect(name, slug);
+      onTypeSelect(null, null);
+      setShowMoreTypes(false);
       router.push(`/${selectedCategory}/${slug}`);
     }
   };
 
   const toggleType = (type: string, slug: string) => {
     if (selectedType === type) {
-      onTypeSelect(null);
+      onTypeSelect(null, null);
       router.push(`/${selectedCategory}/${subCategories[selectedCategory].find(sub => sub.name === selectedSubCategory)?.slug}`);
     } else {
-      onTypeSelect(type);
-      router.push(`/${selectedCategory}/${slug}`);
+      onTypeSelect(type, slug);
+      router.push(`/${selectedCategory}/${subCategories[selectedCategory].find(sub => sub.name === selectedSubCategory)?.slug}/${slug}`);
     }
   };
 
-  const handleShowMoreSubCategories = () => {
-    setVisibleSubCategoryPage((prev) => prev + 1);
+  const toggleShowMoreSubCategories = () => {
+    setShowMoreSubCategories((prev) => !prev);
   };
 
-  const handleShowLessSubCategories = () => {
-    setVisibleSubCategoryPage((prev) => Math.max(prev - 1, 1));
+  const toggleShowMoreTypes = () => {
+    setShowMoreTypes((prev) => !prev);
   };
 
-  const handleShowMoreTypes = (subCategory: string) => {
-    setVisibleTypePages((prev) => ({
-      ...prev,
-      [subCategory]: (prev[subCategory] || 1) + 1,
-    }));
-  };
-
-  const handleShowLessTypes = (subCategory: string) => {
-    setVisibleTypePages((prev) => ({
-      ...prev,
-      [subCategory]: Math.max((prev[subCategory] || 1) - 1, 1),
-    }));
-  };
-
-  const getVisibleSubCategories = () => {
-    const subCategoryList = subCategories[selectedCategory] || [];
-    const startIndex = 0;
-    const endIndex = visibleSubCategoryPage * subCategoriesPerPage;
-    return subCategoryList.slice(0, endIndex);
-  };
+  const visibleSubCategories = showMoreSubCategories
+    ? subCategories[selectedCategory]?.slice(0, 14) || []
+    : subCategories[selectedCategory]?.slice(0, 7) || [];
 
   const getVisibleTypes = (subCategory: string) => {
-    const subCategoryData = subCategories[selectedCategory]?.find((sub) => sub.name === subCategory);
-    const typeList = subCategoryData?.types || [];
-    const page = visibleTypePages[subCategory] || 1;
-    const startIndex = 0;
-    const endIndex = page * typesPerPage;
-    return typeList.slice(0, endIndex);
+    const subCategoryData = subCategories[selectedCategory]?.find(sub => sub.name === subCategory);
+    if (!subCategoryData?.types) return [];
+    return showMoreTypes
+      ? subCategoryData.types.slice(0, 14)
+      : subCategoryData.types.slice(0, 7);
   };
-
-  const hasMoreSubCategories = () => {
-    const subCategoryList = subCategories[selectedCategory] || [];
-    return visibleSubCategoryPage * subCategoriesPerPage < subCategoryList.length;
-  };
-
-  const hasMoreTypes = (subCategory: string) => {
-    const subCategoryData = subCategories[selectedCategory]?.find((sub) => sub.name === subCategory);
-    const typeList = subCategoryData?.types || [];
-    const page = visibleTypePages[subCategory] || 1;
-    return page * typesPerPage < typeList.length;
-  };
-
-  const hasPreviousSubCategories = () => visibleSubCategoryPage > 1;
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
@@ -257,7 +268,7 @@ const DynamicCategorySidebar: React.FC<{
 
             {selectedCategory === category.slug && subCategories[category.slug] && (
               <div className="ml-4 space-y-1">
-                {getVisibleSubCategories().map((sub, index) => (
+                {visibleSubCategories.map((sub, index) => (
                   <div key={index}>
                     <div
                       className={`py-1 cursor-pointer hover:text-blue-600 ${selectedSubCategory === sub.name ? 'text-blue-600 font-medium' : 'text-gray-700'}`}
@@ -278,49 +289,25 @@ const DynamicCategorySidebar: React.FC<{
                             - {type.name}
                           </div>
                         ))}
-                        {sub.types.length > typesPerPage && (
-                          <div className="flex gap-2">
-                            {hasMoreTypes(sub.name) && (
-                              <button
-                                onClick={() => handleShowMoreTypes(sub.name)}
-                                className="text-blue-600 text-sm mt-1"
-                              >
-                                Show More
-                              </button>
-                            )}
-                            {(visibleTypePages[sub.name] || 1) > 1 && (
-                              <button
-                                onClick={() => handleShowLessTypes(sub.name)}
-                                className="text-blue-600 text-sm mt-1"
-                              >
-                                Show Less
-                              </button>
-                            )}
-                          </div>
+                        {sub.types.length > 7 && (
+                          <button
+                            onClick={toggleShowMoreTypes}
+                            className="text-blue-600 text-sm mt-1"
+                          >
+                            {showMoreTypes ? 'Show Less' : 'Show More'}
+                          </button>
                         )}
                       </div>
                     )}
                   </div>
                 ))}
-                {subCategories[category.slug].length > subCategoriesPerPage && (
-                  <div className="flex gap-2">
-                    {hasMoreSubCategories() && (
-                      <button
-                        onClick={handleShowMoreSubCategories}
-                        className="text-blue-600 text-sm mt-2"
-                      >
-                        Show More
-                      </button>
-                    )}
-                    {hasPreviousSubCategories() && (
-                      <button
-                        onClick={handleShowLessSubCategories}
-                        className="text-blue-600 text-sm mt-2"
-                      >
-                        Show Less
-                      </button>
-                    )}
-                  </div>
+                {subCategories[category.slug].length > 7 && (
+                  <button
+                    onClick={toggleShowMoreSubCategories}
+                    className="text-blue-600 text-sm mt-1"
+                  >
+                    {showMoreSubCategories ? 'Show Less' : 'Show More'}
+                  </button>
                 )}
               </div>
             )}
@@ -331,55 +318,7 @@ const DynamicCategorySidebar: React.FC<{
   );
 };
 
-const AnimalTypeFilter: React.FC = () => {
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-
-  const handleTypeChange = (type: string) => {
-    if (selectedTypes.includes(type)) {
-      setSelectedTypes((prev) => prev.filter((t) => t !== type));
-    } else {
-      setSelectedTypes((prev) => [...prev, type]);
-    }
-  };
-
-  const clearSelection = () => {
-    setSelectedTypes([]);
-  };
-
-  return (
-    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-      <h3 className="font-bold text-lg mb-2">Animal Type</h3>
-      {selectedTypes.length > 0 ? (
-        <div className="flex justify-between items-center bg-gray-100 p-2 rounded text-gray-700">
-          <span className="text-sm">{selectedTypes.join(', ')}</span>
-          <button
-            onClick={clearSelection}
-            className="text-blue-600 text-xs"
-          >
-            Change
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {subCategories['animals'].flatMap(sub => sub.types || []).map((type) => (
-            <label key={type.name} className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={selectedTypes.includes(type.name)}
-                onChange={() => handleTypeChange(type.name)}
-                className="h-4 w-4 text-blue-600 rounded"
-              />
-              <span className="text-gray-700 text-sm">
-                {type.name}
-              </span>
-            </label>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
+// LocationSidebar Component
 const LocationSidebar: React.FC = () => {
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
@@ -470,10 +409,107 @@ const LocationSidebar: React.FC = () => {
   );
 };
 
-const PriceRangeFilter: React.FC = () => {
+// DynamicTypeFilterBox Component
+const DynamicTypeFilterBox: React.FC<{ category: string }> = ({ category }) => {
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+
+  const handleTypeChange = (type: string) => {
+    if (selectedTypes.includes(type)) {
+      setSelectedTypes((prev) => prev.filter((t) => t !== type));
+    } else {
+      setSelectedTypes((prev) => [...prev, type]);
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedTypes([]);
+  };
+
+  const types = typeOptions[category] || [];
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+      <h3 className="font-bold text-lg mb-2">Type</h3>
+      {selectedTypes.length > 0 ? (
+        <div className="flex justify-between items-center bg-gray-100 p-2 rounded text-gray-700">
+          <span className="text-sm">{selectedTypes.join(', ')}</span>
+          <button
+            onClick={clearSelection}
+            className="text-blue-600 text-xs"
+          >
+            Change
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-1">
+          {types.map((type) => (
+            <label key={type.label} className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={selectedTypes.includes(type.label)}
+                onChange={() => handleTypeChange(type.label)}
+                className="h-4 w-4 text-blue-600 rounded"
+              />
+              <span className="text-gray-700 text-sm">
+                {type.label} ({type.count})
+              </span>
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ConditionSelectBox Component
+const ConditionSelectBox: React.FC = () => {
+  const [selectedCondition, setSelectedCondition] = useState<string | null>(null);
+
+  const handleConditionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedCondition(e.target.value);
+  };
+
+  const clearCondition = () => {
+    setSelectedCondition(null);
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+      <h3 className="font-bold text-lg mb-2">Condition</h3>
+      {selectedCondition ? (
+        <div className="flex justify-between items-center bg-gray-100 p-2 rounded text-gray-700">
+          <span className="text-sm">{selectedCondition}</span>
+          <button
+            onClick={clearCondition}
+            className="text-blue-600 text-xs"
+          >
+            Change
+          </button>
+        </div>
+      ) : (
+        <select
+          className="w-full border rounded p-2 text-gray-700 text-sm"
+          value={selectedCondition || ''}
+          onChange={handleConditionChange}
+        >
+          <option value="" disabled>Select Condition</option>
+          {conditions.map((condition) => (
+            <option key={condition} value={condition}>
+              {condition}
+            </option>
+          ))}
+        </select>
+      )}
+    </div>
+  );
+};
+
+// PriceFilter Component
+const PriceFilter: React.FC = () => {
   const [minPrice, setMinPrice] = useState<number | ''>('');
   const [maxPrice, setMaxPrice] = useState<number | ''>('');
   const [isPriceSet, setIsPriceSet] = useState<boolean>(false);
+  const [isDeliverable, setIsDeliverable] = useState<boolean>(false);
 
   const handleMinPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value);
@@ -495,6 +531,15 @@ const PriceRangeFilter: React.FC = () => {
     setMinPrice('');
     setMaxPrice('');
     setIsPriceSet(false);
+  };
+
+  const toggleIsDeliverable = () => {
+    setIsDeliverable((prev) => !prev);
+  };
+
+  const clearAllFilters = () => {
+    clearPriceFilter();
+    setIsDeliverable(false);
   };
 
   return (
@@ -540,26 +585,48 @@ const PriceRangeFilter: React.FC = () => {
           </div>
         )}
       </div>
+
+      <div className="mt-4 flex items-center">
+        <input
+          type="checkbox"
+          id="isDeliverable"
+          checked={isDeliverable}
+          onChange={toggleIsDeliverable}
+          className="mr-2 h-4 w-4 text-blue-600 rounded"
+        />
+        <label htmlFor="isDeliverable" className="text-gray-700 text-sm">Is Deliverable</label>
+      </div>
+
+      {isDeliverable && (
+        <div className="mt-2 text-gray-600 text-sm">
+          Deliverable: Yes
+        </div>
+      )}
+
+      <button
+        onClick={clearAllFilters}
+        className="text-blue-600 text-sm mt-3"
+      >
+        Clear All
+      </button>
     </div>
   );
 };
 
-const AnimalCard: React.FC<{
-  animals: Animal[];
-  loading?: boolean;
-}> = ({
-  animals = [],
-  loading = false
+// BooksHobbiesProductCard Component
+const BooksHobbiesProductCard: React.FC<{ products: Product[]; loading?: boolean }> = ({
+  products = [],
+  loading = false,
 }) => {
-  const [savedAnimals, setSavedAnimals] = useState<Set<number>>(new Set());
+  const [likedProducts, setLikedProducts] = useState<Set<number>>(new Set());
 
-  const toggleSave = useCallback((animalId: number) => {
-    setSavedAnimals(prev => {
+  const toggleLike = useCallback((productId: number) => {
+    setLikedProducts((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(animalId)) {
-        newSet.delete(animalId);
+      if (newSet.has(productId)) {
+        newSet.delete(productId);
       } else {
-        newSet.add(animalId);
+        newSet.add(productId);
       }
       return newSet;
     });
@@ -582,33 +649,32 @@ const AnimalCard: React.FC<{
     );
   }
 
-  if (!Array.isArray(animals) || animals.length === 0) {
+  if (products.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-500">No animals found</p>
+        <p className="text-gray-500">No products found</p>
       </div>
     );
   }
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {animals.map((animal) => {
-        const isSaved = savedAnimals.has(animal.id);
-        
+      {products.map((product) => {
+        const isLiked = likedProducts.has(product.id);
         return (
           <article
-            key={`${animal.id}-${animal.post_id}`}
+            key={`${product.id}-${product.post_id}`}
             className="bg-white rounded-lg shadow-sm overflow-hidden transition-transform hover:scale-[1.02] hover:shadow-md"
           >
             <div className="relative aspect-video bg-gray-100">
               <Image
-                src={animal.images?.[0]?.url || '/images/animal-placeholder.png'}
-                alt={animal.title}
+                src={product.images?.[0]?.url || '/images/placeholder.png'}
+                alt={`${product.brand} ${product.model}`}
                 fill
                 className="object-cover"
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               />
-              {animal.images?.[0]?.is_featured && (
+              {product.images?.[0]?.is_featured && (
                 <span className="absolute top-2 right-2 bg-blue-600 text-white px-2 py-1 rounded text-xs">
                   Featured
                 </span>
@@ -618,47 +684,47 @@ const AnimalCard: React.FC<{
             <div className="p-4">
               <div className="flex justify-between items-center mb-1">
                 <h3 className="text-gray-800 font-bold">
-                  Rs. {Number(animal.price).toLocaleString()}
+                  Rs. {Number(product.price).toLocaleString()}
                 </h3>
-                <button 
-                  onClick={() => toggleSave(animal.id)}
-                  aria-label={isSaved ? "Remove from saved animals" : "Save this animal"}
+                <button
+                  onClick={() => toggleLike(product.id)}
+                  aria-label={isLiked ? "Remove from favorites" : "Add to favorites"}
                   className="p-1"
                 >
                   <LuHeart
-                    className={`text-xl ${isSaved ? 'text-red-500 fill-red-500' : 'text-gray-400'}`}
+                    className={`text-xl ${isLiked ? 'text-red-500 fill-red-500' : 'text-gray-400'}`}
                   />
                 </button>
               </div>
 
               <h4 className="text-gray-700 font-medium text-sm line-clamp-2">
-                {animal.title || 'No Title'}
+                {product.title || 'No Title'}
               </h4>
 
-              <div className="flex items-center gap-2 text-gray-700 text-sm mt-1">
-                <LuPawPrint />
-                <span>{animal.type || 'Animal'}</span>
+              <div className="flex justify-between items-center text-gray-600 text-xs mt-2">
+                <div className="flex items-center gap-1">
+                  <LuTag />
+                  <span>{product.books_details?.condition || 'Not Specified'}</span>
+                </div>
+                {product.books_details?.language && (
+                  <div className="flex items-center gap-1">
+                    <span>Language: {product.books_details.language}</span>
+                  </div>
+                )}
+                {product.warranty && (
+                  <div className="flex items-center gap-1">
+                    <span>Warranty: {product.warranty}</span>
+                  </div>
+                )}
               </div>
-
-              {animal.breed && (
-                <p className="text-gray-600 text-sm">
-                  Breed: {animal.breed}
-                </p>
-              )}
-
-              {animal.age && (
-                <p className="text-gray-600 text-sm">
-                  Age: {animal.age}
-                </p>
-              )}
 
               <div className="flex flex-col items-start text-gray-500 text-xs mt-2">
                 <div className="flex items-center gap-1">
                   <LuMapPin />
-                  <span>{animal.location}</span>
+                  <span>{product.location}</span>
                 </div>
-                <time dateTime={animal.posted_at} className="text-xs">
-                  {animal.posted_at}
+                <time dateTime={product.posted_at} className="text-xs">
+                  {product.posted_at}
                 </time>
               </div>
             </div>
@@ -669,125 +735,67 @@ const AnimalCard: React.FC<{
   );
 };
 
-const AnimalsPage: React.FC = () => {
+// BooksHobbiesCategoryPage Component
+const BooksHobbiesCategoryPage: React.FC = () => {
   const router = useRouter();
-  const pathname = usePathname();
-  const [selectedCategory, setSelectedCategory] = useState<string>('animals');
+  const searchParams = useSearchParams();
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000000]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('books-sports-hobbies');
   const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
+  const [selectedSubCategorySlug, setSelectedSubCategorySlug] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [selectedTypeSlug, setSelectedTypeSlug] = useState<string | null>(null);
   const [selectedFilters, setSelectedFilters] = useState<FilterState>({
-    type: [],
+    condition: [],
     location: [],
-    price_range: [],
+    type: [],
   });
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState<boolean>(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     category: true,
     price: true,
-    type: true,
+    condition: true,
     location: true,
+    type: true,
   });
   const [sortBy, setSortBy] = useState<string>('newest');
-  const [animals, setAnimals] = useState<Animal[]>([]);
+  const [selectedCondition, setSelectedCondition] = useState<string>('all');
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [lastPage, setLastPage] = useState(1);
 
-  // Initialize state based on URL
+  // Initialize state from URL parameters
   useEffect(() => {
-    const segments = pathname.split('/').filter(segment => segment);
-    const categorySlug = segments[0];
-    const subCategoryOrTypeSlug = segments[1];
-
-    if (categorySlug) {
-      const category = categories.find(cat => cat.slug === categorySlug);
-      if (category) {
-        setSelectedCategory(category.slug);
-        if (subCategoryOrTypeSlug) {
-          const subCategory = subCategories[category.slug]?.find(sub => sub.slug === subCategoryOrTypeSlug);
-          if (subCategory) {
-            setSelectedSubCategory(subCategory.name);
-            setSelectedType(null);
-          } else {
-            const subCategoryWithType = subCategories[category.slug]?.find(sub => 
-              sub.types?.some(type => type.slug === subCategoryOrTypeSlug)
-            );
-            if (subCategoryWithType) {
-              const type = subCategoryWithType.types?.find(t => t.slug === subCategoryOrTypeSlug);
-              setSelectedSubCategory(subCategoryWithType.name);
-              setSelectedType(type?.name || null);
-            }
+    const subCategorySlug = searchParams.get('subCategory');
+    const typeSlug = searchParams.get('type');
+    
+    if (subCategorySlug) {
+      const subCategory = subCategories['books-sports-hobbies'].find(sub => sub.slug === subCategorySlug);
+      if (subCategory) {
+        setSelectedSubCategory(subCategory.name);
+        setSelectedSubCategorySlug(subCategorySlug);
+        if (typeSlug) {
+          const type = subCategory.types?.find(t => t.slug === typeSlug);
+          if (type) {
+            setSelectedType(type.name);
+            setSelectedTypeSlug(typeSlug);
           }
-        } else {
-          setSelectedSubCategory(null);
-          setSelectedType(null);
         }
       }
     }
-  }, [pathname]);
-
-  // Fetch animals based on selected slugs
-  useEffect(() => {
-    let isMounted = true;
-    const fetchAnimals = async (page: number = 1) => {
-      try {
-        setLoading(true);
-        const params = new URLSearchParams();
-        if (selectedSubCategory) {
-          const subCatSlug = subCategories[selectedCategory]?.find(sub => sub.name === selectedSubCategory)?.slug;
-          if (selectedType) {
-            const typeSlug = subCategories[selectedCategory]
-              ?.find(sub => sub.name === selectedSubCategory)
-              ?.types?.find(type => type.name === selectedType)?.slug;
-            console.log('Type Slug:', typeSlug);
-            if (typeSlug) params.append('slug', typeSlug);
-          } else if (subCatSlug) {
-            console.log('SubCategory Slug:', subCatSlug);
-            params.append('slug', subCatSlug);
-          }
-        }
-        params.append('page', page.toString());
-        const response = await axios.get(`http://127.0.0.1:8000/api/animals?${params.toString()}`);
-        console.log('API Response:', response.data);
-        if (isMounted) {
-          if (!Array.isArray(response.data.data)) {
-            console.error('response.data.data is not an array:', response.data.data);
-            setAnimals([]);
-          } else {
-            setAnimals(response.data.data);
-            setCurrentPage(response.data.current_page);
-            setLastPage(response.data.last_page);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching animals:', error);
-        if (isMounted) setAnimals([]);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-    fetchAnimals(currentPage);
-    return () => { isMounted = false; };
-  }, [selectedCategory, selectedSubCategory, selectedType, currentPage]);
+  }, [searchParams]);
 
   const toggleSection = (section: string) => {
-    setExpandedSections((prev) => ({
+    setExpandedSections(prev => ({
       ...prev,
       [section]: !prev[section],
     }));
   };
 
-  const handlePageChange = (page: number) => {
-    if (page >= 1 && page <= lastPage) {
-      setCurrentPage(page);
-    }
-  };
-
   const handleFilterSelect = (filterType: keyof FilterState, value: string) => {
-    setSelectedFilters((prev) => {
+    setSelectedFilters(prev => {
       const currentValues = prev[filterType];
       const newValues = currentValues.includes(value)
-        ? currentValues.filter((v) => v !== value)
+        ? currentValues.filter(v => v !== value)
         : [...currentValues, value];
 
       return {
@@ -798,15 +806,44 @@ const AnimalsPage: React.FC = () => {
   };
 
   const clearFilters = () => {
+    setPriceRange([0, 1000000]);
     setSelectedFilters({
-      type: [],
+      condition: [],
       location: [],
-      price_range: [],
+      type: [],
     });
     setSelectedSubCategory(null);
+    setSelectedSubCategorySlug(null);
     setSelectedType(null);
-    router.push(`/${selectedCategory}`);
+    setSelectedTypeSlug(null);
+    router.push(`/category/${selectedCategory}`);
   };
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        let url = 'http://127.0.0.1:8000/api/books-sports-hobbies';
+        const params: { subCategory?: string; type?: string } = {};
+
+        if (selectedSubCategorySlug) {
+          params.subCategory = selectedSubCategorySlug;
+          if (selectedTypeSlug) {
+            params.type = selectedTypeSlug;
+          }
+        }
+
+        const response = await axios.get(url, { params });
+        setProducts(response.data);
+      } catch (error) {
+        console.error('Error fetching books & hobbies products:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchProducts();
+  }, [selectedSubCategorySlug, selectedTypeSlug]);
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -815,7 +852,7 @@ const AnimalsPage: React.FC = () => {
           <div className="flex items-center text-sm text-gray-600">
             <span>Home</span>
             <span className="mx-2">›</span>
-            <span>Animals</span>
+            <span>Books, Sports & Hobbies</span>
             {selectedSubCategory && (
               <>
                 <span className="mx-2">›</span>
@@ -840,17 +877,26 @@ const AnimalsPage: React.FC = () => {
               selectedSubCategory={selectedSubCategory}
               selectedType={selectedType}
               onCategorySelect={setSelectedCategory}
-              onSubCategorySelect={setSelectedSubCategory}
-              onTypeSelect={setSelectedType}
+              onSubCategorySelect={(name, slug) => {
+                setSelectedSubCategory(name);
+                setSelectedSubCategorySlug(slug);
+              }}
+              onTypeSelect={(type, slug) => {
+                setSelectedType(type);
+                setSelectedTypeSlug(slug);
+              }}
             />
             <LocationSidebar />
-            <PriceRangeFilter />
-            <AnimalTypeFilter />
+            <PriceFilter />
+            <ConditionSelectBox />
+            {selectedSubCategorySlug && typeOptions[selectedSubCategorySlug] && (
+              <DynamicTypeFilterBox category={selectedSubCategorySlug} />
+            )}
           </div>
 
           <div className="w-full lg:w-3/4">
             <div className="md:hidden flex justify-between items-center mb-4">
-              <h1 className="text-xl font-bold">Animals</h1>
+              <h1 className="text-xl font-bold">Books, Sports & Hobbies</h1>
               <button 
                 onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
                 className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded"
@@ -862,11 +908,24 @@ const AnimalsPage: React.FC = () => {
             <div className="bg-white rounded-lg shadow-sm p-4 mb-4 flex justify-between items-center">
               <div className="text-sm text-gray-600">
                 {selectedSubCategory ? 
-                  `Showing ${selectedSubCategory} animals${selectedType ? ` (${selectedType})` : ''}` : 
-                  'Showing all Animals'}
+                  `Showing ${selectedSubCategory} products${selectedType ? ` (${selectedType})` : ''}` : 
+                  'Showing all Books, Sports & Hobbies products'}
               </div>
               
               <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Condition:</span>
+                  <select
+                    value={selectedCondition}
+                    onChange={(e) => setSelectedCondition(e.target.value)}
+                    className="border rounded p-2 text-sm"
+                  >
+                    <option value="all">All</option>
+                    <option value="new">New</option>
+                    <option value="used">Used</option>
+                  </select>
+                </div>
+
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-600">Sort by:</span>
                   <select
@@ -883,37 +942,17 @@ const AnimalsPage: React.FC = () => {
               </div>
             </div>
 
-            <AnimalCard 
-              animals={animals}
+            <BooksHobbiesProductCard 
+              products={products}
               loading={loading}
             />
             <div className="mt-6 flex justify-center">
               <nav className="flex items-center gap-1">
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1 rounded border text-sm disabled:opacity-50"
-                >
-                  Previous
-                </button>
-                {[...Array(lastPage)].map((_, i) => (
-                  <button
-                    key={i + 1}
-                    onClick={() => handlePageChange(i + 1)}
-                    className={`px-3 py-1 rounded border text-sm ${
-                      currentPage === i + 1 ? 'bg-blue-100 text-blue-600' : ''
-                    }`}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === lastPage}
-                  className="px-3 py-1 rounded border text-sm disabled:opacity-50"
-                >
-                  Next
-                </button>
+                <button className="px-3 py-1 rounded border text-sm">Previous</button>
+                <button className="px-3 py-1 rounded border bg-blue-600 text-white text-sm">1</button>
+                <button className="px-3 py-1 rounded border text-sm">2</button>
+                <button className="px-3 py-1 rounded border text-sm">3</button>
+                <button className="px-3 py-1 rounded border text-sm">Next</button>
               </nav>
             </div>
           </div>
@@ -935,53 +974,30 @@ const AnimalsPage: React.FC = () => {
               <div className="mb-6">
                 <div 
                   className="flex justify-between items-center cursor-pointer"
-                  onClick={() => toggleSection('type')}
+                  onClick={() => toggleSection('price')}
                 >
-                  <h4 className="font-medium text-gray-800">Animal Type</h4>
-                  {expandedSections.type ? <FiChevronUp /> : <FiChevronDown />}
+                  <h4 className="font-medium text-gray-800">Price</h4>
+                  {expandedSections.price ? <FiChevronUp /> : <FiChevronDown />}
                 </div>
-                {expandedSections.type && (
-                  <div className="mt-3 space-y-2">
-                    {subCategories['animals'].flatMap(sub => sub.types || []).map((type) => (
-                      <label key={type.name} className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={selectedFilters.type.includes(type.name)}
-                          onChange={() => handleFilterSelect('type', type.name)}
-                          className="h-4 w-4 text-blue-600 rounded"
-                        />
-                        <span className="text-gray-700 text-sm">
-                          {type.name}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="mb-6">
-                <div 
-                  className="flex justify-between items-center cursor-pointer"
-                  onClick={() => toggleSection('price_range')}
-                >
-                  <h4 className="font-medium text-gray-800">Price Range</h4>
-                  {expandedSections.price_range ? <FiChevronUp /> : <FiChevronDown />}
-                </div>
-                {expandedSections.price_range && (
-                  <div className="mt-3 space-y-2">
-                    {priceRanges.map((range) => (
-                      <label key={range} className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={selectedFilters.price_range.includes(range)}
-                          onChange={() => handleFilterSelect('price_range', range)}
-                          className="h-4 w-4 text-blue-600 rounded"
-                        />
-                        <span className="text-gray-700 text-sm">
-                          {range}
-                        </span>
-                      </label>
-                    ))}
+                {expandedSections.price && (
+                  <div className="mt-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <input
+                        type="number"
+                        placeholder="Min"
+                        className="w-24 p-2 border rounded text-sm"
+                        value={priceRange[0]}
+                        onChange={(e) => setPriceRange([Number(e.target.value), priceRange[1]])}
+                      />
+                      <span className="mx-2">to</span>
+                      <input
+                        type="number"
+                        placeholder="Max"
+                        className="w-24 p-2 border rounded text-sm"
+                        value={priceRange[1]}
+                        onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
+                      />
+                    </div>
                   </div>
                 )}
               </div>
@@ -1008,4 +1024,4 @@ const AnimalsPage: React.FC = () => {
   );
 };
 
-export default AnimalsPage;
+export default BooksHobbiesCategoryPage;

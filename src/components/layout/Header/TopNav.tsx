@@ -4,7 +4,7 @@ import styled from "styled-components";
 import { LuSquarePen } from "react-icons/lu";
 import Image from "next/image";
 import Link from "next/link";
-import logo from '@public/logo.jpg';
+import logo from '@public/logo.png';
 
 interface MenuLink {
   text: string;
@@ -229,12 +229,12 @@ const TopNav = () => {
   return (
     <Nav>
       {/* Logo on the left */}
-      <div className="col-1">
+      <div className="col-2">
         <Logo>
           <Image
             src={logo}
             alt="Logo"
-            style={{ width: '90px', height: '45px' }}
+            style={{ width: '250px', height: '90px' }}
             priority
           />
         </Logo>
