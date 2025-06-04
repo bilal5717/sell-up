@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { 
   FiChevronDown, 
@@ -13,10 +12,17 @@ import {
   LuHeart, 
   LuTag, 
   LuMapPin, 
-  LuWifi, 
+  LuWifi 
 } from 'react-icons/lu';
 import axios from 'axios';
 import { usePathname, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/router';
+import DynamicBrandFilter from '@/components/filters/DynamicBrandFilter';
+import ConditionFilter from '@/components/filters/condition';
+import LocationSidebar from '@/components/filters/Location';
+import PriceFilter from '@/components/filters/PriceFilter';
+import DynamicTypeFilterBox from '@/components/filters/DynamicTypeFilterBox';
+import DynamicCategorySidebar from '@/components/filters/DynamicCategoryFilter';
 
 // Interfaces
 interface SmartWatchProduct {
@@ -41,12 +47,7 @@ interface FilterState {
   condition: string[];
   location: string[];
   type: string[];
-}
-
-interface Brand {
-  name: string;
-  count: number;
-  models: string[];
+  brands: string[];
 }
 
 interface Category {
@@ -69,33 +70,16 @@ interface Province {
 }
 
 // Smart Watch-specific Data
+const WATCH_BRANDS = ['Apple', 'Samsung', 'Huawei', 'Xiaomi', 'Fitbit', 'Garmin', 'Other'];
+
 const smartWatchCategories: Category[] = [
-   { name: 'Mobile Phones', slug: 'mobile-phones' },
+  { name: 'Mobile Phones', slug: 'mobile-phones' },
   { name: 'Tablets', slug: 'tablets' },
   { name: 'Accessories', slug: 'accessories' },
   { name: 'Smart Watches', slug: 'smart-watches' },
 ];
 
-const smartWatchSubCategories: CategoryData = {
-  
-};
-
-const brandOptions: Record<string, Brand[]> = {
-  'Smart Watches': [
-    { name: 'Apple Watch', count: 12345, models: ['Series 9', 'Series 8', 'Series 7', 'SE', 'Ultra'] },
-    { name: 'Samsung Watch', count: 9876, models: ['Galaxy Watch 6', 'Galaxy Watch 5', 'Galaxy Watch 4'] },
-    { name: 'Fossil', count: 5432, models: ['Gen 6', 'Gen 5', 'Hybrid'] },
-    { name: 'Garmin', count: 4321, models: ['Venu', 'Forerunner', 'Fenix'] },
-  ],
-  'Fitness Trackers': [
-    { name: 'Fitbit', count: 7654, models: ['Charge 5', 'Versa 4', 'Sense 2'] },
-    { name: 'Xiaomi', count: 6543, models: ['Mi Band 7', 'Mi Band 6'] },
-  ],
-  'Watch Accessories': [
-    { name: 'Apple Bands', count: 3210, models: ['Sport Band', 'Milanese Loop', 'Leather Link'] },
-    { name: 'Samsung Bands', count: 2109, models: ['Sport Band', 'Hybrid Leather', 'Metal Band'] },
-  ]
-};
+const smartWatchSubCategories: CategoryData = {};
 
 const conditions = ['New', 'Used', 'Open Box', 'Refurbished', 'For Parts'];
 
@@ -115,492 +99,7 @@ const typeOptions: Record<string, { label: string; count: number }[]> = {
   ]
 };
 
-// Components (Reused from mobile with minor adjustments)
-const DynamicBrandModelFilter: React.FC<{ category: string }> = ({ category }) => {
-  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
-  const [selectedModels, setSelectedModels] = useState<string[]>([]);
-
-  const handleBrandSelect = (brand: string) => {
-    setSelectedBrand(brand);
-    setSelectedModels([]);
-  };
-
-  const handleModelSelect = (model: string) => {
-    if (selectedModels.includes(model)) {
-      setSelectedModels((prev) => prev.filter((m) => m !== model));
-    } else {
-      setSelectedModels((prev) => [...prev, model]);
-    }
-  };
-
-  const clearSelection = () => {
-    setSelectedBrand(null);
-    setSelectedModels([]);
-  };
-
-  const brands = brandOptions[category] || [];
-
-  return (
-    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-      <h3 className="font-bold text-lg mb-2">Brand & Model</h3>
-      <select
-        className="w-full border rounded p-2 text-gray-700 text-sm mb-2"
-        value={selectedBrand || ''}
-        onChange={(e) => handleBrandSelect(e.target.value)}
-      >
-        <option value="" disabled>Select Brand</option>
-        {brands.map((brand) => (
-          <option key={brand.name} value={brand.name}>
-            {brand.name} ({brand.count})
-          </option>
-        ))}
-      </select>
-
-      {!selectedBrand && (
-        <div className="flex flex-wrap gap-2 mt-2">
-          {brands.slice(0, 5).map((brand) => (
-            <button
-              key={brand.name}
-              onClick={() => handleBrandSelect(brand.name)}
-              className="text-blue-600 text-sm px-2 py-1 border border-gray-300 rounded hover:bg-gray-100"
-            >
-              {brand.name} ({brand.count})
-            </button>
-          ))}
-        </div>
-      )}
-
-      {selectedBrand && (
-        <div className="mt-2">
-          <div className="text-gray-700 text-sm mb-1">Select Models:</div>
-          <div className="flex flex-wrap gap-2">
-            {brands
-              .find((brand) => brand.name === selectedBrand)
-              ?.models.map((model) => (
-                <div
-                  key={model}
-                  className={`px-2 py-1 rounded border cursor-pointer ${
-                    selectedModels.includes(model)
-                      ? 'bg-blue-100 text-blue-700 border-blue-300'
-                      : 'text-gray-700 border-gray-300 hover:bg-gray-100'
-                  } text-sm`}
-                  onClick={() => handleModelSelect(model)}
-                >
-                  {model}
-                </div>
-              ))}
-          </div>
-
-          {selectedModels.length > 0 && (
-            <div className="mt-3 flex items-center">
-              <span className="text-gray-700 text-sm">Selected Models: </span>
-              <div className="flex flex-wrap gap-1 ml-2">
-                {selectedModels.map((model) => (
-                  <span
-                    key={model}
-                    className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-sm"
-                  >
-                    {model}
-                  </span>
-                ))}
-              </div>
-              <button
-                onClick={clearSelection}
-                className="ml-2 text-blue-600 text-xs"
-              >
-                Clear
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const DynamicCategorySidebar: React.FC<{
-  selectedCategory: string;
-  selectedSubCategory: string | null;
-  selectedType: string | null;
-  onCategorySelect: (category: string) => void;
-  onSubCategorySelect: (subCategory: string | null) => void;
-  onTypeSelect: (type: string | null) => void;
-}> = ({
-  selectedCategory,
-  selectedSubCategory,
-  selectedType,
-  onCategorySelect,
-  onSubCategorySelect,
-  onTypeSelect,
-}) => {
-  const toggleCategory = (slug: string) => {
-    onCategorySelect(slug);
-    onSubCategorySelect(null);
-    onTypeSelect(null);
-  };
-
-  const toggleSubCategory = (name: string) => {
-    if (selectedSubCategory === name) {
-      onSubCategorySelect(null);
-      onTypeSelect(null);
-    } else {
-      onSubCategorySelect(name);
-      onTypeSelect(null);
-    }
-  };
-
-  const toggleType = (type: string) => {
-    if (selectedType === type) {
-      onTypeSelect(null);
-    } else {
-      onTypeSelect(type);
-    }
-  };
-
-  return (
-    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-      <h3 className="font-bold text-lg mb-2">Smart Watch Categories</h3>
-      <div className="space-y-1">
-        {smartWatchCategories.map((category) => (
-          <div key={category.slug} className="cursor-pointer">
-            <Link 
-              href={`/${category.slug}`}
-              className={`py-1 px-2 hover:bg-gray-100 block ${selectedCategory === category.slug ? 'text-blue-600 font-medium' : 'text-gray-800'}`}
-              onClick={() => toggleCategory(category.slug)}
-              style={{ fontSize: '12px', lineHeight: '1.5' }}
-            >
-              {category.name}
-            </Link>
-
-            {selectedCategory === category.slug && smartWatchSubCategories[category.slug] && (
-              <div className="ml-4 space-y-1">
-                {smartWatchSubCategories[category.slug].map((sub, index) => (
-                  <div key={index}>
-                    <Link
-                      href={`/${category.slug}/${sub.name.toLowerCase().replace(/\s+/g, '-')}`}
-                      className={`py-1 cursor-pointer hover:text-blue-600 block ${selectedSubCategory === sub.name ? 'text-blue-600 font-medium' : 'text-gray-700'}`}
-                      onClick={() => toggleSubCategory(sub.name)}
-                      style={{ fontSize: '12px', lineHeight: '1.5' }}
-                    >
-                      {sub.name}
-                    </Link>
-                    {sub.types && selectedSubCategory === sub.name && (
-                      <div className="ml-4 space-y-1">
-                        {sub.types.map((type, i) => (
-                          <Link
-                            key={i}
-                            href={`/${category.slug}/${sub.name.toLowerCase().replace(/\s+/g, '-')}/${type.toLowerCase().replace(/\s+/g, '-')}_id`}
-                            className={`py-1 cursor-pointer hover:text-blue-600 block ${selectedType === type ? 'text-blue-600 font-medium' : 'text-gray-600'}`}
-                            style={{ fontSize: '12px', lineHeight: '1.5' }}
-                            onClick={() => toggleType(type)}
-                          >
-                            - {type}
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-const ConditionSelectBox: React.FC = () => {
-  const [selectedCondition, setSelectedCondition] = useState<string | null>(null);
-
-  const handleConditionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedCondition(e.target.value);
-  };
-
-  const clearCondition = () => {
-    setSelectedCondition(null);
-  };
-
-  return (
-    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-      <h3 className="font-bold text-lg mb-2">Condition</h3>
-      {selectedCondition ? (
-        <div className="flex justify-between items-center bg-gray-100 p-2 rounded text-gray-700">
-          <span className="text-sm">{selectedCondition}</span>
-          <button
-            onClick={clearCondition}
-            className="text-blue-600 text-xs"
-          >
-            Change
-          </button>
-        </div>
-      ) : (
-        <select
-          className="w-full border rounded p-2 text-gray-700 text-sm"
-          value={selectedCondition || ''}
-          onChange={handleConditionChange}
-        >
-          <option value="" disabled>Select Condition</option>
-          {conditions.map((condition) => (
-            <option key={condition} value={condition}>
-              {condition}
-            </option>
-          ))}
-        </select>
-      )}
-    </div>
-  );
-};
-
-const LocationSidebar: React.FC = () => {
-  const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
-  const [selectedCity, setSelectedCity] = useState<string | null>(null);
-  const [showMoreCities, setShowMoreCities] = useState<boolean>(false);
-  const [isLocationSelected, setIsLocationSelected] = useState<boolean>(false);
-
-  const toggleShowMoreCities = () => setShowMoreCities((prev) => !prev);
-
-  const handleProvinceSelect = (province: string) => {
-    setSelectedProvince(province);
-    setSelectedCity(null);
-    setIsLocationSelected(false);
-  };
-
-  const handleCitySelect = (city: string) => {
-    setSelectedCity(city);
-    setIsLocationSelected(true);
-  };
-
-  const clearSelection = () => {
-    setSelectedProvince(null);
-    setSelectedCity(null);
-    setIsLocationSelected(false);
-  };
-
-  return (
-    <div className="bg-white rounded-lg shadow-sm p-4">
-      <h3 className="font-bold text-lg mb-2">Locations</h3>
-      <div className="space-y-2">
-        {isLocationSelected && selectedCity && (
-          <div className="flex justify-between items-center bg-gray-100 p-2 rounded text-gray-700">
-            <span className="text-sm">{selectedProvince} - {selectedCity}</span>
-            <button
-              onClick={clearSelection}
-              className="text-blue-600 text-xs"
-            >
-              Change
-            </button>
-          </div>
-        )}
-
-        {!isLocationSelected && (
-          <>
-            <select
-              className="w-full border rounded p-2 text-gray-700 text-sm"
-              value={selectedProvince || ''}
-              onChange={(e) => handleProvinceSelect(e.target.value)}
-            >
-              <option value="" disabled>Select Province</option>
-              {provinces.map((province) => (
-                <option key={province.name} value={province.name}>
-                  {province.name}
-                </option>
-              ))}
-            </select>
-
-            {selectedProvince && (
-              <div className="mt-2 space-y-1">
-                {provinces
-                  .find((prov) => prov.name === selectedProvince)?.cities
-                  .slice(0, showMoreCities ? undefined : 5)
-                  .map((city, index) => (
-                    <div
-                      key={index}
-                      className={`py-1 px-2 text-gray-700 hover:bg-gray-100 cursor-pointer ${
-                        selectedCity === city ? 'bg-blue-100' : ''
-                      }`}
-                      style={{ fontSize: '12px', lineHeight: '1.5' }}
-                      onClick={() => handleCitySelect(city)}
-                    >
-                      {city}
-                    </div>
-                  ))}
-                {provinces.find((prov) => prov.name === selectedProvince)?.cities.length! > 5 && (
-                  <button
-                    onClick={toggleShowMoreCities}
-                    className="text-blue-600 text-sm mt-1"
-                  >
-                    {showMoreCities ? 'Show Less' : 'Show More'}
-                  </button>
-                )}
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const PriceFilter: React.FC = () => {
-  const [minPrice, setMinPrice] = useState<number | ''>('');
-  const [maxPrice, setMaxPrice] = useState<number | ''>('');
-  const [isPriceSet, setIsPriceSet] = useState<boolean>(false);
-  const [isDeliverable, setIsDeliverable] = useState<boolean>(false);
-
-  const handleMinPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value);
-    setMinPrice(isNaN(value) ? '' : value);
-    setIsPriceSet(false);
-  };
-
-  const handleMaxPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value);
-    setMaxPrice(isNaN(value) ? '' : value);
-    setIsPriceSet(false);
-  };
-
-  const applyPriceFilter = () => {
-    setIsPriceSet(true);
-  };
-
-  const clearPriceFilter = () => {
-    setMinPrice('');
-    setMaxPrice('');
-    setIsPriceSet(false);
-  };
-
-  const toggleIsDeliverable = () => {
-    setIsDeliverable((prev) => !prev);
-  };
-
-  const clearAllFilters = () => {
-    clearPriceFilter();
-    setIsDeliverable(false);
-  };
-
-  return (
-    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-      <h3 className="font-bold text-lg mb-2">Price</h3>
-      <div className="space-y-2">
-        {isPriceSet ? (
-          <div className="flex justify-between items-center bg-gray-100 p-2 rounded text-gray-700">
-            <span className="text-sm">
-              {minPrice || maxPrice ? `Rs ${minPrice || '0'} - Rs ${maxPrice || 'Any'}` : 'Any'}
-            </span>
-            <button
-              onClick={clearPriceFilter}
-              className="text-blue-600 text-xs"
-            >
-              Change
-            </button>
-          </div>
-        ) : (
-          <div className="flex gap-2">
-            <input
-              type="number"
-              placeholder="Min"
-              value={minPrice}
-              onChange={handleMinPriceChange}
-              className="w-1/2 p-2 border rounded text-gray-700 text-sm"
-              min={0}
-            />
-            <input
-              type="number"
-              placeholder="Max"
-              value={maxPrice}
-              onChange={handleMaxPriceChange}
-              className="w-1/2 p-2 border rounded text-gray-700 text-sm"
-              min={0}
-            />
-            <button
-              onClick={applyPriceFilter}
-              className="text-blue-600 text-sm px-2 py-1 border rounded"
-            >
-              Apply
-            </button>
-          </div>
-        )}
-      </div>
-
-      <div className="mt-4 flex items-center">
-        <input
-          type="checkbox"
-          id="isDeliverable"
-          checked={isDeliverable}
-          onChange={toggleIsDeliverable}
-          className="mr-2 h-4 w-4 text-blue-600 rounded"
-        />
-        <label htmlFor="isDeliverable" className="text-gray-700 text-sm">Is Deliverable</label>
-      </div>
-
-      {isDeliverable && (
-        <div className="mt-2 text-gray-600 text-sm">
-          Deliverable: Yes
-        </div>
-      )}
-
-      <button
-        onClick={clearAllFilters}
-        className="text-blue-600 text-sm mt-3"
-      >
-        Clear All
-      </button>
-    </div>
-  );
-};
-
-const DynamicTypeFilterBox: React.FC<{ category: string }> = ({ category }) => {
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-
-  const handleTypeChange = (type: string) => {
-    if (selectedTypes.includes(type)) {
-      setSelectedTypes((prev) => prev.filter((t) => t !== type));
-    } else {
-      setSelectedTypes((prev) => [...prev, type]);
-    }
-  };
-
-  const clearSelection = () => {
-    setSelectedTypes([]);
-  };
-
-  const types = typeOptions[category] || [];
-
-  return (
-    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-      <h3 className="font-bold text-lg mb-2">Connectivity</h3>
-      {selectedTypes.length > 0 ? (
-        <div className="flex justify-between items-center bg-gray-100 p-2 rounded text-gray-700">
-          <span className="text-sm">{selectedTypes.join(', ')}</span>
-          <button
-            onClick={clearSelection}
-            className="text-blue-600 text-xs"
-          >
-            Change
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-1">
-          {types.map((type) => (
-            <label key={type.label} className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={selectedTypes.includes(type.label)}
-                onChange={() => handleTypeChange(type.label)}
-                className="h-4 w-4 text-blue-600 rounded"
-              />
-              <span className="text-gray-700 text-sm">
-                {type.label} ({type.count})
-              </span>
-            </label>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
+// Components
 const SmartWatchProductCard: React.FC<{
   products: SmartWatchProduct[];
   loading?: boolean;
@@ -609,7 +108,6 @@ const SmartWatchProductCard: React.FC<{
   loading = false
 }) => {
   const [likedProducts, setLikedProducts] = useState<Set<number>>(new Set());
- 
   
   const toggleLike = useCallback((productId: number) => {
     setLikedProducts(prev => {
@@ -724,7 +222,7 @@ const SmartWatchProductCard: React.FC<{
 };
 
 const SmartWatchPage: React.FC = () => {
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000000]);
+  const [priceRange, setPriceRange] = useState<[number | '', number | '']>(['', '']);
   const [selectedCategory, setSelectedCategory] = useState<string>('smart-watches');
   const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
@@ -732,6 +230,7 @@ const SmartWatchPage: React.FC = () => {
     condition: [],
     location: [],
     type: [],
+    brands: [],
   });
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState<boolean>(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
@@ -740,14 +239,15 @@ const SmartWatchPage: React.FC = () => {
     condition: true,
     location: true,
     type: true,
+    brands: true,
   });
   const [sortBy, setSortBy] = useState<string>('newest');
-  const [selectedCondition, setSelectedCondition] = useState<string>('all');
   const [products, setProducts] = useState<SmartWatchProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
+
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({
       ...prev,
@@ -755,47 +255,157 @@ const SmartWatchPage: React.FC = () => {
     }));
   };
 
-  const handleFilterSelect = (filterType: keyof FilterState, value: string) => {
-    setSelectedFilters(prev => {
-      const currentValues = prev[filterType];
-      const newValues = currentValues.includes(value)
-        ? currentValues.filter(v => v !== value)
-        : [...currentValues, value];
+  const handlePriceChange = (minPrice: number | '', maxPrice: number | '') => {
+    setPriceRange([minPrice, maxPrice]);
+  };
 
-      return {
-        ...prev,
-        [filterType]: newValues,
-      };
-    });
+  const handleConditionChange = (conditions: string[]) => {
+    setSelectedFilters(prev => ({
+      ...prev,
+      condition: conditions,
+    }));
+  };
+
+  const handleBrandChange = (brands: string[]) => {
+    setSelectedFilters(prev => ({
+      ...prev,
+      brands,
+    }));
+  };
+
+  const handleTypeChange = (types: string[]) => {
+    setSelectedFilters(prev => ({
+      ...prev,
+      type: types,
+    }));
   };
 
   const clearFilters = () => {
-    setPriceRange([0, 1000000]);
+    setPriceRange(['', '']);
     setSelectedFilters({
       condition: [],
       location: [],
       type: [],
+      brands: [],
     });
     setSelectedSubCategory(null);
     setSelectedType(null);
+    router.push(pathname, undefined, { shallow: true });
   };
 
   useEffect(() => {
     const fetchSmartWatchProducts = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('http://127.0.0.1:8000/api/smart-watches');
-        console.log(response.data);
+        
+        // Construct filter string
+        const filterParts: string[] = [];
+
+        // Add condition filters
+        selectedFilters.condition.forEach(condition => {
+          filterParts.push(`new_used_eq_${condition.toLowerCase()}`);
+        });
+
+        // Add brand filters
+        selectedFilters.brands.forEach(brand => {
+          filterParts.push(`brand_eq_${encodeURIComponent(brand)}`);
+        });
+
+        // Add price filters
+        if (priceRange[0] !== '' && priceRange[1] !== '') {
+          filterParts.push(`price_between_${priceRange[0]}_to_${priceRange[1]}`);
+        } else if (priceRange[0] !== '') {
+          filterParts.push(`price_from_${priceRange[0]}`);
+        } else if (priceRange[1] !== '') {
+          filterParts.push(`price_to_${priceRange[1]}`);
+        }
+
+        // Add type filters
+        selectedFilters.type.forEach(type => {
+          filterParts.push(`connectivity_eq_${encodeURIComponent(type)}`);
+        });
+
+        const query = new URLSearchParams();
+        if (filterParts.length > 0) {
+          query.append('filter', filterParts.join(','));
+        }
+        if (sortBy) {
+          query.append('sort_by', sortBy);
+        }
+
+        // Fetch products
+        const response = await axios.get(`http://127.0.0.1:8000/api/smart-watches?${query.toString()}`);
         setProducts(response.data);
       } catch (error) {
         console.error('Error fetching smart watch products:', error);
+        setProducts([]);
       } finally {
         setLoading(false);
       }
     };
     
     fetchSmartWatchProducts();
-  }, []);
+  }, [selectedCategory, selectedSubCategory, selectedFilters, priceRange, sortBy]);
+
+  useEffect(() => {
+    // Initialize filters from URL
+    const filter = searchParams.get('filter');
+    const newFilters: FilterState = {
+      condition: [],
+      location: [],
+      type: [],
+      brands: [],
+    };
+    let minPrice: number | '' = '';
+    let maxPrice: number | '' = '';
+
+    if (filter) {
+      const filterParts = filter.split(',').filter(f => f);
+      filterParts.forEach(part => {
+        if (part.startsWith('new_used_eq_')) {
+          const condition = part.replace('new_used_eq_', '');
+          const conditionMap: Record<string, string> = {
+            new: 'New',
+            used: 'Used',
+            open_box: 'Open Box',
+            refurbished: 'Refurbished',
+            for_parts: 'For Parts',
+          };
+          if (conditionMap[condition] && !newFilters.condition.includes(conditionMap[condition])) {
+            newFilters.condition.push(conditionMap[condition]);
+          }
+        } else if (part.startsWith('brand_eq_')) {
+          const brand = decodeURIComponent(part.replace('brand_eq_', ''));
+          if (WATCH_BRANDS.includes(brand) && !newFilters.brands.includes(brand)) {
+            newFilters.brands.push(brand);
+          }
+        } else if (part.startsWith('connectivity_eq_')) {
+          const type = decodeURIComponent(part.replace('connectivity_eq_', ''));
+          if (typeOptions['Smart Watches'].some(t => t.label === type) && !newFilters.type.includes(type)) {
+            newFilters.type.push(type);
+          }
+        } else if (part.startsWith('price_between_')) {
+          const [, min, max] = part.match(/price_between_(\d+)_to_(\d+)/) || [];
+          if (min && max) {
+            minPrice = parseInt(min);
+            maxPrice = parseInt(max);
+          }
+        } else if (part.startsWith('price_from_')) {
+          const [, min] = part.match(/price_from_(\d+)/) || [];
+          if (min) minPrice = parseInt(min);
+        } else if (part.startsWith('price_to_')) {
+          const [, max] = part.match(/price_to_(\d+)/) || [];
+          if (max) maxPrice = parseInt(max);
+        }
+      });
+    }
+
+    setSelectedFilters(newFilters);
+    setPriceRange([minPrice, maxPrice]);
+
+    const sort = searchParams.get('sort_by');
+    if (sort) setSortBy(sort);
+  }, [searchParams]);
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -804,12 +414,12 @@ const SmartWatchPage: React.FC = () => {
           <div className="flex items-center text-sm text-gray-600">
             <Link href="/" className="hover:text-blue-600">Home</Link>
             <span className="mx-2">›</span>
-            <Link href="/smart-watches_c1" className="hover:text-blue-600">Smart Watches</Link>
+            <Link href="/smart-watches" className="hover:text-blue-600">Smart Watches</Link>
             {selectedSubCategory && (
               <>
                 <span className="mx-2">›</span>
                 <Link 
-                  href={`/smart-watches/${selectedSubCategory.toLowerCase().replace(/\s+/g, '-')}_id`} 
+                  href={`/smart-watches/${selectedSubCategory.toLowerCase().replace(/\s+/g, '-')}`} 
                   className="hover:text-blue-600"
                 >
                   {selectedSubCategory}
@@ -832,9 +442,18 @@ const SmartWatchPage: React.FC = () => {
               onTypeSelect={setSelectedType}
             />
             <LocationSidebar />
-            <PriceFilter />
-            <DynamicBrandModelFilter category={selectedCategory} />
-            <ConditionSelectBox />
+            <PriceFilter 
+              minPrice={priceRange[0]}
+              maxPrice={priceRange[1]}
+              onPriceChange={handlePriceChange}
+            />
+            <DynamicBrandFilter 
+              selectedBrands={selectedFilters.brands}
+              onBrandChange={handleBrandChange}
+            />
+            <ConditionFilter 
+              
+            />
             {selectedCategory === 'smart-watches' && (
               <DynamicTypeFilterBox category="Smart Watches" />
             )}
@@ -857,19 +476,6 @@ const SmartWatchPage: React.FC = () => {
               </div>
               
               <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600">Condition:</span>
-                  <select
-                    value={selectedCondition}
-                    onChange={(e) => setSelectedCondition(e.target.value)}
-                    className="border rounded p-2 text-sm"
-                  >
-                    <option value="all">All</option>
-                    <option value="new">New</option>
-                    <option value="used">Used</option>
-                  </select>
-                </div>
-
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-600">Sort by:</span>
                   <select
@@ -915,36 +521,64 @@ const SmartWatchPage: React.FC = () => {
             </div>
             
             <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-              <div className="mb-6">
-                <div 
-                  className="flex justify-between items-center cursor-pointer"
-                  onClick={() => toggleSection('price')}
-                >
-                  <h4 className="font-medium text-gray-800">Price</h4>
-                  {expandedSections.price ? <FiChevronUp /> : <FiChevronDown />}
-                </div>
-                {expandedSections.price && (
-                  <div className="mt-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <input
-                        type="number"
-                        placeholder="Min"
-                        className="w-24 p-2 border rounded text-sm"
-                        value={priceRange[0]}
-                        onChange={(e) => setPriceRange([Number(e.target.value), priceRange[1]])}
-                      />
-                      <span className="mx-2">to</span>
-                      <input
-                        type="number"
-                        placeholder="Max"
-                        className="w-24 p-2 border rounded text-sm"
-                        value={priceRange[1]}
-                        onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
-                      />
-                    </div>
-                  </div>
-                )}
+              <div 
+                className="flex justify-between items-center cursor-pointer"
+                onClick={() => toggleSection('price')}
+              >
+                <h4 className="font-medium text-gray-800">Price</h4>
+                {expandedSections.price ? <FiChevronUp /> : <FiChevronDown />}
               </div>
+              {expandedSections.price && (
+                <PriceFilter 
+                  minPrice={priceRange[0]}
+                  maxPrice={priceRange[1]}
+                  onPriceChange={handlePriceChange}
+                />
+              )}
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+              <div 
+                className="flex justify-between items-center cursor-pointer"
+                onClick={() => toggleSection('brands')}
+              >
+                <h4 className="font-medium text-gray-800">Brands</h4>
+                {expandedSections.brands ? <FiChevronUp /> : <FiChevronDown />}
+              </div>
+              {expandedSections.brands && (
+                <DynamicBrandFilter 
+                  selectedBrands={selectedFilters.brands}
+                  onBrandChange={handleBrandChange}
+                />
+              )}
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+              <div 
+                className="flex justify-between items-center cursor-pointer"
+                onClick={() => toggleSection('condition')}
+              >
+                <h4 className="font-medium text-gray-800">Condition</h4>
+                {expandedSections.condition ? <FiChevronUp /> : <FiChevronDown />}
+              </div>
+              {expandedSections.condition && (
+                <ConditionFilter 
+                  
+                />
+              )}
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+              <div 
+                className="flex justify-between items-center cursor-pointer"
+                onClick={() => toggleSection('type')}
+              >
+                <h4 className="font-medium text-gray-800">Connectivity</h4>
+                {expandedSections.type ? <FiChevronUp /> : <FiChevronDown />}
+              </div>
+              {expandedSections.type && (
+                <DynamicTypeFilterBox category="Smart Watches" />
+              )}
             </div>
 
             <div className="flex gap-2">

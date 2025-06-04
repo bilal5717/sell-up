@@ -10,10 +10,7 @@ const nextConfig = {
   async rewrites() {
     return [
       // Specific mobile-related routes
-      {
-        source: '/mobiles_:slug',
-        destination: '/products/mobiles/:slug',
-      },
+     
       {
         source: '/mobiles',
         destination: '/products/mobiles',
